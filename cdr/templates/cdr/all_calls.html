@@ -1,0 +1,25 @@
+{% block content %}
+<h1>All Calls</h1>
+<table>
+  <thead>
+    <tr>
+      <th>#</th>
+      <th>Date Time</th>
+      <th>Caller</th>
+      <th>Called Number</th>
+      <th>External Number</th>
+    </tr>
+  </thead>
+  <tbody>
+    {% for record in call_records %}
+    <tr>
+      <td>{{ forloop.counter }}</td>
+      <td>{{ record.call_time }}</td>
+      <td>{{ record.caller }}</td>
+      <td>{{ record.callee }}</td>
+      <td>{{ record.external_number }}</td>
+    </tr>
+    {% endfor %}
+  </tbody>
+</table>
+{% endblock %}

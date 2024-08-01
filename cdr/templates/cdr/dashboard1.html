@@ -1,0 +1,69 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Dashboard</title>
+</head>
+<body>
+    <h1>Call Records Dashboard</h1>
+    <form method="get">
+        <select name="time_period" onchange="this.form.submit()">
+            <option value="today" {% if time_period == 'today' %}selected{% endif %}>Today</option>
+            <option value="yesterday" {% if time_period == 'yesterday' %}selected{% endif %}>Yesterday</option>
+            <option value="last_7_days" {% if time_period == 'last_7_days' %}selected{% endif %}>Last 7 Days</option>
+            <option value="this_month" {% if time_period == 'this_month' %}selected{% endif %}>This Month</option>
+            <option value="last_month" {% if time_period == 'last_month' %}selected{% endif %}>Last Month</option>
+            <option value="this_year" {% if time_period == 'this_year' %}selected{% endif %}>This Year</option>
+            <option value="custom" {% if time_period == 'custom' %}selected{% endif %}>Custom</option>
+        </select>
+        <input type="date" name="start_date" {% if time_period == 'custom' %}value="{{ request.GET.start_date }}"{% endif %}>
+        <input type="date" name="end_date" {% if time_period == 'custom' %}value="{{ request.GET.end_date }}"{% endif %}>
+        <button type="submit">Filter</button>
+    </form>
+
+    <h2>Statistics</h2>
+    <ul>
+        <li>Total External Calls: {{ total_external_calls }}</li>
+        <li>Total International Calls: {{ total_international_calls }}</li>
+        <li>Total National Mobile Calls (Saudi Arabia): {{ total_national_mobile_calls }}</li>
+        <li>Total National Calls (Saudi Arabia): {{ total_national_calls }}</li>
+    </ul>
+
+    <h2>Top Talking Countries</h2>
+    <ul>
+        {% for country, count in top_talking_countries %}
+            <li>{{ country }}: {{ count }}</li>
+        {% endfor %}
+    </ul>
+
+    <h2>Call Records</h2>
+    <table>
+        <thead>
+            <tr>
+                <th>Caller</th>
+                <th>Callee</th>
+                <th>Call Time</th>
+                <th>External Number</th>
+                <th>Country</th>
+                <th>Actions</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for record in call_records %}
+                <tr>
+                    <td>{{ record.caller }}</td>
+                    <td>{{ record.callee }}</td>
+                    <td>{{ record.call_time }}</td>
+                    <td>{{ record.external_number }}</td>
+                    <td>
+                        <form method="post" action="{% url 'cdr3cx:update_country' record.id %}">
+                            {% csrf_token %}
+                            <input type="text" name="country" value="{{ record.country }}">
+                            <button type="submit">Update</button>
+                        </form>
+                    </td>
+                </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+</body>
+</html>

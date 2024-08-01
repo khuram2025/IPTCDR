@@ -1,0 +1,13 @@
+sudo service nginx restart
+sudo systemctl restart nginx
+
+
+python manage.py makemigrations
+python manage.py migrate
+
+cd cdr 
+python manage.py runserver 0.0.0.0:8002
+
+python 
+
+sudo systemctl start socket_server.service

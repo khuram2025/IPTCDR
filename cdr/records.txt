@@ -2812,3 +2812,16 @@ Call 2024/08/01 02:45:14,5964,10001,00:00:09,2024/08/01 02:45:14,2024/08/01 02:4
 Call 2024/08/01 02:47:59,8000,10001,00:01:01,2024/08/01 02:47:59,2024/08/01 02:49:00,Failed,FailedBXferOfSrc,,505857781,Ext.8000,8000,175,175,Line,Ivr,LineSet,505857781:Main Number,WelcomeMessage,175
 Call 2024/08/01 02:50:13,0590964890,1001,,,2024/08/01 02:50:19,Failed,,,Ext.1001,0590964890,0590964890,,,Extension,LineSet,,Husnain Mohammed,0590964890,
 Call 2024/08/01 03:07:16,5964,10001,00:00:05,2024/08/01 03:07:17,2024/08/01 03:07:23,TerminatedBySrc,ReplacedDst,,590964890,Ext.5964,5964,Ext.8000,8000,Line,ServiceCall,Ivr,590964890:CDR,,WelcomeMessage
+Call 2024/08/01 03:28:19,0590964890,1001,,,2024/08/01 03:28:24,Failed,,,Ext.1001,0590964890,0590964890,,,Extension,LineSet,,Husnain Mohammed,0590964890,
+Call 2024/08/01 03:32:00,0590964890,1001,,,2024/08/01 03:32:06,Failed,,,Ext.1001,0590964890,0590964890,,,Extension,LineSet,,Husnain Mohammed,0590964890,
+Call 2024/08/01 03:33:15,0590964890,1001,,,2024/08/01 03:33:21,Failed,,,Ext.1001,0590964890,0590964890,,,Extension,LineSet,,Husnain Mohammed,0590964890,
+Call 2024/08/01 03:34:49,0590964890,1001,,,2024/08/01 03:34:56,Failed,,,Ext.1001,0590964890,0590964890,,,Extension,LineSet,,Husnain Mohammed,0590964890,
+GET /.env HTTP/1.1
+Host: 52.7.101.147:8000
+User-Agent: curl/7.68.0
+Connection: Close
+GET / HTTP/1.1
+Host: 52.7.101.147:8000
+User-Agent: Expanse, a Palo Alto Networks company, searches across the global IPv4 space multiple times per day to identify customers&#39; presences on the Internet. If you would like to be excluded from our scans, please send IP addresses/domains to: scaninfo@paloaltonetworks.com
+Accept-Encoding: gzip
+Call 2024/08/01 03:43:57,8000,10001,00:00:03,2024/08/01 03:43:57,2024/08/01 03:44:00,TerminatedBySrc,,,00251956586742,Ext.8000,8000,,,Line,Ivr,,00251956586742:Main Number,WelcomeMessage,

@@ -11,6 +11,8 @@ urlpatterns = [
     path('', views.dashboard, name='dashboard'),
     path('update_country/<int:record_id>/', views.update_country, name='update_country'),
     path('all_calls/', views.all_calls_view, name='all_calls'),
+    path('outgoing/', views.outgoingExtCalls, name='outgoing'),
+
     path('local_calls/', views.local_calls_view, name='local_calls'),
     path('national_calls/', views.national_calls_view, name='national_calls'),
     path('international_calls/', views.international_calls_view, name='international_calls'),

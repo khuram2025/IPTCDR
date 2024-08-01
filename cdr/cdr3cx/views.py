@@ -200,6 +200,31 @@ def all_calls_view(request):
 
     return render(request, 'cdr/all_calls1.html', {'page_obj': page_obj, 'paginator': paginator, 'search_query': search_query, 'per_page': per_page})
 
+
+
+def outgoingExtCalls(request):
+    search_query = request.GET.get('search', '')
+    per_page = request.GET.get('per_page', 100)
+
+    # Ensure per_page is an integer, defaulting to 100 if not a valid integer
+    try:
+        per_page = int(per_page)
+    except ValueError:
+        per_page = 100
+
+    call_records = CallRecord.objects.filter(to_type="LineSet")
+
+    if search_query:
+        call_records = call_records.filter(caller__icontains=search_query) | call_records.filter(callee__icontains=search_query)
+
+    paginator = Paginator(call_records, per_page)
+    page_number = request.GET.get('page')
+    page_obj = paginator.get_page(page_number)
+
+    return render(request, 'cdr/outgoingExtCalls.html', {'page_obj': page_obj, 'paginator': paginator, 'search_query': search_query, 'per_page': per_page})
+
+
+
 def local_calls_view(request):
     call_records = CallRecord.objects.annotate(callee_length=Length('callee')).filter(callee_length=4)
     return render(request, 'cdr/local_calls.html', {'call_records': call_records})

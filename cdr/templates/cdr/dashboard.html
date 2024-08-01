@@ -118,7 +118,7 @@
                                             <div class="card-body">
                                                 <div class="d-flex align-items-center">
                                                     <div class="flex-grow-1 overflow-hidden">
-                                                        <p class="text-uppercase fw-medium text-muted text-truncate mb-0">Local Calls
+                                                        <p class="text-uppercase fw-medium text-muted text-truncate mb-0">Outgoing Calls
                                                         </p>
                                                     </div>
                                                     <div class="flex-shrink-0">
@@ -131,7 +131,7 @@
                                                     <div>
                                                         <h4 class="fs-22 fw-semibold ff-secondary mb-4"><span
                                                                 class="counter-value" data-target="{{total_local_calls }}">0</span></h4>
-                                                        <a href="" class="text-decoration-underline">View all locals</a>
+                                                        <a href="{% url 'cdr3cx:outgoing' %}" class="text-decoration-underline">See Details</a>
                                                     </div>
                                                     <div class="avatar-sm flex-shrink-0">
                                                         <span class="avatar-title bg-info-subtle rounded fs-3">

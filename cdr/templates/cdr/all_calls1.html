@@ -1,4 +1,5 @@
 {% extends "partials/base.html" %}
+{% load custom_filters %}
 {% load static %}
 {% block title %}Dashboard{% endblock title %}
 {% block extra_css %}
@@ -56,10 +57,11 @@
                     <table id="ajax-datatables" class="display table table-bordered dt-responsive dataTable dtr-inline" style="width: 100%" aria-describedby="ajax-datatables_info">
                       <thead>
                         <tr>
-                          <th class="sorting sorting_asc" tabindex="0" aria-controls="ajax-datatables" rowspan="1" colspan="1" style="width: 50px" aria-label="Number: activate to sort column descending" aria-sort="ascending">#</th>
+                          <th class="sorting sorting_asc" tabindex="0" aria-controls="ajax-datatables" rowspan="1" colspan="1" style="width: 25px" aria-label="Number: activate to sort column descending" aria-sort="ascending">#</th>
                           <th class="sorting" tabindex="0" aria-controls="ajax-datatables" rowspan="1" colspan="1" style="width: 200px" aria-label="DateTime: activate to sort column ascending">Date Time</th>
                           <th class="sorting" tabindex="0" aria-controls="ajax-datatables" rowspan="1" colspan="1" style="width: 200px" aria-label="Caller: activate to sort column ascending">Caller</th>
                           <th class="sorting" tabindex="0" aria-controls="ajax-datatables" rowspan="1" colspan="1" style="width: 200px" aria-label="Called Number: activate to sort column ascending">Called Number</th>
+                          <th class="sorting" tabindex="0" aria-controls="ajax-datatables" rowspan="1" colspan="1" style="width: 200px" aria-label="Called Number: activate to sort column ascending">Time</th>
                         </tr>
                       </thead>
                       <tbody>
@@ -67,8 +69,9 @@
                         <tr class="odd">
                           <td class="sorting_1 dtr-control" tabindex="0">{{ forloop.counter }}</td>
                           <td>{{ record.call_time|date:"d M, Y h:i A" }}</td>
-                          <td>{{ record.caller }}</td>
+                          <td>{{ record.from_no|format_from_no }}</td>
                           <td>{{ record.callee }}</td>
+                          <td>{{ record.duration }}</td>
                         </tr>
                         {% endfor %}
                       </tbody>

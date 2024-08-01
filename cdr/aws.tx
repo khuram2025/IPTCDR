@@ -1,3 +1,9 @@
+CONCATENATE("http://44.220.183.171:8002/get-caller/?caller_number=",callflow$.callerNumber)
+
+https://iptportal.channab.com/get-caller/?caller_number=0590964890
+
+CONCATENATE("https://iptportal.channab.com/get-caller/?caller_number=",callflow$.callerNumber)
+
 sudo service nginx restart
 sudo systemctl restart nginx
 
@@ -11,3 +17,9 @@ python manage.py runserver 0.0.0.0:8002
 python 
 
 sudo systemctl start socket_server.service
+
+
+cd /home/ubuntu/3CX
+git add .
+git commit -m "Initial commit"
+git push -u origin master

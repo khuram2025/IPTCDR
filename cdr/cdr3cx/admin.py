@@ -10,7 +10,7 @@ class CallRecordAdmin(admin.ModelAdmin):
         'final_dn', 'from_type', 'to_type', 'final_type', 'from_dispname', 
         'to_dispname', 'final_dispname'
     )
-    list_filter = ('call_time','from_no', 'callee')
+    list_filter = ('call_time','from_type','from_no', 'callee')
     search_fields = ('caller', 'callee', 'external_number', 'from_no', 'to_no', 'final_number')
     date_hierarchy = 'call_time'
 

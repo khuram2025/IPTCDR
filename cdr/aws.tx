@@ -7,6 +7,7 @@ CONCATENATE("https://iptportal.channab.com/get-caller/?caller_number=",callflow$
 sudo service nginx restart
 sudo systemctl restart nginx
 
+source  3CX/venv/bin/activate
 
 python manage.py makemigrations
 python manage.py migrate

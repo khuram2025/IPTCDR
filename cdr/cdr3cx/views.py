@@ -13,6 +13,7 @@ from .project_numbers import COUNTRY_CODES
 from .models import CallRecord
 from django.shortcuts import render
 from django.db.models.functions import Length
+from django.db.models import Q
 import phonenumbers
 from django.shortcuts import redirect
 from django.core.paginator import Paginator
@@ -142,7 +143,12 @@ def dashboard(request):
 
     # Calculate statistics
     total_calls = call_records.count()
-    total_external_calls = call_records.exclude(external_number='Unknown').count()
+   
+    total_external_calls = call_records.filter(
+        Q(callee__regex=r'^\d{10}$') |
+        Q(callee__regex=r'^\+966\d{9}$') |
+        Q(callee__regex=r'^00966\d{9}$')
+    ).count()
     total_international_calls = call_records.filter(callee__startswith='00').count()
     
     # Use annotate to filter national mobile calls by length
@@ -212,7 +218,7 @@ def outgoingExtCalls(request):
     except ValueError:
         per_page = 100
 
-    call_records = CallRecord.objects.filter(to_type="LineSet")
+    call_records = CallRecord.objects.filter(Q(to_type="LineSet") | Q(to_type="Line"))
 
     if search_query:
         call_records = call_records.filter(caller__icontains=search_query) | call_records.filter(callee__icontains=search_query)
@@ -223,8 +229,55 @@ def outgoingExtCalls(request):
 
     return render(request, 'cdr/outgoingExtCalls.html', {'page_obj': page_obj, 'paginator': paginator, 'search_query': search_query, 'per_page': per_page})
 
+def incomingCalls(request):
+    search_query = request.GET.get('search', '')
+    per_page = request.GET.get('per_page', 100)
 
+    # Ensure per_page is an integer, defaulting to 100 if not a valid integer
+    try:
+        per_page = int(per_page)
+    except ValueError:
+        per_page = 100
 
+    call_records = CallRecord.objects.filter(from_type="Line")
+
+    if search_query:
+        call_records = call_records.filter(Q(caller__icontains=search_query) | Q(callee__icontains=search_query))
+
+    paginator = Paginator(call_records, per_page)
+    page_number = request.GET.get('page')
+    page_obj = paginator.get_page(page_number)
+
+    return render(request, 'cdr/incomingCalls.html', {'page_obj': page_obj, 'paginator': paginator, 'search_query': search_query, 'per_page': per_page})
+
+def outgoingInternationalCalls(request):
+    search_query = request.GET.get('search', '')
+    per_page = request.GET.get('per_page', 100)
+
+    # Ensure per_page is an integer, defaulting to 100 if not a valid integer
+    try:
+        per_page = int(per_page)
+    except ValueError:
+        per_page = 100
+
+    # Define the filtering logic
+    call_records = CallRecord.objects.filter(
+        Q(callee__regex=r'^\+[^9]') | 
+        Q(callee__regex=r'^\+9[0-8]') | 
+        Q(callee__regex=r'^00[^9]') | 
+        Q(callee__regex=r'^009[0-8]')
+    ).exclude(
+        Q(callee__startswith='+966') | Q(callee__startswith='00966')
+    )
+
+    if search_query:
+        call_records = call_records.filter(Q(caller__icontains=search_query) | Q(callee__icontains=search_query))
+
+    paginator = Paginator(call_records, per_page)
+    page_number = request.GET.get('page')
+    page_obj = paginator.get_page(page_number)
+
+    return render(request, 'cdr/outgoingInternationalCalls.html', {'page_obj': page_obj, 'paginator': paginator, 'search_query': search_query, 'per_page': per_page})
 def local_calls_view(request):
     call_records = CallRecord.objects.annotate(callee_length=Length('callee')).filter(callee_length=4)
     return render(request, 'cdr/local_calls.html', {'call_records': call_records})

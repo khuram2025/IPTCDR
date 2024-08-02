@@ -8,7 +8,6 @@
     <!--Swiper slider css-->
     <link href="{% static 'libs/swiper/swiper-bundle.min.css'%}" rel="stylesheet" type="text/css" />
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.4/css/all.min.css">
-
 {% endblock extra_css %}
 
 {% block content %}
@@ -118,7 +117,7 @@
                                             <div class="card-body">
                                                 <div class="d-flex align-items-center">
                                                     <div class="flex-grow-1 overflow-hidden">
-                                                        <p class="text-uppercase fw-medium text-muted text-truncate mb-0">Outgoing Calls
+                                                        <p class="text-uppercase fw-medium text-muted text-truncate mb-0">Local Calls
                                                         </p>
                                                     </div>
                                                     <div class="flex-shrink-0">
@@ -150,7 +149,7 @@
                                                 <div class="d-flex align-items-center">
                                                     <div class="flex-grow-1 overflow-hidden">
                                                         <p class="text-uppercase fw-medium text-muted text-truncate mb-0">
-                                                            National Calls</p>
+                                                            Incoming Calls</p>
                                                     </div>
                                                     <div class="flex-shrink-0">
                                                         <h5 class="text-success fs-14 mb-0">
@@ -162,7 +161,7 @@
                                                     <div>
                                                         <h4 class="fs-22 fw-semibold ff-secondary mb-4"><span
                                                                 class="counter-value" data-target="{{ total_national_mobile_calls }}">0</span></h4>
-                                                        <a href="" class="text-decoration-underline">See details</a>
+                                                        <a href="{% url 'cdr3cx:incoming' %}" class="text-decoration-underline">See details</a>
                                                     </div>
                                                     <div class="avatar-sm flex-shrink-0">
                                                         <span class="avatar-title bg-warning-subtle rounded fs-3">
@@ -192,7 +191,7 @@
                                                     <div>
                                                         <h4 class="fs-22 fw-semibold ff-secondary mb-4"><span
                                                                 class="counter-value" data-target="{{ total_international_calls }}">0</span></h4>
-                                                        <a href="" class="text-decoration-underline">View International Calls</a>
+                                                        <a href="{% url 'cdr3cx:outgoing_international' %}" class="text-decoration-underline">View International Calls</a>
                                                     </div>
                                                     <div class="avatar-sm flex-shrink-0">
                                                         <span class="avatar-title bg-primary-subtle rounded fs-3">
@@ -291,7 +290,7 @@
                                             </div><!-- end card header -->
 
                                             <div class="card-body">
-                                                <div id="store-visits-source" data-colors='["--vz-primary", "--vz-success", "--vz-warning", "--vz-danger", "--vz-info"]' data-colors-minimal='["--vz-primary", "--vz-primary-rgb, 0.85", "--vz-primary-rgb, 0.70", "--vz-primary-rgb, 0.60", "--vz-primary-rgb, 0.45"]' data-colors-interactive='["--vz-primary", "--vz-primary-rgb, 0.85", "--vz-primary-rgb, 0.70", "--vz-primary-rgb, 0.60", "--vz-primary-rgb, 0.45"]' data-colors-galaxy='["--vz-primary", "--vz-primary-rgb, 0.85", "--vz-primary-rgb, 0.70", "--vz-primary-rgb, 0.60", "--vz-primary-rgb, 0.45"]' class="apex-charts" dir="ltr"></div>
+                                                <div id="calls-ratio-chart" class="apex-charts" dir="ltr"></div>
                                             </div>
                                         </div> <!-- .card-->
                                     </div> <!-- .col-->
@@ -586,131 +585,7 @@
                                                                     </h5>
                                                                 </td>
                                                             </tr><!-- end -->
-                                                            <tr>
-                                                                <td>
-                                                                    <div class="d-flex align-items-center">
-                                                                        <div class="flex-shrink-0 me-2">
-                                                                            <img src="{% static 'images/companies/img-2.png'%}" alt=""
-                                                                                class="avatar-sm p-2" />
-                                                                        </div>
-                                                                        <div class="flex-grow-1">
-                                                                            <h5 class="fs-14 my-1 fw-medium"><a
-                                                                                    href="#"
-                                                                                    class="text-reset">Digitech Galaxy</a></h5>
-                                                                            <span class="text-muted">John Roberts</span>
-                                                                        </div>
-                                                                    </div>
-                                                                </td>
-                                                                <td>
-                                                                    <span class="text-muted">Watches</span>
-                                                                </td>
-                                                                <td>
-                                                                    <p class="mb-0">895</p>
-                                                                    <span class="text-muted">Stock</span>
-                                                                </td>
-                                                                <td>
-                                                                    <span class="text-muted">$75030</span>
-                                                                </td>
-                                                                <td>
-                                                                    <h5 class="fs-14 mb-0">79%<i
-                                                                            class="ri-bar-chart-fill text-success fs-16 align-middle ms-2"></i>
-                                                                    </h5>
-                                                                </td>
-                                                            </tr><!-- end -->
-                                                            <tr>
-                                                                <td>
-                                                                    <div class="d-flex align-items-center">
-                                                                        <div class="flex-shrink-0 me-2">
-                                                                            <img src="{% static 'images/companies/img-3.png'%}" alt=""
-                                                                                class="avatar-sm p-2" />
-                                                                        </div>
-                                                                        <div class="flex-gow-1">
-                                                                            <h5 class="fs-14 my-1 fw-medium"><a
-                                                                                    href="#"
-                                                                                    class="text-reset">Nesta Technologies</a>
-                                                                            </h5>
-                                                                            <span class="text-muted">Harley Fuller</span>
-                                                                        </div>
-                                                                    </div>
-                                                                </td>
-                                                                <td>
-                                                                    <span class="text-muted">Bike Accessories</span>
-                                                                </td>
-                                                                <td>
-                                                                    <p class="mb-0">3470</p>
-                                                                    <span class="text-muted">Stock</span>
-                                                                </td>
-                                                                <td>
-                                                                    <span class="text-muted">$45600</span>
-                                                                </td>
-                                                                <td>
-                                                                    <h5 class="fs-14 mb-0">90%<i
-                                                                            class="ri-bar-chart-fill text-success fs-16 align-middle ms-2"></i>
-                                                                    </h5>
-                                                                </td>
-                                                            </tr><!-- end -->
-                                                            <tr>
-                                                                <td>
-                                                                    <div class="d-flex align-items-center">
-                                                                        <div class="flex-shrink-0 me-2">
-                                                                            <img src="{% static 'images/companies/img-8.png'%}" alt=""
-                                                                                class="avatar-sm p-2" />
-                                                                        </div>
-                                                                        <div class="flex-grow-1">
-                                                                            <h5 class="fs-14 my-1 fw-medium"><a
-                                                                                    href="#"
-                                                                                    class="text-reset">Zoetic Fashion</a></h5>
-                                                                            <span class="text-muted">James Bowen</span>
-                                                                        </div>
-                                                                    </div>
-                                                                </td>
-                                                                <td>
-                                                                    <span class="text-muted">Clothes</span>
-                                                                </td>
-                                                                <td>
-                                                                    <p class="mb-0">5488</p>
-                                                                    <span class="text-muted">Stock</span>
-                                                                </td>
-                                                                <td>
-                                                                    <span class="text-muted">$29456</span>
-                                                                </td>
-                                                                <td>
-                                                                    <h5 class="fs-14 mb-0">40%<i
-                                                                            class="ri-bar-chart-fill text-success fs-16 align-middle ms-2"></i>
-                                                                    </h5>
-                                                                </td>
-                                                            </tr><!-- end -->
-                                                            <tr>
-                                                                <td>
-                                                                    <div class="d-flex align-items-center">
-                                                                        <div class="flex-shrink-0 me-2">
-                                                                            <img src="{% static 'images/companies/img-5.png'%}" alt=""
-                                                                                class="avatar-sm p-2" />
-                                                                        </div>
-                                                                        <div class="flex-grow-1">
-                                                                            <h5 class="fs-14 my-1 fw-medium"><a
-                                                                                    href="#"
-                                                                                    class="text-reset">Meta4Systems</a></h5>
-                                                                            <span class="text-muted">Zoe Dennis</span>
-                                                                        </div>
-                                                                    </div>
-                                                                </td>
-                                                                <td>
-                                                                    <span class="text-muted">Furniture</span>
-                                                                </td>
-                                                                <td>
-                                                                    <p class="mb-0">4100</p>
-                                                                    <span class="text-muted">Stock</span>
-                                                                </td>
-                                                                <td>
-                                                                    <span class="text-muted">$11260</span>
-                                                                </td>
-                                                                <td>
-                                                                    <h5 class="fs-14 mb-0">57%<i
-                                                                            class="ri-bar-chart-fill text-success fs-16 align-middle ms-2"></i>
-                                                                    </h5>
-                                                                </td>
-                                                            </tr><!-- end -->
+                                                       
                                                         </tbody>
                                                     </table><!-- end table -->
                                                 </div>
@@ -1101,4 +976,32 @@
 
 <!-- Dashboard init -->
 <script src="{% static 'js/pages/dashboard-ecommerce.init.js'%}"></script>
+
+<script>
+    document.addEventListener("DOMContentLoaded", function () {
+        var options = {
+            series: [{
+                name: 'Calls',
+                data: [{{ total_external_calls }}, {{ total_international_calls }}, {{ total_national_mobile_calls }}, {{ total_national_calls }}]
+            }],
+            chart: {
+                height: 350,
+                type: 'pie',
+            },
+            labels: ['External', 'International', 'National Mobile', 'National'],
+            colors: ["#556ee6", "#34c38f", "#f46a6a", "#f1b44c"],
+            legend: {
+                position: 'bottom',
+                horizontalAlign: 'center',
+                show: true,
+            },
+            dataLabels: {
+                enabled: true
+            }
+        };
+
+        var chart = new ApexCharts(document.querySelector("#calls-ratio-chart"), options);
+        chart.render();
+    });
+</script>
 {% endblock extra_js %}

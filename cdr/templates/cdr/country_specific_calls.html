@@ -1,7 +1,7 @@
 {% extends "partials/base.html" %}
 {% load custom_filters %}
 {% load static %}
-{% block title %}Outgoing International Calls{% endblock title %}
+{% block title %}{{ country }} Calls{% endblock title %}
 {% block extra_css %}
 <!-- jsvectormap css -->
 <link href="{% static 'libs/jsvectormap/dist/css/jsvectormap.min.css'%}" rel="stylesheet" type="text/css" />
@@ -18,7 +18,7 @@
         <div class="col-lg-12">
           <div class="card">
             <div class="card-header">
-              <h5 class="card-title mb-0">Outgoing International Calls</h5>
+              <h5 class="card-title mb-0">{{ country }} Calls Calls</h5>
             </div>
             <div class="card-body">
               <div id="ajax-datatables_wrapper" class="dataTables_wrapper dt-bootstrap5">
@@ -58,7 +58,6 @@
                           <th class="sorting" tabindex="0" aria-controls="ajax-datatables" rowspan="1" colspan="1" style="width: 200px" aria-label="Caller: activate to sort column ascending">Extension</th>
                           <th class="sorting" tabindex="0" aria-controls="ajax-datatables" rowspan="1" colspan="1" style="width: 200px" aria-label="Called Number: activate to sort column ascending">Called Number</th>
                           <th class="sorting" tabindex="0" aria-controls="ajax-datatables" rowspan="1" colspan="1" style="width: 200px" aria-label="Called Number: activate to sort column ascending">Time</th>
-                          <th class="sorting" tabindex="0" aria-controls="ajax-datatables" rowspan="1" colspan="1" style="width: 200px" aria-label="Called Number: activate to sort column ascending">Country</th>
                         </tr>
                       </thead>
                       <tbody>
@@ -70,7 +69,6 @@
                           <td>{{ record.from_no|format_from_no }}</td>
                           <td>{{ record.callee }}</td>
                           <td>{{ record.duration|format_duration }}</td>
-                          <td>{{ record.country }}</td>
                         </tr>
                         {% endfor %}
                       </tbody>

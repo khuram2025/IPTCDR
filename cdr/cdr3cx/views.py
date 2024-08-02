@@ -355,6 +355,7 @@ def outgoingInternationalCalls(request):
     page_obj = paginator.get_page(page_number)
 
     return render(request, 'cdr/outgoingInternationalCalls.html', {'page_obj': page_obj, 'paginator': paginator, 'search_query': search_query, 'per_page': per_page})
+
 def local_calls_view(request):
     call_records = CallRecord.objects.annotate(callee_length=Length('callee')).filter(callee_length=4)
     return render(request, 'cdr/local_calls.html', {'call_records': call_records})
@@ -408,8 +409,73 @@ def get_caller_record(request):
     else:
         print("caller_number parameter is required")
         return JsonResponse({'error': 'caller_number parameter is required'}, status=400)
+    
+from django.utils.text import slugify
 
+def country_specific_calls_view(request, country_slug):
+    search_query = request.GET.get('search', '')
+    per_page = request.GET.get('per_page', 100)
 
+    try:
+        per_page = int(per_page)
+    except ValueError:
+        per_page = 100
 
+    # Convert slug back to country name
+    country = country_slug.replace('-', ' ').title()
 
+    call_records = CallRecord.objects.filter(country=country)
+
+    if search_query:
+        call_records = call_records.filter(Q(caller__icontains=search_query) | Q(callee__icontains=search_query))
+
+    paginator = Paginator(call_records, per_page)
+    page_number = request.GET.get('page')
+    page_obj = paginator.get_page(page_number)
+
+    context = {
+        'page_obj': page_obj,
+        'paginator': paginator,
+        'search_query': search_query,
+        'per_page': per_page,
+        'country': country,
+    }
+
+    return render(request, 'cdr/country_specific_calls.html', context)
+
+from django.shortcuts import render
+from django.core.paginator import Paginator
+from django.db.models import Q
+from .models import CallRecord
+
+def caller_calls_view(request, caller_number):
+    search_query = request.GET.get('search', '')
+    per_page = request.GET.get('per_page', 100)
+
+    try:
+        per_page = int(per_page)
+    except ValueError:
+        per_page = 100
+
+    call_records = CallRecord.objects.filter(caller=caller_number)
+
+    if search_query:
+        call_records = call_records.filter(
+            Q(callee__icontains=search_query) | 
+            Q(call_time__icontains=search_query)
+        )
+
+    paginator = Paginator(call_records, per_page)
+    page_number = request.GET.get('page')
+    page_obj = paginator.get_page(page_number)
+
+    context = {
+        'page_obj': page_obj,
+        'paginator': paginator,
+        'search_query': search_query,
+        'per_page': per_page,
+        'caller_number': caller_number,
+    }
+
+    return render(request, 'cdr/caller_calls.html', context)
   

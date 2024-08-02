@@ -23,10 +23,10 @@ def handle_client_connection(client_socket):
         request = client_socket.recv(1024).decode('utf-8').strip()
         logger.info(f"Received data: {request}")
 
-        # Save raw data to a file for debugging
-        records_file_path = os.path.join('/home/ubuntu/3CX/cdr', 'records.txt')
-        with open(records_file_path, 'a') as f:
-            f.write(f"{request}\n")
+        # # Save raw data to a file for debugging
+        # records_file_path = os.path.join('/home/ubuntu/3CX/cdr', 'records.txt')
+        # with open(records_file_path, 'a') as f:
+        #     f.write(f"{request}\n")
 
         # Remove 'Call ' prefix if present
         if request.startswith('Call '):

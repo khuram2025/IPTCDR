@@ -4,8 +4,12 @@ https://iptportal.channab.com/get-caller/?caller_number=0590964890
 
 CONCATENATE("https://iptportal.channab.com/get-caller/?caller_number=",callflow$.callerNumber)
 
-sudo service nginx restart
+sudo systemctl restart gunicorn
 sudo systemctl restart nginx
+
+
+sudo systemctl restart gunicorn && sudo systemctl restart nginx
+
 
 source  3CX/venv/bin/activate
 

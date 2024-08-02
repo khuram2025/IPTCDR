@@ -1,6 +1,4 @@
-{% extends "partials/base.html" %} 
-{% load custom_filters %}
-{% load static %} {% block title %}Dashboard{% endblock title %} {% block extra_css %}
+{% extends "partials/base.html" %} {% load custom_filters %} {% load static %} {% block title %}Dashboard{% endblock title %} {% block extra_css %}
 <!-- jsvectormap css -->
 <link href="{% static 'libs/jsvectormap/dist/css/jsvectormap.min.css'%}" rel="stylesheet" type="text/css" />
 
@@ -197,86 +195,72 @@
 
             <div class="row">
               <div class="col-xl-8">
-                                            <div class="card">
-                                                <div class="card-header align-items-center d-flex">
-                                                    <h4 class="card-title mb-0 flex-grow-1">Calls Statistcs</h4>
-                                                    <div class="flex-shrink-0">
-                                                        <div class="dropdown card-header-dropdown">
-                                                            <a class="text-reset dropdown-btn" href="#" data-bs-toggle="dropdown"
-                                                                aria-haspopup="true" aria-expanded="false">
-                                                                <span class="fw-semibold text-uppercase fs-12">Sort by: </span><span
-                                                                    class="text-muted">Today<i
-                                                                        class="mdi mdi-chevron-down ms-1"></i></span>
-                                                            </a>
-                                                            <div class="dropdown-menu dropdown-menu-end">
-                                                                <a class="dropdown-item" href="#">Today</a>
-                                                                <a class="dropdown-item" href="#">Yesterday</a>
-                                                                <a class="dropdown-item" href="#">Last 7 Days</a>
-                                                                <a class="dropdown-item" href="#">Last 30 Days</a>
-                                                                <a class="dropdown-item" href="#">This Month</a>
-                                                                <a class="dropdown-item" href="#">Last Month</a>
-                                                            </div>
-                                                        </div>
-                                                    </div>
-                                                </div><!-- end card header -->
+                <div class="card">
+                  <div class="card-header align-items-center d-flex">
+                    <h4 class="card-title mb-0 flex-grow-1">Calls Statistcs</h4>
+                    <div class="flex-shrink-0">
+                      <div class="dropdown card-header-dropdown">
+                        <a class="text-reset dropdown-btn" href="#" data-bs-toggle="dropdown" aria-haspopup="true" aria-expanded="false">
+                          <span class="fw-semibold text-uppercase fs-12">Sort by: </span><span class="text-muted">Today<i class="mdi mdi-chevron-down ms-1"></i></span>
+                        </a>
+                        <div class="dropdown-menu dropdown-menu-end">
+                          <a class="dropdown-item" href="#">Today</a>
+                          <a class="dropdown-item" href="#">Yesterday</a>
+                          <a class="dropdown-item" href="#">Last 7 Days</a>
+                          <a class="dropdown-item" href="#">Last 30 Days</a>
+                          <a class="dropdown-item" href="#">This Month</a>
+                          <a class="dropdown-item" href="#">Last Month</a>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                  <!-- end card header -->
 
-                                                <div class="card-body">
-                                                    <div class="table-responsive table-card">
-                                                        <table
-                                                            class="table table-hover table-centered align-middle table-nowrap mb-0">
-                                                            <tbody>
-                                                                {% for stat in caller_stats|slice:":10" %}
-                                                                <tr>
-                                                                    <td>
-                                                                        <div class="d-flex align-items-center">
-                                                                           <div class="avatar-sm rounded p-1 me-2 d-flex align-items-center justify-content-center">
-    {% with from_dispname=stat.from_dispname|default:"Caller Name" %}
-        {% with name_parts=from_dispname.split %}
-            <div class="text-center" style="line-height: 1.2;">
-                <div class="fw-bold" style="font-size: 0.8em;">{{ name_parts.0 }}</div>
-                <div class="small" style="font-size: 0.7em;">
-                    {% if name_parts|length > 2 %}
-                        {{ name_parts|slice:"1:3"|join:" " }}
-                    {% else %}
-                        {{ name_parts|slice:"1:"|join:" " }}
-                    {% endif %}
+                  <div class="card-body">
+                    <div class="table-responsive table-card">
+                      <table class="table table-hover table-centered align-middle table-nowrap mb-0">
+                        <tbody>
+                          {% for stat in caller_stats|slice:":10" %}
+                          <tr data-href="{% url 'cdr3cx:caller_calls' stat.caller %}" style="cursor: pointer">
+                            <td>
+                              <div class="d-flex align-items-center">
+                                <div class="avatar-sm rounded p-1 me-2 d-flex align-items-center justify-content-center">
+                                  {% with from_dispname=stat.from_dispname|default:"Caller Name" %} {% with name_parts=from_dispname.split %}
+                                  <div class="text-center" style="line-height: 1.2">
+                                    <div class="fw-bold" style="font-size: 0.8em">{{ name_parts.0 }}</div>
+                                    <div class="small" style="font-size: 0.7em">{% if name_parts|length > 2 %} {{ name_parts|slice:"1:3"|join:" " }} {% else %} {{ name_parts|slice:"1:"|join:" " }} {% endif %}</div>
+                                  </div>
+                                  {% endwith %} {% endwith %}
+                                </div>
+
+                                <div>
+                                  <h5 class="#">
+                                    <a href="{% url 'cdr3cx:caller_calls' stat.caller %}" class="text-reset">{{ stat.caller }}</a>
+                                  </h5>
+                                  <span class="text-muted">24 Apr 2021</span>
+                                </div>
+                              </div>
+                            </td>
+                            <td>
+                              <h5 class="fs-14 my-1 fw-normal">{{ stat.total_calls }} Calls</h5>
+                              <span class="text-muted">{{ stat.total_duration|format_duration }}</span>
+                            </td>
+                            <td>
+                              <h5 class="fs-14 my-1 fw-normal">{{ stat.external_calls }} External Calls</h5>
+                              <span class="text-muted">{{ stat.external_duration|format_duration}}</span>
+                            </td>
+                            <td>
+                              <h5 class="fs-14 my-1 fw-normal">{{ stat.company_calls }} Company Calls</h5>
+                              <span class="text-muted">{{ stat.company_duration|format_duration }}</span>
+                            </td>
+                          </tr>
+                          {% endfor %}
+                        </tbody>
+                      </table>
+                    </div>
+                  </div>
                 </div>
-            </div>
-        {% endwith %}
-    {% endwith %}
-</div>
-
-                                                                            <div>
-                                                                                <h5 class="#"
-                                                                                        class="text-reset">{{ stat.caller }}</a></h5>
-                                                                                <span class="text-muted">24 Apr 2021</span>
-                                                                            </div>
-                                                                        </div>
-                                                                    </td>
-                                                                    <td>
-                                                                        <h5 class="fs-14 my-1 fw-normal">{{ stat.total_calls }} Calls</h5>
-                                                                        <span class="text-muted">{{ stat.total_duration|format_duration }}</span>
-                                                                    </td>
-                                                                    <td>
-                                                                        <h5 class="fs-14 my-1 fw-normal">{{ stat.external_calls }} External Calls</h5>
-                                                                        <span class="text-muted">{{ stat.external_duration|format_duration}}</span>
-                                                                    </td>
-                                                                    <td>
-                                                                        <h5 class="fs-14 my-1 fw-normal">{{ stat.company_calls }} Company Calls </h5>
-                                                                        <span class="text-muted">{{ stat.company_duration|format_duration }}</span>
-                                                                    </td>
-                                                                   
-                                                                </tr>
-                                                    {% endfor %}
-                                                            </tbody>
-                                                        </table>
-                                                    </div>
-
-                                                  
-
-                                                </div>
-                                            </div>
-                                        </div>
+              </div>
               <!-- end col -->
               <div class="col-xl-4">
                 <div class="card card-height-100">
@@ -314,8 +298,6 @@
               </div>
               <!-- .col-->
             </div>
-
-          
           </div>
           <!-- end .h-100-->
         </div>
@@ -358,19 +340,18 @@
                 </div>
 
                 <div class="p-3 mt-2">
-    <h6 class="text-muted mb-3 text-uppercase fw-semibold">Top 10 Countries</h6>
-    <ol class="ps-3 text-muted">
-        {% for country, count in top_talking_countries %}
-            <li class="py-1">
-                <a href="#" class="text-muted">{{ country }}<span class="float-end">({{ count }})</span></a>
-            </li>
-        {% endfor %}
-    </ol>
-    <div class="mt-3 text-center">
-        <a href="javascript:void(0);" class="text-muted text-decoration-underline">View all Countries</a>
-    </div>
-</div>
-
+                  <h6 class="text-muted mb-3 text-uppercase fw-semibold">Top 10 Countries</h6>
+                  <ol class="ps-3 text-muted">
+                    {% for country, count in top_talking_countries %}
+                    <li class="py-1">
+                      <a href="{% url 'cdr3cx:country_specific_calls' country|slugify %}" class="text-muted">{{ country }}<span class="float-end">({{ count }})</span></a>
+                    </li>
+                    {% endfor %}
+                  </ol>
+                  <div class="mt-3 text-center">
+                    <a href="{% url 'cdr3cx:outgoing_international' %}" class="text-decoration-underline">View International Calls</a>
+                  </div>
+                </div>
               </div>
             </div>
             <!-- end card-->
@@ -728,5 +709,14 @@
       });
   });
 </script>
-
+<script>
+  document.addEventListener("DOMContentLoaded", function () {
+    const rows = document.querySelectorAll("tr[data-href]");
+    rows.forEach((row) => {
+      row.addEventListener("click", function () {
+        window.location.href = this.dataset.href;
+      });
+    });
+  });
+</script>
 {% endblock extra_js %}

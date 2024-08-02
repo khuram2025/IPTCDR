@@ -1,7 +1,7 @@
 import os
 import logging
 from django.db.models.functions import Length
-from phonenumbers import geocoder
+from django.db.models.functions import TruncDate, TruncWeek, TruncMonth
 from django.db.models import Count
 from django.views.decorators.csrf import csrf_exempt
 from django.http import HttpResponse
@@ -13,8 +13,7 @@ from .project_numbers import COUNTRY_CODES
 from .models import CallRecord
 from django.shortcuts import render
 from django.db.models.functions import Length
-from django.db.models import Q
-import phonenumbers
+from django.db.models import Q,Sum, Count
 from django.shortcuts import redirect
 from django.core.paginator import Paginator
 from django.http import JsonResponse
@@ -84,7 +83,10 @@ def receive_cdr(request):
     
 def get_country_from_number(number):
     # Remove any leading '+' or '00' from the number
-    number = number.lstrip('+').lstrip('00')
+    if number.startswith('+'):
+        number = number[1:]
+    elif number.startswith('00'):
+        number = number[2:]
     
     # Special case for Saudi Arabia mobile numbers
     if number.startswith('05') and len(number) == 10:
@@ -101,14 +103,44 @@ def get_country_from_number(number):
             
     return 'Unknown'
 
+def get_call_stats(queryset, time_period):
+    now = timezone.now()
+    
+    if time_period == '1M':
+        start_date = now - timedelta(days=30)
+        date_trunc = TruncWeek
+    elif time_period == '6M':
+        start_date = now - timedelta(days=182)
+        date_trunc = TruncMonth
+    elif time_period == '1Y':
+        start_date = now - timedelta(days=365)
+        date_trunc = TruncMonth
+    else:
+        start_date = now - timedelta(days=30)
+        date_trunc = TruncWeek
+
+    call_stats = queryset.filter(call_time__range=[start_date, now]).annotate(
+        date=TruncDate('call_time'),
+        period=date_trunc('call_time')
+    ).values('period').annotate(
+        total_calls=Count('id'),
+        local_calls=Count('id', filter=Q(callee__regex=r'^\d{4}$')),
+        international_calls=Count('id', filter=Q(callee__startswith='00'))
+    ).order_by('period')
+
+    result = list(call_stats)
+    logging.info(f"Call stats result: {result}")
+    return result
+
+
+from collections import Counter
+
 @login_required
 def dashboard(request):
-    # Get the current date and time
     now = timezone.now()
-
-    # Filter the records based on the selected time period
     time_period = request.GET.get('time_period', 'today')
     custom_date_range = request.GET.get('custom_date', '')
+
     if time_period == 'today':
         start_date = now.replace(hour=0, minute=0, second=0, microsecond=0)
         end_date = now
@@ -132,7 +164,6 @@ def dashboard(request):
         start_date = now
         end_date = now
 
-    # Get the filtered call records
     call_records = CallRecord.objects.filter(call_time__range=[start_date, end_date])
 
     # Update country field if it is 'Unknown'
@@ -141,28 +172,34 @@ def dashboard(request):
             record.country = get_country_from_number(record.callee)
             record.save()
 
-    # Calculate statistics
+    # Existing statistics
     total_calls = call_records.count()
-   
     total_external_calls = call_records.filter(
         Q(callee__regex=r'^\d{10}$') |
         Q(callee__regex=r'^\+966\d{9}$') |
         Q(callee__regex=r'^00966\d{9}$')
     ).count()
     total_international_calls = call_records.filter(callee__startswith='00').count()
-    
-    # Use annotate to filter national mobile calls by length
     total_national_mobile_calls = call_records.annotate(callee_length=Length('callee')).filter(callee__startswith='05', callee_length=10).count()
-    
-    # Use annotate to filter national calls by length
     total_national_calls = call_records.annotate(callee_length=Length('callee')).filter(callee__startswith='0', callee_length=9).count()
-
-    # Calculate total local calls (4 digit extensions)
     total_local_calls = call_records.annotate(callee_length=Length('callee')).filter(callee_length=4).count()
 
     # Calculate top talking countries
     countries = [record.country for record in call_records if record.country not in ('Unknown', 'Internal Company Call')]
-    top_talking_countries = Counter(countries).most_common()
+    top_talking_countries = Counter(countries).most_common(10)
+
+    # New statistics for each caller
+    caller_stats = call_records.filter(from_type='Extension').values('caller', 'from_dispname').annotate(
+        total_calls=Count('id'),
+        total_duration=Sum('duration'),
+        external_calls=Count('id', filter=Q(to_type__in=['LineSet', 'Line'])),
+        external_duration=Sum('duration', filter=Q(to_type__in=['LineSet', 'Line'])),
+        company_calls=Count('id', filter=Q(to_type='Extension')),
+        company_duration=Sum('duration', filter=Q(to_type='Extension'))
+    ).order_by('-total_calls')
+
+    chart_time_period = request.GET.get('chart_time_period', '1M')
+    call_stats = get_call_stats(CallRecord.objects, chart_time_period)
 
     context = {
         'call_records': call_records,
@@ -174,8 +211,48 @@ def dashboard(request):
         'total_local_calls': total_local_calls,
         'top_talking_countries': top_talking_countries,
         'time_period': time_period,
+        'caller_stats': caller_stats,
+        'call_stats': call_stats,
+        'chart_time_period': chart_time_period,
     }
     return render(request, 'cdr/dashboard.html', context)
+
+
+
+def update_call_stats(request):
+    chart_time_period = request.GET.get('chart_time_period', '1M')
+    logging.info(f"Updating call stats for period: {chart_time_period}")
+    
+    call_stats = get_call_stats(CallRecord.objects, chart_time_period)
+    logging.info(f"Call stats result: {call_stats}")
+    
+    return JsonResponse(call_stats, safe=False)
+
+def get_call_stats(queryset, time_period):
+    now = timezone.now()
+    
+    if time_period == '1M':
+        start_date = now - timedelta(days=30)
+    elif time_period == '6M':
+        start_date = now - timedelta(days=182)
+    elif time_period == '1Y':
+        start_date = now - timedelta(days=365)
+    else:
+        raise ValueError(f"Invalid time period: {time_period}. Must be one of '1M', '6M', '1Y'")
+
+    call_stats = queryset.filter(call_time__range=[start_date, now]).annotate(
+        date=TruncDate('call_time'),
+        period=TruncMonth('call_time')  # Using TruncMonth for all periods for simplicity
+    ).values('period').annotate(
+        total_calls=Count('id'),
+        local_calls=Count('id', filter=Q(callee__regex=r'^\d{4}$')),
+        international_calls=Count('id', filter=Q(callee__startswith='00'))
+    ).order_by('period')
+
+    result = list(call_stats)
+    logging.info(f"Call stats result: {result}")
+    return result
+
 
 def update_country(request, record_id):
     if request.method == 'POST':

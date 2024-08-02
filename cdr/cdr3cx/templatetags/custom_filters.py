@@ -1,5 +1,5 @@
 from django import template
-
+from datetime import timedelta
 register = template.Library()
 
 @register.filter
@@ -27,3 +27,4 @@ def format_duration(value):
         return f"{minutes} minute{'s' if minutes > 1 else ''} {seconds} sec{'s' if seconds > 1 else ''}"
     else:
         return f"{seconds} sec{'s' if seconds > 1 else ''}"
+

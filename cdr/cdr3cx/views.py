@@ -134,7 +134,7 @@ def get_call_stats(queryset, time_period):
 
 
 from collections import Counter
-
+from django.db.models.functions import Length
 @login_required
 def dashboard(request):
     now = timezone.now()
@@ -179,7 +179,17 @@ def dashboard(request):
         Q(callee__regex=r'^\+966\d{9}$') |
         Q(callee__regex=r'^00966\d{9}$')
     ).count()
-    total_international_calls = call_records.filter(callee__startswith='00').count()
+    total_international_calls = call_records.annotate(
+        callee_length=Length('callee')
+    ).filter(
+        (
+            Q(callee__startswith='+') |
+            Q(callee__startswith='00')
+        ) & ~(
+            Q(callee__startswith='+966') |
+            Q(callee__startswith='00966')
+        ) & Q(callee_length__gt=11)
+    ).count()
     total_national_mobile_calls = call_records.annotate(callee_length=Length('callee')).filter(callee__startswith='05', callee_length=10).count()
     total_national_calls = call_records.annotate(callee_length=Length('callee')).filter(callee__startswith='0', callee_length=9).count()
     total_local_calls = call_records.annotate(callee_length=Length('callee')).filter(callee_length=4).count()

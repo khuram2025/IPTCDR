@@ -1,0 +1,286 @@
+{% extends "home/base.html" %} {% load static %} {% block title %}About Us{% endblock title %} {% block extra_css %}
+<!-- jsvectormap css -->
+<link href="{% static 'libs/jsvectormap/dist/css/jsvectormap.min.css'%}" rel="stylesheet" type="text/css" />
+
+<!--Swiper slider css-->
+<link href="{% static 'libs/swiper/swiper-bundle.min.css'%}" rel="stylesheet" type="text/css" />
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.4/css/all.min.css" />
+
+{% endblock extra_css %} {% block content %}
+<body data-bs-spy="scroll" data-bs-target="#navbar-example">
+  <!-- Begin page -->
+  <div class="layout-wrapper landing">
+    <nav class="navbar navbar-expand-lg navbar-landing fixed-top" id="navbar">
+      <div class="container">
+        <a class="navbar-brand" href="{%url 'cdr3cx:home' %}">
+          <span class="card-logo card-logo-dark" style="font-size: 17px; font-weight: bold">Channab</span>
+          <span class="card-logo card-logo-light" style="font-size: 17px; font-weight: bold">Channab</span>
+        </a>
+        <button class="navbar-toggler py-0 fs-20 text-body" type="button" data-bs-toggle="collapse" data-bs-target="#navbarSupportedContent" aria-controls="navbarSupportedContent" aria-expanded="false" aria-label="Toggle navigation">
+          <i class="mdi mdi-menu"></i>
+        </button>
+
+        <div class="collapse navbar-collapse" id="navbarSupportedContent">
+          <ul class="navbar-nav mx-auto mt-2 mt-lg-0" id="navbar-example">
+            <li class="nav-item">
+              <a class="nav-link active" href="{%url 'cdr3cx:home' %}">Home</a>
+            </li>
+            <li class="nav-item">
+              <a class="nav-link" href="#about">About Us</a>
+            </li>
+            <li class="nav-item">
+              <a class="nav-link" href="#services">Services</a>
+            </li>
+            <!-- <li class="nav-item">
+              <a class="nav-link" href="#features">Features</a>
+            </li>
+            <li class="nav-item">
+              <a class="nav-link" href="#plans">Plans</a>
+            </li>
+            <li class="nav-item">
+              <a class="nav-link" href="#reviews">Reviews</a>
+            </li>
+            <li class="nav-item">
+              <a class="nav-link" href="#team">Team</a>
+            </li> -->
+            <!-- <li class="nav-item">
+              <a class="nav-link" href="#contact">Contact</a>
+            </li> -->
+          </ul>
+
+          <div class="">
+            <a href="auth-signin-basic.html" class="btn btn-link fw-medium text-decoration-none text-body">Sign in</a>
+            <a href="auth-signup-basic.html" class="btn btn-primary">Sign Up</a>
+          </div>
+        </div>
+      </div>
+    </nav>
+    <!-- end navbar -->
+    <div class="vertical-overlay" data-bs-toggle="collapse" data-bs-target="#navbarSupportedContent.show"></div>
+
+    <!-- start hero section -->
+    <section class="section pb-0 hero-section" id="hero">
+      <div class="bg-overlay bg-overlay-pattern"></div>
+      <div class="container">
+        <div class="row justify-content-center">
+          <div class="col-lg-8 col-sm-10">
+            <div class="text-center mt-lg-5 pt-5">
+              <h1 class="display-6 fw-semibold mb-3 lh-base">Innovative Monitoring Solutions for the Modern Enterprise</h1>
+              <p class="lead text-muted lh-base">At Channab, our mission is to empower businesses with cutting-edge, AI-driven monitoring systems for IP telephony and network infrastructure. Our solutions are designed to enhance visibility, security, and efficiency, ensuring that your communication and network systems are always optimized and secure.</p>
+            </div>
+          </div>
+        </div>
+        <!-- end row -->
+      </div>
+      <!-- end container -->
+      <div class="position-absolute start-0 end-0 bottom-0 hero-shape-svg">
+        <svg xmlns="http://www.w3.org/2000/svg" version="1.1" xmlns:xlink="http://www.w3.org/1999/xlink" viewBox="0 0 1440 120">
+          <g mask='url("#SvgjsMask1003")' fill="none">
+            <path d="M 0,118 C 288,98.6 1152,40.4 1440,21L1440 140L0 140z"></path>
+          </g>
+        </svg>
+      </div>
+      <!-- end shape -->
+    </section>
+    <!-- end hero section -->
+
+    <!-- start about section -->
+    <section class="section" id="about">
+      <div class="container">
+        <div class="row justify-content-center">
+          <div class="col-lg-8">
+            <div class="text-center mb-5">
+              <h1 class="mb-3 ff-secondary fw-semibold lh-base">About Us</h1>
+              <p class="text-muted">Founded in 2020, Channab has rapidly grown into a trusted name in the industry, providing state-of-the-art, AI-driven monitoring systems tailored for IP telephony and network infrastructure.</p>
+            </div>
+          </div>
+          <!-- end col -->
+        </div>
+        <!-- end row -->
+
+        <div class="row g-3">
+          <div class="col-lg-4">
+            <div class="d-flex p-3">
+              <div class="flex-shrink-0 me-3">
+                <div class="avatar-sm icon-effect">
+                  <div class="avatar-title bg-transparent text-success rounded-circle">
+                    <i class="ri-rocket-line fs-36"></i>
+                  </div>
+                </div>
+              </div>
+              <div class="flex-grow-1">
+                <h5 class="fs-18">Our Mission</h5>
+                <p class="text-muted my-3 ff-secondary">Our mission is to empower businesses with cutting-edge technology that enhances visibility, security, and operational efficiency.</p>
+              </div>
+            </div>
+          </div>
+          <!-- end col -->
+          <div class="col-lg-4">
+            <div class="d-flex p-3">
+              <div class="flex-shrink-0 me-3">
+                <div class="avatar-sm icon-effect">
+                  <div class="avatar-title bg-transparent text-success rounded-circle">
+                    <i class="ri-road-map-line fs-36"></i>
+                  </div>
+                </div>
+              </div>
+              <div class="flex-grow-1">
+                <h5 class="fs-18">Our Journey</h5>
+                <p class="text-muted my-3 ff-secondary">Since our inception, we have been dedicated to creating innovative solutions that address the gaps in native IP telephony systems.</p>
+              </div>
+            </div>
+          </div>
+          <!-- end col -->
+          <div class="col-lg-4">
+            <div class="d-flex p-3">
+              <div class="flex-shrink-0 me-3">
+                <div class="avatar-sm icon-effect">
+                  <div class="avatar-title bg-transparent text-success rounded-circle">
+                    <i class="ri-team-line fs-36"></i>
+                  </div>
+                </div>
+              </div>
+              <div class="flex-grow-1">
+                <h5 class="fs-18">Why Choose Us</h5>
+                <p class="text-muted my-3 ff-secondary">We leverage the latest in AI and cloud computing to provide cutting-edge monitoring solutions, ensuring your infrastructure is always optimized and secure.</p>
+              </div>
+            </div>
+          </div>
+          <!-- end col -->
+        </div>
+        <!-- end row -->
+      </div>
+      <!-- end container -->
+    </section>
+    <!-- end about section -->
+
+    <!-- start services -->
+    <section class="section" id="services">
+      <div class="container">
+        <div class="row justify-content-center">
+          <div class="col-lg-8">
+            <div class="text-center mb-5">
+              <h1 class="mb-3 ff-secondary fw-semibold lh-base">Our Services</h1>
+              <p class="text-muted">To achieve this, we combine cutting-edge technology with expert knowledge to deliver unparalleled solutions across various sectors.</p>
+            </div>
+          </div>
+          <!-- end col -->
+        </div>
+        <!-- end row -->
+
+        <div class="row g-3">
+          <div class="col-lg-4">
+            <div class="d-flex p-3">
+              <div class="flex-shrink-0 me-3">
+                <div class="avatar-sm icon-effect">
+                  <div class="avatar-title bg-transparent text-success rounded-circle">
+                    <i class="ri-phone-line fs-36"></i>
+                  </div>
+                </div>
+              </div>
+              <div class="flex-grow-1">
+                <h5 class="fs-18">IP Telephony Monitoring</h5>
+                <p class="text-muted my-3 ff-secondary">Ensure your communication systems are always operational with our real-time IP telephony monitoring solutions.</p>
+                <div>
+                  <a href="#" class="fs-13 fw-medium">Learn More <i class="ri-arrow-right-s-line align-bottom"></i></a>
+                </div>
+              </div>
+            </div>
+          </div>
+          <!-- end col -->
+          <div class="col-lg-4">
+            <div class="d-flex p-3">
+              <div class="flex-shrink-0 me-3">
+                <div class="avatar-sm icon-effect">
+                  <div class="avatar-title bg-transparent text-success rounded-circle">
+                    <i class="ri-brain-line fs-36"></i>
+                  </div>
+                </div>
+              </div>
+              <div class="flex-grow-1">
+                <h5 class="fs-18">AI-Based Network Monitoring</h5>
+                <p class="text-muted my-3 ff-secondary">Harness the power of AI to predict and mitigate network issues before they impact your operations.</p>
+                <div>
+                  <a href="#" class="fs-13 fw-medium">Learn More <i class="ri-arrow-right-s-line align-bottom"></i></a>
+                </div>
+              </div>
+            </div>
+          </div>
+          <!-- end col -->
+          <div class="col-lg-4">
+            <div class="d-flex p-3">
+              <div class="flex-shrink-0 me-3">
+                <div class="avatar-sm icon-effect">
+                  <div class="avatar-title bg-transparent text-success rounded-circle">
+                    <i class="ri-settings-3-line fs-36"></i>
+                  </div>
+                </div>
+              </div>
+              <div class="flex-grow-1">
+                <h5 class="fs-18">Customizable Solutions</h5>
+                <p class="text-muted my-3 ff-secondary">Tailor our solutions to fit your specific requirements, providing you with the flexibility you need.</p>
+                <div>
+                  <a href="#" class="fs-13 fw-medium">Learn More <i class="ri-arrow-right-s-line align-bottom"></i></a>
+                </div>
+              </div>
+            </div>
+          </div>
+          <!-- end col -->
+        </div>
+        <!-- end row -->
+      </div>
+      <!-- end container -->
+    </section>
+    <!-- end services -->
+
+    <!-- start cta -->
+    <section class="py-5 bg-primary position-relative">
+      <div class="bg-overlay bg-overlay-pattern opacity-50"></div>
+      <div class="container">
+        <div class="row align-items-center gy-4">
+          <div class="col-sm">
+            <div>
+              <h4 class="text-white mb-0 fw-semibold">Elevate Your IT with Channab's Advanced AI Solutions</h4>
+            </div>
+          </div>
+          <!-- end col -->
+          <div class="col-sm-auto">
+            <div>
+              <a href="#" target="_blank" class="btn bg-gradient btn-danger"><i class="ri-shopping-cart-2-line align-middle me-1"></i> Buy Now</a>
+            </div>
+          </div>
+          <!-- end col -->
+        </div>
+        <!-- end row -->
+      </div>
+      <!-- end container -->
+    </section>
+    <!-- end cta -->
+
+    <!-- start footer -->
+    {% include 'home/footer.html' %}
+    <!-- end footer -->
+
+    <!--start back-to-top-->
+    <button onclick="topFunction()" class="btn btn-danger btn-icon landing-back-top" id="back-to-top">
+      <i class="ri-arrow-up-line"></i>
+    </button>
+    <!--end back-to-top-->
+  </div>
+  <!-- end layout wrapper -->
+
+  <!-- JAVASCRIPT -->
+  <script src="{% static 'assets/libs/bootstrap/js/bootstrap.bundle.min.js' %}"></script>
+  <script src="{% static 'assets/libs/simplebar/simplebar.min.js' %}"></script>
+  <script src="{% static 'assets/libs/node-waves/waves.min.js' %}"></script>
+  <script src="{% static 'assets/libs/feather-icons/feather.min.js' %}"></script>
+  <script src="{% static 'assets/js/pages/plugins/lord-icon-2.1.0.js' %}"></script>
+  <script src="{% static 'assets/js/plugins.js' %}"></script>
+
+  <!--Swiper slider js-->
+  <script src="{% static 'assets/libs/swiper/swiper-bundle.min.js' %}"></script>
+
+  <!-- landing init -->
+  <script src="{% static 'assets/js/pages/landing.init.js' %}"></script>
+</body>
+{% endblock %}

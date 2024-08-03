@@ -370,6 +370,8 @@ def international_calls_view(request):
 
 def home(request):
     return render(request, 'home/home.html')
+def aboutus(request):
+    return render(request, 'home/about_us.html')
 
 from django.http import JsonResponse, HttpResponse
 from django.views.decorators.http import require_GET

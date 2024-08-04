@@ -394,6 +394,11 @@ from django.db.models.functions import Substr, Length
 from django.http import HttpResponse, JsonResponse
 from django.views.decorators.http import require_GET
 
+from django.utils import timezone
+from datetime import timedelta
+
+
+
 @require_GET
 def get_caller_record(request):
     caller_number = request.GET.get('caller_number')
@@ -403,17 +408,26 @@ def get_caller_record(request):
             caller_last_9 = caller_number[-9:]
             print(f"Caller last 9 digits: {caller_last_9}")
             
+            # Get the current time and calculate 48 hours ago
+            now = timezone.now()
+            forty_eight_hours_ago = now - timedelta(hours=36)
+            
             # Annotate and filter the records
             record = CallRecord.objects.annotate(
                 last_9_from_no=Substr('callee', Length('callee') - 8, 9)
-            ).filter(last_9_from_no=caller_last_9).order_by('-call_time').first()
+            ).filter(
+                last_9_from_no=caller_last_9,
+                call_time__gte=forty_eight_hours_ago  # Filter for calls within the last 48 hours
+            ).order_by('-call_time').first()
             
             if record:
-               
-                return HttpResponse(record.caller, status=200)
-                
+                # Check if the caller is a 4-digit extension
+                if record.caller.isdigit() and len(record.caller) == 4:
+                    return HttpResponse(record.caller, status=200)
+                else:
+                    return HttpResponse("", status=200)
             else:
-                print("No record found")
+                print("No record found within the last 48 hours")
                 return HttpResponse("", status=404)
         except Exception as e:
             print(f"Error: {e}")

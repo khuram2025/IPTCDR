@@ -28,3 +28,5 @@ cd /home/ubuntu/3CX
 git add .
 git commit -m "before admin uI fix"
 git push -u origin master
+
+ALTER DATABASE cdr SET timezone TO 'Asia/Riyadh';

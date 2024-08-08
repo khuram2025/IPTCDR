@@ -47,6 +47,8 @@ INSTALLED_APPS = [
     'accounts',
     'crispy_forms',
     'crispy_bootstrap4',
+    'billing',
+    'import_export',
 ]
 
 # Site ID for allauth

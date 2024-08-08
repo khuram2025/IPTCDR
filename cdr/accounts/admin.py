@@ -1,6 +1,6 @@
 from django.contrib import admin
 from django.contrib.auth.admin import UserAdmin
-from .models import CustomUser, Company
+from .models import CustomUser, Company, Extension
 from .forms import CustomUserCreationForm, CustomUserChangeForm
 
 class CustomUserAdmin(UserAdmin):
@@ -23,4 +23,21 @@ class CustomUserAdmin(UserAdmin):
     ordering = ('email',)
 
 admin.site.register(CustomUser, CustomUserAdmin)
-admin.site.register(Company)
+
+@admin.register(Company)
+class CompanyAdmin(admin.ModelAdmin):
+    list_display = ('name', 'address', 'phone', 'listening_port')
+    search_fields = ('name', 'address', 'phone')
+
+
+from django.contrib import admin
+from import_export.admin import ImportExportModelAdmin
+from .models import Extension
+from .resources import ExtensionResource
+
+@admin.register(Extension)
+class ExtensionAdmin(ImportExportModelAdmin):
+    resource_class = ExtensionResource
+    list_display = ('extension', 'full_name', 'email', 'company')
+    search_fields = ('extension', 'full_name', 'email', 'company__name')
+    list_filter = ('company',)

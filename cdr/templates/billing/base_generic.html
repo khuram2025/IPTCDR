@@ -1,0 +1,20 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <title>{% block title %}My Site{% endblock %}</title>
+  </head>
+  <body>
+    <header>
+      <h1>My Site</h1>
+    </header>
+    <nav>
+      <ul>
+        <li><a href="/">Home</a></li>
+        <li><a href="{% url 'billing:call_rate_list' %}">Call Rates</a></li>
+        <li><a href="{% url 'billing:user_quota_list' %}">User Quotas</a></li>
+      </ul>
+    </nav>
+    <main>{% block content %}{% endblock %}</main>
+    {% block extra_js %}{% endblock %}
+  </body>
+</html>

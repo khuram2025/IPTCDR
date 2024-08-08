@@ -1,0 +1,35 @@
+{% extends "billing/base_generic.html" %} {% block content %}
+<h1>User Quotas</h1>
+<table>
+  <thead>
+    <tr>
+      <th>Extension</th>
+      <th>Quota Limit</th>
+      <th>Balance</th>
+      <th>Balance Frequency</th>
+      <th>Start Date</th>
+      <th>Is Recurring</th>
+      <th>Is Excluded</th>
+      <th>Bill</th>
+      <th>Usage</th>
+    </tr>
+  </thead>
+  <tbody>
+    {% for quota in user_quotas %}
+    <tr>
+      <td>{{ quota.extension }}</td>
+      <td>{{ quota.quota_limit }}</td>
+      <td>{{ quota.balance }}</td>
+      <td>{{ quota.get_balance_frequency_display }}</td>
+      <td>{{ quota.start_date }}</td>
+      <td>{{ quota.is_recurring }}</td>
+      <td>{{ quota.is_excluded }}</td>
+      <td>{{ quota.is_excluded }}</td>
+      <td>{{quota.calculate_bill}}</td>
+      <td>{{quota.calculate_usage}}</td>
+    </tr>
+    {% endfor %}
+  </tbody>
+</table>
+<a href="{% url 'admin:billing_userquota_add' %}">Add New User Quota</a>
+{% endblock %}

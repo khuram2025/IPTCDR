@@ -53,3 +53,33 @@ class CustomUser(AbstractUser):
 
     def __str__(self):
         return self.email
+
+
+from django.db import models
+from django.utils import timezone
+
+class Extension(models.Model):
+    extension = models.CharField(max_length=20)
+    first_name = models.CharField(max_length=30, blank=True, null=True)
+    last_name = models.CharField(max_length=30, blank=True, null=True)
+    full_name = models.CharField(max_length=100, blank=True, null=True)
+    email = models.EmailField(blank=True, null=True)
+    company = models.ForeignKey('Company', on_delete=models.SET_NULL, null=True, blank=True, related_name='extensions')
+
+    class Meta:
+        unique_together = ('extension', 'company')
+        ordering = ['company', 'extension']
+
+    def __str__(self):
+        return f"{self.extension} - {self.full_name or 'Unnamed'} ({self.company.name if self.company else 'No Company'})"
+
+    def save(self, *args, **kwargs):
+        if not self.full_name and (self.first_name or self.last_name):
+            self.full_name = f"{self.first_name} {self.last_name}".strip()
+        super().save(*args, **kwargs)
+
+        # Ensure a UserQuota is created for this extension
+        from billing.models import UserQuota
+        if not UserQuota.objects.filter(extension=self).exists():
+            UserQuota.objects.create(extension=self)
+

@@ -30,3 +30,7 @@ git commit -m "before admin uI fix"
 git push -u origin master
 
 ALTER DATABASE cdr SET timezone TO 'Asia/Riyadh';
+
+
+psql -U read -d cdr -h localhost
+DROP TABLE billing_userquota;

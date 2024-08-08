@@ -1,0 +1,44 @@
+{% extends "billing/base_generic.html" %} {% block content %}
+<h1>Add Call Rate</h1>
+<form method="post" id="callRateForm">
+  {% csrf_token %} {{ form.as_p }}
+  <button type="submit">Save</button>
+</form>
+<a href="{% url 'billing:call_rate_list' %}">Back to Call Rate List</a>
+<p>Example matching number: <span id="exampleNumber">{{ form.example_number.value }}</span></p>
+<script>
+  console.log("JavaScript is running!");
+
+  document.addEventListener("DOMContentLoaded", function () {
+    console.log("DOM fully loaded");
+    var matchingCriteriaField = document.getElementById("id_matching_criteria");
+    console.log("Matching criteria field:", matchingCriteriaField);
+
+    if (matchingCriteriaField) {
+      matchingCriteriaField.addEventListener("change", function () {
+        console.log("Matching criteria changed to:", this.value);
+      });
+    } else {
+      console.log("Matching criteria field not found");
+    }
+  });
+</script>
+{% endblock %} {% block extra_js %}
+<script>
+  console.log("JavaScript is running!");
+
+  document.addEventListener("DOMContentLoaded", function () {
+    console.log("DOM fully loaded");
+    var matchingCriteriaField = document.getElementById("id_matching_criteria");
+    console.log("Matching criteria field:", matchingCriteriaField);
+
+    if (matchingCriteriaField) {
+      matchingCriteriaField.addEventListener("change", function () {
+        console.log("Matching criteria changed to:", this.value);
+      });
+    } else {
+      console.log("Matching criteria field not found");
+    }
+  });
+</script>
+{% endblock %}

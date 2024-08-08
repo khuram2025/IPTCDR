@@ -1,0 +1,22 @@
+{% extends "billing/base_generic.html" %} {% block content %}
+<h1>Call Rates</h1>
+<table>
+  <thead>
+    <tr>
+      <th>Call Type</th>
+      <th>Rate per Min</th>
+      <th>Matching Criteria</th>
+    </tr>
+  </thead>
+  <tbody>
+    {% for rate in call_rates %}
+    <tr>
+      <td>{{ rate.get_call_type_display }}</td>
+      <td>{{ rate.rate_per_min }}</td>
+      <td>{{ rate.matching_criteria }}</td>
+    </tr>
+    {% endfor %}
+  </tbody>
+</table>
+<a href="{% url 'billing:call_rate_add' %}">Add New Call Rate</a>
+{% endblock %}

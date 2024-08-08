@@ -1,4 +1,6 @@
 from django.contrib import admin
+
+
 from .models import CallRecord, RoutingRule
 
 @admin.register(CallRecord)
@@ -18,3 +20,5 @@ class CallRecordAdmin(admin.ModelAdmin):
 class RoutingRuleAdmin(admin.ModelAdmin):
     list_display = ('external_number', 'original_caller', 'route_to')
     search_fields = ('external_number', 'original_caller', 'route_to')
+
+

@@ -1,7 +1,13 @@
 from django.contrib import admin
 
 
-from .models import CallRecord, RoutingRule
+from .models import CallPattern, CallRecord, RoutingRule
+
+@admin.register(CallPattern)
+class CallPatternAdmin(admin.ModelAdmin):
+    list_display = ('company', 'pattern', 'call_type', 'description')
+    search_fields = ('company__name', 'pattern', 'call_type')
+    list_filter = ('company', 'call_type')
 
 @admin.register(CallRecord)
 class CallRecordAdmin(admin.ModelAdmin):

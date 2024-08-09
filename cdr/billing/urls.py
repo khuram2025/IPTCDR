@@ -8,4 +8,5 @@ urlpatterns = [
     path('call-rates/add/', call_rate_add, name='call_rate_add'),
     path('get-example-number/', get_example_number, name='get_example_number'),
     path('user-quotas/', views.user_quota_list, name='user_quota_list'),
+    path('Caller/', views.user_quota_list, name='user_quota_list'),
 ]

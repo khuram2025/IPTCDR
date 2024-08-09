@@ -1,0 +1,21 @@
+<h1>Call Record Summary</h1>
+<table>
+  <thead>
+    <tr>
+      <th>Call Category</th>
+      <th>Matching Pattern</th>
+      <th>Number of Calls</th>
+      <th>Total Cost</th>
+    </tr>
+  </thead>
+  <tbody>
+    {% for record in summary %}
+    <tr>
+      <td>{{ record.call_category }}</td>
+      <td>{{ record.pattern_prefix }}xxxxxxxxx</td>
+      <td>{{ record.count }}</td>
+      <td>{{ record.total_cost }}</td>
+    </tr>
+    {% endfor %}
+  </tbody>
+</table>

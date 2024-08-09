@@ -1,6 +1,8 @@
 from django.contrib import admin
+from django.db.models import Count, Sum
+from django.shortcuts import render
 
-
+from accounts.models import Company
 from .models import CallPattern, CallRecord, RoutingRule
 
 @admin.register(CallPattern)

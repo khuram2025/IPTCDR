@@ -18,6 +18,9 @@ urlpatterns = [
     path('outgoing/', views.outgoingExtCalls, name='outgoing'),
     path('incoming/', views.incomingCalls, name='incoming'),
     path('update-call-stats/', views.update_call_stats, name='update_call_stats'),
+    path('summary/', views.call_record_summary_view, name='callrecord_summary'),
+  
+
 
     path('outgoing_international/', views.outgoingInternationalCalls, name='outgoing_international'),
     path('caller-calls/<str:caller_number>/', views.caller_calls_view, name='caller_calls'),

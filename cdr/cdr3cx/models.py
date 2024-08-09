@@ -98,6 +98,8 @@ class CallRecord(models.Model):
             if self.callee.startswith(pattern.pattern):
                 return pattern.call_type
         return 'Unknown'
+    
+    
 
     class Meta:
         ordering = ['-call_time']  # Example of ordering by call_time descending

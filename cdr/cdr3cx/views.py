@@ -505,3 +505,23 @@ def caller_calls_view(request, caller_number):
 
     return render(request, 'cdr/caller_calls.html', context)
   
+
+from django.db.models import Count, Sum
+from django.db.models.functions import Substr
+
+def call_record_summary_view(request):
+    # Grouping records by category and pattern prefix
+    summary = CallRecord.objects.annotate(
+        pattern_prefix=Substr('callee', 1, 3)  # Adjust the substring length to match your pattern
+    ).values(
+        'call_category',
+        'pattern_prefix'
+    ).annotate(
+        count=Count('id'),
+        total_cost=Sum('total_cost')
+    ).order_by('call_category', 'pattern_prefix')
+
+    context = {
+        'summary': summary,
+    }
+    return render(request, "cdr/call_record_summary.html", context)

@@ -4,6 +4,7 @@ from datetime import timedelta
 from django.db.models.signals import post_save
 from django.dispatch import receiver
 from django.db import models
+import phonenumbers
 
 from accounts.models import Company
 
@@ -93,10 +94,22 @@ class CallRecord(models.Model):
         super().save(*args, **kwargs)
 
     def categorize_call(self):
+        # First, use patterns defined by the company
         patterns = self.company.call_patterns.all()
         for pattern in patterns:
             if self.callee.startswith(pattern.pattern):
                 return pattern.call_type
+
+        # If no pattern matches, try to detect if it's international
+        try:
+            parsed_number = phonenumbers.parse(self.callee, None)
+            if phonenumbers.is_valid_number(parsed_number):
+                if phonenumbers.is_possible_number(parsed_number):
+                    if parsed_number.country_code != phonenumbers.region_code_for_number(parsed_number):
+                        return 'international'
+        except phonenumbers.NumberParseException:
+            pass
+        
         return 'Unknown'
     
     

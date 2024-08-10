@@ -24,6 +24,8 @@ python
 sudo systemctl start socket_server.service
 
 
+/home/ubuntu/3CX/cdr/cdr3cx/socket_server.py
+
 cd /home/ubuntu/3CX
 git add .
 git commit -m "before admin uI fix"
@@ -34,3 +36,22 @@ ALTER DATABASE cdr SET timezone TO 'Asia/Riyadh';
 
 psql -U read -d cdr -h localhost
 DROP TABLE billing_userquota;
+
+
+if date is not being recived on the servrer check the soket is running or not with below command 
+sudo systemctl status socket_server.service
+
+path for the soket is 
+/home/ubuntu/3CX/cdr/cdr3cx/socket_server.py
+
+to check port 8000 used by which process 
+
+sudo ss -ltnp | grep :8000
+to stop the process used PID number instead 574
+
+sudo kill -9 574
+
+restart the service and check the status 
+
+sudo systemctl restart socket_server.service
+sudo systemctl status socket_server.service

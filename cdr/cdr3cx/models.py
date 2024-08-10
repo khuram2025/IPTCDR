@@ -5,6 +5,7 @@ from django.db.models.signals import post_save
 from django.dispatch import receiver
 from django.db import models
 import phonenumbers
+from phonenumbers import geocoder, NumberParseException
 
 from accounts.models import Company
 
@@ -104,10 +105,10 @@ class CallRecord(models.Model):
         try:
             parsed_number = phonenumbers.parse(self.callee, None)
             if phonenumbers.is_valid_number(parsed_number):
-                if phonenumbers.is_possible_number(parsed_number):
-                    if parsed_number.country_code != phonenumbers.region_code_for_number(parsed_number):
-                        return 'international'
-        except phonenumbers.NumberParseException:
+                if parsed_number.country_code != phonenumbers.region_code_for_number(parsed_number):
+                    self.country = geocoder.country_name_for_number(parsed_number, "en")
+                    return 'international'
+        except NumberParseException:
             pass
         
         return 'Unknown'

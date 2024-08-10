@@ -205,7 +205,8 @@ def dashboard(request):
         external_calls=Count('id', filter=Q(to_type__in=['LineSet', 'Line'])),
         external_duration=Sum('duration', filter=Q(to_type__in=['LineSet', 'Line'])),
         company_calls=Count('id', filter=Q(to_type='Extension')),
-        company_duration=Sum('duration', filter=Q(to_type='Extension'))
+        company_duration=Sum('duration', filter=Q(to_type='Extension')),
+        total_cost=Sum('total_cost')
     ).order_by('-total_calls')
 
     chart_time_period = request.GET.get('chart_time_period', '1M')

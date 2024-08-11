@@ -135,6 +135,7 @@ def get_call_stats(queryset, time_period):
 
 from collections import Counter
 from django.db.models.functions import Length
+
 @login_required
 def dashboard(request):
     now = timezone.now()
@@ -192,7 +193,45 @@ def dashboard(request):
     ).count()
     total_national_mobile_calls = call_records.annotate(callee_length=Length('callee')).filter(callee__startswith='05', callee_length=10).count()
     total_national_calls = call_records.annotate(callee_length=Length('callee')).filter(callee__startswith='0', callee_length=9).count()
-    total_local_calls = call_records.annotate(callee_length=Length('callee')).filter(callee_length=4).count()
+    total_local_calls = call_records.annotate(callee_length=Length('callee')).filter(
+        callee_length__gt=4
+    ).exclude(
+        (
+            Q(callee__startswith='+') |
+            Q(callee__startswith='00')
+        ) & ~(
+            Q(callee__startswith='+966') |
+            Q(callee__startswith='00966')
+        ) & Q(callee_length__gt=11)
+    ).count()
+
+
+
+    total_call_cost = call_records.aggregate(Sum('total_cost'))['total_cost__sum'] or 0
+
+    local_call_cost = call_records.annotate(callee_length=Length('callee')).filter(
+        callee_length__gt=4
+    ).exclude(
+        (
+            Q(callee__startswith='+') |
+            Q(callee__startswith='00')
+        ) & ~(
+            Q(callee__startswith='+966') |
+            Q(callee__startswith='00966')
+        ) & Q(callee_length__gt=11)
+    ).aggregate(Sum('total_cost'))['total_cost__sum'] or 0
+
+    international_call_cost = call_records.annotate(
+        callee_length=Length('callee')
+    ).filter(
+        (
+            Q(callee__startswith='+') |
+            Q(callee__startswith='00')
+        ) & ~(
+            Q(callee__startswith='+966') |
+            Q(callee__startswith='00966')
+        ) & Q(callee_length__gt=11)
+    ).aggregate(Sum('total_cost'))['total_cost__sum'] or 0
 
     # Calculate top talking countries
     countries = [record.country for record in call_records if record.country not in ('Unknown', 'Internal Company Call')]
@@ -225,6 +264,9 @@ def dashboard(request):
         'caller_stats': caller_stats,
         'call_stats': call_stats,
         'chart_time_period': chart_time_period,
+        'total_call_cost': total_call_cost,
+        'local_call_cost': local_call_cost,
+        'international_call_cost': international_call_cost,
     }
     return render(request, 'cdr/dashboard.html', context)
 

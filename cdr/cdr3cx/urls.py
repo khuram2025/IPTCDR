@@ -1,12 +1,18 @@
 from django.urls import path
 from .views import receive_cdr
-from . import views
+from . import views, views_api
 
 app_name = 'cdr3cx' 
 
 urlpatterns = [
     path('cdr', receive_cdr, name='receive_cdr'),
     path('get-caller/', views.get_caller_record, name='get_caller_record'),
+    # API Related start 
+    path('get-3cx-version/', views_api.get_3cx_version, name='get_3cx_version'),
+    path('get_users/', views_api.get_users, name='get_users'),
+    path('get-user-groups/<int:user_id>/', views_api.get_user_groups, name='get_user_groups'),
+    # END
+
 
     path('home/', views.home, name='home'),
     path('aboutus/', views.aboutus, name='aboutus'),

@@ -16,8 +16,7 @@ source  3CX/venv/bin/activate
 python manage.py makemigrations
 python manage.py migrate
 
-cd cdr 
-python manage.py runserver 0.0.0.0:8002
+-
 
 python 
 
@@ -32,6 +31,7 @@ git commit -m "before admin uI fix"
 git push -u origin master
 
 ALTER DATABASE cdr SET timezone TO 'Asia/Riyadh';
+
 
 
 psql -U read -d cdr -h localhost
@@ -55,3 +55,9 @@ restart the service and check the status
 
 sudo systemctl restart socket_server.service
 sudo systemctl status socket_server.service
+
+
+
+cd cdr 
+python manage.py runserver 0.0.0.0:8002
+

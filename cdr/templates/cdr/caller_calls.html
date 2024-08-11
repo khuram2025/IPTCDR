@@ -12,38 +12,34 @@
                 <div class="col-lg-12">
                     <div class="card">
                        
-                       
+                    
                         <div class="card-header border-0 align-items-center d-flex">
                             <h4 class="card-title mb-0 flex-grow-1">Dashboard</h4>
                             <div class="d-flex gap-1">
-                                <button type="button" class="btn btn-soft-secondary btn-sm">
-                                    ALL
-                                </button>
-                                <button type="button" class="btn btn-soft-secondary btn-sm">
-                                    1M
-                                </button>
-                                <button type="button" class="btn btn-soft-secondary btn-sm">
-                                    6M
-                                </button>
-                                <button type="button" class="btn btn-soft-primary btn-sm">
-                                    1Y
-                                </button>
+                                <form method="GET" action="{% url 'cdr3cx:caller_calls' caller_number %}">
+                                    <input type="hidden" name="per_page" value="{{ per_page }}">
+                                    <input type="hidden" name="search" value="{{ search_query }}">
+                                    <button type="submit" name="date_filter" value="ALL" class="btn btn-soft-secondary btn-sm {% if date_filter == 'ALL' %}active{% endif %}">ALL</button>
+                                    <button type="submit" name="date_filter" value="1M" class="btn btn-soft-secondary btn-sm {% if date_filter == '1M' %}active{% endif %}">1M</button>
+                                    <button type="submit" name="date_filter" value="6M" class="btn btn-soft-secondary btn-sm {% if date_filter == '6M' %}active{% endif %}">6M</button>
+                                    <button type="submit" name="date_filter" value="1Y" class="btn btn-soft-secondary btn-sm {% if date_filter == '1Y' %}active{% endif %}">1Y</button>
+                                </form>
                             </div>
                         </div>
                         <div class="card-header border-0 align-items-center d-flex">
                             <h4 class="card-title mb-0 flex-grow-1">Calls for {{ caller_number }}</h4>
                             <div class="d-flex gap-4">
                                 <div class="text-end">
-                                    <h4 class="mb-0 text-success">6,250</h4>
-                                    <p class="text-muted mb-0">Purchase</p>
+                                    <h4 class="mb-0 text-success">{{ total_cost|floatformat:2 }} SAR</h4>
+                                    <p class="text-muted mb-0">Total Cost</p>
                                 </div>
                                 <div class="text-end">
-                                    <h4 class="mb-0 text-info">$55,250</h4>
-                                    <p class="text-muted mb-0">Purchase</p>
+                                    <h4 class="mb-0 text-info">{{ total_calls }}</h4>
+                                    <p class="text-muted mb-0">Total Calls</p>
                                 </div>
                                 <div class="text-end">
-                                    <h4 class="mb-0 text-danger">$451.60M</h4>
-                                    <p class="text-muted mb-0">Purchase</p>
+                                    <h4 class="mb-0 text-danger">{{ total_duration|format_duration }}</h4>
+                                    <p class="text-muted mb-0">Total Duration</p>
                                 </div>
                             </div>
                         </div>
@@ -72,19 +68,8 @@
                                             <input type="hidden" name="per_page" value="{{ request.GET.per_page }}">
                                         </form>
                                     </div>
-                                    <div class="col-md-3 col-sm-6 mb-2 mb-md-0">
-                                        <input type="text" class="form-control flatpickr-input" id="datepicker-range" data-provider="flatpickr" data-date-format="d M, Y" data-range-date="true" placeholder="Select date" readonly="readonly">
-                                    </div>
-                                    <div class="col-md-3 col-sm-6 mb-2 mb-md-0">
-                                        <select class="form-select choices__input" data-plugin="choices" data-choices="" data-choices-search-false="" name="choices-single-default" id="idStatus">
-                                            <option value="Active">Active</option>
-                                            <option value="all">All</option>
-                                            <option value="Block">Block</option>
-                                        </select>
-                                    </div>
-                                    <div class="col-md-2 col-sm-12">
-                                        <button type="button" class="btn btn-primary w-100" onclick="SearchData();"> <i class="ri-equalizer-fill me-2 align-bottom"></i>Filters</button>
-                                    </div>
+                                   
+                                   
                                 </div>
                                 
                                 <!-- Table -->

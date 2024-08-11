@@ -474,10 +474,16 @@ from django.shortcuts import render
 from django.core.paginator import Paginator
 from django.db.models import Q
 from .models import CallRecord
+from django.db.models import Sum, Count
+from django.utils import timezone
+from dateutil.relativedelta import relativedelta
 
 def caller_calls_view(request, caller_number):
     search_query = request.GET.get('search', '')
     per_page = request.GET.get('per_page', 100)
+    date_filter = request.GET.get('date_filter', '1M')
+    start_date = request.GET.get('start_date')
+    end_date = request.GET.get('end_date')
 
     try:
         per_page = int(per_page)
@@ -486,11 +492,29 @@ def caller_calls_view(request, caller_number):
 
     call_records = CallRecord.objects.filter(caller=caller_number)
 
+    # Apply date filter
+    now = timezone.now()
+    if date_filter == 'ALL':
+        pass
+    elif date_filter == '1M':
+        call_records = call_records.filter(call_time__gte=now - relativedelta(months=1))
+    elif date_filter == '6M':
+        call_records = call_records.filter(call_time__gte=now - relativedelta(months=6))
+    elif date_filter == '1Y':
+        call_records = call_records.filter(call_time__gte=now - relativedelta(years=1))
+    elif start_date and end_date:
+        call_records = call_records.filter(call_time__range=[start_date, end_date])
+
     if search_query:
         call_records = call_records.filter(
             Q(callee__icontains=search_query) | 
             Q(call_time__icontains=search_query)
         )
+
+    # Calculate summary statistics
+    total_cost = call_records.aggregate(Sum('total_cost'))['total_cost__sum'] or 0
+    total_calls = call_records.count()
+    total_duration = call_records.aggregate(Sum('duration'))['duration__sum'] or 0
 
     paginator = Paginator(call_records, per_page)
     page_number = request.GET.get('page')
@@ -502,11 +526,15 @@ def caller_calls_view(request, caller_number):
         'search_query': search_query,
         'per_page': per_page,
         'caller_number': caller_number,
+        'date_filter': date_filter,
+        'start_date': start_date,
+        'end_date': end_date,
+        'total_cost': total_cost,
+        'total_calls': total_calls,
+        'total_duration': total_duration,
     }
 
     return render(request, 'cdr/caller_calls.html', context)
-  
-
 from django.db.models import Count, Sum
 from django.db.models.functions import Substr
 

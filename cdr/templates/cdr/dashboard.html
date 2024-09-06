@@ -237,7 +237,7 @@
                                   <h5 class="#">
                                     <a href="{% url 'cdr3cx:caller_calls' stat.caller %}" class="text-reset">{{ stat.caller }}</a>
                                   </h5>
-                                  <span class="text-muted">24 Apr 2021</span>
+                                  <span class="text-muted"> {% if time_period == 'today' %} Today {% elif time_period == '7d' %} Last 7 Days {% elif time_period == '1m' %} Last Month {% elif time_period == '6m' %} Last 6 Months {% elif time_period == '1y' %} Last Year {% elif time_period == 'custom' %} {{ start_date|date:"d M, Y" }} to {{ end_date|date:"d M, Y" }} {% else %} {{ stat.call_time|date:"d M, Y" }} {% endif %} </span>
                                 </div>
                               </div>
                             </td>

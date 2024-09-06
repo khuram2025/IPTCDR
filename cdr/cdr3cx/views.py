@@ -165,6 +165,7 @@ def dashboard(request):
         start_date = now
         end_date = now
 
+    # Filter call records by the selected time period
     call_records = CallRecord.objects.filter(call_time__range=[start_date, end_date])
 
     # Update country field if it is 'Unknown'
@@ -173,7 +174,7 @@ def dashboard(request):
             record.country = get_country_from_number(record.callee)
             record.save()
 
-    # Existing statistics
+    # Calculate statistics after filtering by time period
     total_calls = call_records.count()
     total_external_calls = call_records.filter(
         Q(callee__regex=r'^\d{10}$') |
@@ -205,8 +206,7 @@ def dashboard(request):
         ) & Q(callee_length__gt=11)
     ).count()
 
-
-
+    # Calculate costs after filtering by time period
     total_call_cost = call_records.aggregate(Sum('total_cost'))['total_cost__sum'] or 0
 
     local_call_cost = call_records.annotate(callee_length=Length('callee')).filter(
@@ -269,7 +269,6 @@ def dashboard(request):
         'international_call_cost': international_call_cost,
     }
     return render(request, 'cdr/dashboard.html', context)
-
 
 
 def update_call_stats(request):

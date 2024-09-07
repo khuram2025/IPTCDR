@@ -22,6 +22,7 @@ from django.views.decorators.http import require_GET
 logger = logging.getLogger(__name__)
 from django.contrib.auth.decorators import login_required
 from pytz import UTC
+from .utils import get_country_from_number
 
 
 @csrf_exempt
@@ -84,27 +85,6 @@ def receive_cdr(request):
         logger.error("Invalid request method")
         return HttpResponse("Error: Invalid request method", status=405)
     
-def get_country_from_number(number):
-    # Remove any leading '+' or '00' from the number
-    if number.startswith('+'):
-        number = number[1:]
-    elif number.startswith('00'):
-        number = number[2:]
-    
-    # Special case for Saudi Arabia mobile numbers
-    if number.startswith('05') and len(number) == 10:
-        return 'Saudi Arabia'
-    
-    # Special case for internal company calls
-    if len(number) == 4:
-        return 'Internal Company Call'
-    
-    # General case for country codes
-    for code, country in COUNTRY_CODES.items():
-        if number.startswith(code):
-            return country
-            
-    return 'Unknown'
 
 def get_call_stats(queryset, time_period):
     now = timezone.now()
@@ -528,8 +508,7 @@ def caller_calls_view(request, caller_number):
     search_query = request.GET.get('search', '')
     per_page = request.GET.get('per_page', 100)
     date_filter = request.GET.get('date_filter', '1M')
-    start_date = request.GET.get('start_date')
-    end_date = request.GET.get('end_date')
+    custom_date_range = request.GET.get('custom_date', '')
 
     try:
         per_page = int(per_page)
@@ -537,31 +516,94 @@ def caller_calls_view(request, caller_number):
         per_page = 100
 
     call_records = CallRecord.objects.filter(caller=caller_number)
+    print(f"Initial call_records count: {call_records.count()}")
 
     # Apply date filter
     now = timezone.now()
     if date_filter == 'ALL':
         pass
+    elif date_filter == 'today':
+        call_records = call_records.filter(call_time__date=now.date())
+    elif date_filter == '7d':
+        call_records = call_records.filter(call_time__gte=now - timedelta(days=7))
     elif date_filter == '1M':
         call_records = call_records.filter(call_time__gte=now - relativedelta(months=1))
     elif date_filter == '6M':
         call_records = call_records.filter(call_time__gte=now - relativedelta(months=6))
     elif date_filter == '1Y':
         call_records = call_records.filter(call_time__gte=now - relativedelta(years=1))
-    elif start_date and end_date:
+    elif custom_date_range:
+        start_date_str, end_date_str = custom_date_range.split(" to ")
+        start_date = timezone.make_aware(datetime.strptime(start_date_str, "%d %b, %Y"))
+        end_date = timezone.make_aware(datetime.strptime(end_date_str, "%d %b, %Y").replace(hour=23, minute=59, second=59))
         call_records = call_records.filter(call_time__range=[start_date, end_date])
+
+    print(f"After date filter, call_records count: {call_records.count()}")
 
     if search_query:
         call_records = call_records.filter(
             Q(callee__icontains=search_query) | 
             Q(call_time__icontains=search_query)
         )
+        print(f"After search filter, call_records count: {call_records.count()}")
 
-    # Calculate summary statistics
-    total_cost = call_records.aggregate(Sum('total_cost'))['total_cost__sum'] or 0
+    # Calculate statistics
     total_calls = call_records.count()
+    total_cost = call_records.aggregate(Sum('total_cost'))['total_cost__sum'] or 0
     total_duration = call_records.aggregate(Sum('duration'))['duration__sum'] or 0
 
+    total_local_calls = call_records.annotate(callee_length=Length('callee')).filter(
+        callee_length__gt=4
+    ).exclude(
+        (
+            Q(callee__startswith='+') |
+            Q(callee__startswith='00')
+        ) & ~(
+            Q(callee__startswith='+966') |
+            Q(callee__startswith='00966')
+        ) & Q(callee_length__gt=11)
+    ).count()
+
+    local_call_cost = call_records.annotate(callee_length=Length('callee')).filter(
+        callee_length__gt=4
+    ).exclude(
+        (
+            Q(callee__startswith='+') |
+            Q(callee__startswith='00')
+        ) & ~(
+            Q(callee__startswith='+966') |
+            Q(callee__startswith='00966')
+        ) & Q(callee_length__gt=11)
+    ).aggregate(Sum('total_cost'))['total_cost__sum'] or 0
+
+    total_incoming_calls = call_records.filter(from_type="Line").count()
+    incoming_call_cost = call_records.filter(from_type="Line").aggregate(Sum('total_cost'))['total_cost__sum'] or 0
+
+    total_international_calls = call_records.annotate(
+        callee_length=Length('callee')
+    ).filter(
+        (
+            Q(callee__startswith='+') |
+            Q(callee__startswith='00')
+        ) & ~(
+            Q(callee__startswith='+966') |
+            Q(callee__startswith='00966')
+        ) & Q(callee_length__gt=11)
+    ).count()
+
+    international_call_cost = call_records.annotate(
+        callee_length=Length('callee')
+    ).filter(
+        (
+            Q(callee__startswith='+') |
+            Q(callee__startswith='00')
+        ) & ~(
+            Q(callee__startswith='+966') |
+            Q(callee__startswith='00966')
+        ) & Q(callee_length__gt=11)
+    ).aggregate(Sum('total_cost'))['total_cost__sum'] or 0
+
+    # Paginate the filtered results
     paginator = Paginator(call_records, per_page)
     page_number = request.GET.get('page')
     page_obj = paginator.get_page(page_number)
@@ -573,14 +615,25 @@ def caller_calls_view(request, caller_number):
         'per_page': per_page,
         'caller_number': caller_number,
         'date_filter': date_filter,
-        'start_date': start_date,
-        'end_date': end_date,
+        'custom_date_range': custom_date_range,
         'total_cost': total_cost,
         'total_calls': total_calls,
         'total_duration': total_duration,
+        'total_local_calls': total_local_calls,
+        'local_call_cost': local_call_cost,
+        'total_incoming_calls': total_incoming_calls,
+        'incoming_call_cost': incoming_call_cost,
+        'total_international_calls': total_international_calls,
+        'international_call_cost': international_call_cost,
     }
 
+    print("Context variables:")
+    for key, value in context.items():
+        print(f"{key}: {value}")
+
     return render(request, 'cdr/caller_calls.html', context)
+
+
 from django.db.models import Count, Sum
 from django.db.models.functions import Substr
 

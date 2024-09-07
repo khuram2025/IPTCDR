@@ -4,7 +4,9 @@ from datetime import timedelta
 from django.db.models.signals import post_save
 from django.dispatch import receiver
 from django.db import models
+from .utils import get_country_from_number
 import phonenumbers
+
 from phonenumbers import geocoder, NumberParseException
 import re
 
@@ -121,19 +123,36 @@ class CallRecord(models.Model):
             self.total_cost = duration_minutes * self.call_rate
 
     def save(self, *args, **kwargs):
-        try:
-            if not self.company:
-                self.company = Company.objects.get_or_create(name="Channab")[0]
+            try:
+                if not self.company:
+                    self.company = Company.objects.get_or_create(name="Channab")[0]
 
-            print(f"Saving CallRecord: {self.caller} -> {self.callee} at {self.call_time}")
+                if not self.pk or 'update_fields' not in kwargs or 'country' in kwargs.get('update_fields', []):
+                    country_info = get_country_from_number(self.callee)
+                    self.country = country_info
+                    if 'Internal Company Call' in country_info:
+                        self.call_type = 'Internal'
+                    elif 'Saudi Arabia' in country_info:
+                        self.call_type = 'National'
+                    elif 'International' in country_info:
+                        self.call_type = 'International'
+                    else:
+                        self.call_type = 'Unknown'
 
-            self.categorize_call()
-            self.calculate_total_cost()
+                if not self.pk:  # This is a new record
+                    print(f"Saving new CallRecord: {self.caller} -> {self.callee} ({self.call_type}) at {self.call_time}")
+                    self.categorize_call()
+                    self.calculate_total_cost()
+                else:  # This is an existing record
+                    if 'update_fields' in kwargs:
+                        print(f"Updating fields {kwargs['update_fields']} for CallRecord: {self.caller} -> {self.callee}")
+                    else:
+                        print(f"Updating CallRecord: {self.caller} -> {self.callee}")
 
-        except Exception as e:
-            print(f"Error during save: {str(e)}")
-        
-        super().save(*args, **kwargs)
+            except Exception as e:
+                print(f"Error during save: {str(e)}")
+            
+            super().save(*args, **kwargs)
 
     class Meta:
         ordering = ['-call_time']  # Example of ordering by call_time descending

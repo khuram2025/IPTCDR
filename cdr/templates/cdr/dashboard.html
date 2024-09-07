@@ -39,7 +39,7 @@
                         <!--end col-->
                         <div class="col-auto">
                           <div class="input-group">
-                            <input type="text" class="form-control border-0 minimal-border dash-filter-picker shadow flatpickr-input" name="custom_date" data-provider="flatpickr" data-range-date="true" data-date-format="d M, Y" placeholder="Select custom date range" />
+                            <input type="text" class="form-control border-0 minimal-border dash-filter-picker shadow flatpickr-input" name="custom_date" id="customDateInput" data-provider="flatpickr" data-range-date="true" data-date-format="d M, Y" placeholder="Select custom date range" value="{{ custom_date_range }}" />
                             <div class="input-group-text bg-primary border-primary text-white">
                               <i class="ri-calendar-2-line"></i>
                             </div>
@@ -380,6 +380,26 @@
 
 <!-- Dashboard init -->
 <script src="{% static 'js/pages/dashboard-ecommerce.init.js'%}"></script>
+<script>
+  function submitForm(period) {
+    document.getElementById("timePeriodInput").value = period;
+    document.getElementById("customDateInput").value = "";
+    document.getElementById("timePeriodForm").submit();
+  }
+
+  document.addEventListener("DOMContentLoaded", function () {
+    flatpickr("#customDateInput", {
+      mode: "range",
+      dateFormat: "d M, Y",
+      onChange: function (selectedDates, dateStr, instance) {
+        if (selectedDates.length === 2) {
+          document.getElementById("timePeriodInput").value = "custom";
+          document.getElementById("timePeriodForm").submit();
+        }
+      },
+    });
+  });
+</script>
 <script>
   document.addEventListener("DOMContentLoaded", function () {
       var callStats = {{ call_stats|safe }};

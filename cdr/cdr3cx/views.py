@@ -7,7 +7,7 @@ from django.views.decorators.csrf import csrf_exempt
 from django.http import HttpResponse
 from django.utils.dateparse import parse_datetime
 from django.utils import timezone
-from datetime import timedelta
+from datetime import datetime, timedelta
 from collections import Counter
 from .project_numbers import COUNTRY_CODES
 from .models import CallRecord
@@ -21,6 +21,9 @@ from django.views.decorators.csrf import csrf_exempt
 from django.views.decorators.http import require_GET
 logger = logging.getLogger(__name__)
 from django.contrib.auth.decorators import login_required
+from pytz import UTC
+
+
 @csrf_exempt
 def receive_cdr(request):
     # Path to the file where records will be saved
@@ -159,8 +162,8 @@ def dashboard(request):
         end_date = now
     elif time_period == 'custom' and custom_date_range:
         start_date_str, end_date_str = custom_date_range.split(" to ")
-        start_date = timezone.datetime.strptime(start_date_str, "%d %b, %Y").replace(tzinfo=timezone.utc)
-        end_date = timezone.datetime.strptime(end_date_str, "%d %b, %Y").replace(tzinfo=timezone.utc)
+        start_date = timezone.make_aware(datetime.strptime(start_date_str, "%d %b, %Y"))
+        end_date = timezone.make_aware(datetime.strptime(end_date_str, "%d %b, %Y").replace(hour=23, minute=59, second=59, microsecond=999999))
     else:
         start_date = now
         end_date = now
@@ -168,11 +171,11 @@ def dashboard(request):
     # Filter call records by the selected time period
     call_records = CallRecord.objects.filter(call_time__range=[start_date, end_date])
 
-    # Update country field if it is 'Unknown'
-    for record in call_records:
-        if record.country == 'Unknown':
-            record.country = get_country_from_number(record.callee)
-            record.save()
+    # # Update country field if it is 'Unknown'
+    # for record in call_records:
+    #     if record.country == 'Unknown':
+    #         record.country = get_country_from_number(record.callee)
+    #         record.save()
 
     # Calculate statistics after filtering by time period
     total_calls = call_records.count()
@@ -261,12 +264,14 @@ def dashboard(request):
         'total_local_calls': total_local_calls,
         'top_talking_countries': top_talking_countries,
         'time_period': time_period,
+        'custom_date_range': custom_date_range,
         'caller_stats': caller_stats,
         'call_stats': call_stats,
         'chart_time_period': chart_time_period,
         'total_call_cost': total_call_cost,
         'local_call_cost': local_call_cost,
         'international_call_cost': international_call_cost,
+
     }
     return render(request, 'cdr/dashboard.html', context)
 

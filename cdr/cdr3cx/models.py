@@ -89,10 +89,10 @@ class CallRecord(models.Model):
     def categorize_call(self):
         patterns = self.company.call_patterns.all()
 
-        print(f"Attempting to categorize call for callee: {self.callee}")
+        # print(f"Attempting to categorize call for callee: {self.callee}")
 
         if not patterns:
-            print(f"No call patterns found for company: {self.company.name}")
+            # print(f"No call patterns found for company: {self.company.name}")
             self.call_category = 'Unknown'
             return
 
@@ -100,16 +100,16 @@ class CallRecord(models.Model):
             # Convert the pattern to a regex pattern
             regex_pattern = pattern.pattern.replace('x', r'\d').replace('X', r'\d').replace('+', r'\+?')
             regex_pattern = '^' + regex_pattern + r'.*$'
-            print(f"Checking pattern: {pattern.pattern} -> Regex: {regex_pattern}")
+            # print(f"Checking pattern: {pattern.pattern} -> Regex: {regex_pattern}")
 
             # Use regex to check if the callee matches the pattern
             if re.match(regex_pattern, self.callee):
-                print(f"Match found: {self.callee} matches {pattern.pattern}")
+                # print(f"Match found: {self.callee} matches {pattern.pattern}")
                 self.call_category = pattern.call_type
                 self.call_rate = pattern.rate_per_min
                 return  # Exit once a match is found
 
-        print(f"No pattern matched for callee: {self.callee}. Setting call category to 'Unknown'.")
+        # print(f"No pattern matched for callee: {self.callee}. Setting call category to 'Unknown'.")
         self.call_category = 'Unknown'
 
     def calculate_total_cost(self):

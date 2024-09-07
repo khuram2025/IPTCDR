@@ -57,7 +57,7 @@ sudo systemctl restart socket_server.service
 sudo systemctl status socket_server.service
 
 
-
+source venv/bin/activate
 cd cdr 
 python manage.py runserver 0.0.0.0:8002
 

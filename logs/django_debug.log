@@ -1,0 +1,168 @@
+INFO 2024-09-06 20:43:18,056 autoreload 52583 137157863506048 Watching for file changes with StatReloader
+INFO 2024-09-06 20:43:49,229 autoreload 52583 137157863506048 /home/ubuntu/3CX/cdr/cdr3cx/models.py changed, reloading.
+INFO 2024-09-06 20:43:50,349 autoreload 52647 139890194288768 Watching for file changes with StatReloader
+INFO 2024-09-06 20:44:05,217 autoreload 52758 125196629880960 Watching for file changes with StatReloader
+ERROR 2024-09-06 20:44:07,773 log 52721 135081264136320 Internal Server Error: /
+Traceback (most recent call last):
+  File "/home/ubuntu/3CX/venv/lib/python3.12/site-packages/django/db/backends/utils.py", line 105, in _execute
+    return self.cursor.execute(sql, params)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+psycopg2.errors.UndefinedColumn: column cdr3cx_callrecord.debug_info does not exist
+LINE 1: ...d"."call_rate", "cdr3cx_callrecord"."total_cost", "cdr3cx_ca...
+                                                             ^
+
+
+The above exception was the direct cause of the following exception:
+
+Traceback (most recent call last):
+  File "/home/ubuntu/3CX/venv/lib/python3.12/site-packages/django/core/handlers/exception.py", line 55, in inner
+    response = get_response(request)
+               ^^^^^^^^^^^^^^^^^^^^^
+  File "/home/ubuntu/3CX/venv/lib/python3.12/site-packages/django/core/handlers/base.py", line 197, in _get_response
+    response = wrapped_callback(request, *callback_args, **callback_kwargs)
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/ubuntu/3CX/venv/lib/python3.12/site-packages/django/contrib/auth/decorators.py", line 23, in _wrapper_view
+    return view_func(request, *args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/ubuntu/3CX/cdr/cdr3cx/views.py", line 178, in dashboard
+    for record in call_records:
+  File "/home/ubuntu/3CX/venv/lib/python3.12/site-packages/django/db/models/query.py", line 400, in __iter__
+    self._fetch_all()
+  File "/home/ubuntu/3CX/venv/lib/python3.12/site-packages/django/db/models/query.py", line 1928, in _fetch_all
+    self._result_cache = list(self._iterable_class(self))
+                         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/ubuntu/3CX/venv/lib/python3.12/site-packages/django/db/models/query.py", line 91, in __iter__
+    results = compiler.execute_sql(
+              ^^^^^^^^^^^^^^^^^^^^^
+  File "/home/ubuntu/3CX/venv/lib/python3.12/site-packages/django/db/models/sql/compiler.py", line 1562, in execute_sql
+    cursor.execute(sql, params)
+  File "/home/ubuntu/3CX/venv/lib/python3.12/site-packages/django/db/backends/utils.py", line 79, in execute
+    return self._execute_with_wrappers(
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/ubuntu/3CX/venv/lib/python3.12/site-packages/django/db/backends/utils.py", line 92, in _execute_with_wrappers
+    return executor(sql, params, many, context)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/ubuntu/3CX/venv/lib/python3.12/site-packages/django/db/backends/utils.py", line 100, in _execute
+    with self.db.wrap_database_errors:
+  File "/home/ubuntu/3CX/venv/lib/python3.12/site-packages/django/db/utils.py", line 91, in __exit__
+    raise dj_exc_value.with_traceback(traceback) from exc_value
+  File "/home/ubuntu/3CX/venv/lib/python3.12/site-packages/django/db/backends/utils.py", line 105, in _execute
+    return self.cursor.execute(sql, params)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+django.db.utils.ProgrammingError: column cdr3cx_callrecord.debug_info does not exist
+LINE 1: ...d"."call_rate", "cdr3cx_callrecord"."total_cost", "cdr3cx_ca...
+                                                             ^
+
+ERROR 2024-09-06 20:44:13,046 log 52722 135081264136320 Internal Server Error: /
+Traceback (most recent call last):
+  File "/home/ubuntu/3CX/venv/lib/python3.12/site-packages/django/db/backends/utils.py", line 105, in _execute
+    return self.cursor.execute(sql, params)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+psycopg2.errors.UndefinedColumn: column cdr3cx_callrecord.debug_info does not exist
+LINE 1: ...d"."call_rate", "cdr3cx_callrecord"."total_cost", "cdr3cx_ca...
+                                                             ^
+
+
+The above exception was the direct cause of the following exception:
+
+Traceback (most recent call last):
+  File "/home/ubuntu/3CX/venv/lib/python3.12/site-packages/django/core/handlers/exception.py", line 55, in inner
+    response = get_response(request)
+               ^^^^^^^^^^^^^^^^^^^^^
+  File "/home/ubuntu/3CX/venv/lib/python3.12/site-packages/django/core/handlers/base.py", line 197, in _get_response
+    response = wrapped_callback(request, *callback_args, **callback_kwargs)
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/ubuntu/3CX/venv/lib/python3.12/site-packages/django/contrib/auth/decorators.py", line 23, in _wrapper_view
+    return view_func(request, *args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/ubuntu/3CX/cdr/cdr3cx/views.py", line 178, in dashboard
+    for record in call_records:
+  File "/home/ubuntu/3CX/venv/lib/python3.12/site-packages/django/db/models/query.py", line 400, in __iter__
+    self._fetch_all()
+  File "/home/ubuntu/3CX/venv/lib/python3.12/site-packages/django/db/models/query.py", line 1928, in _fetch_all
+    self._result_cache = list(self._iterable_class(self))
+                         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/ubuntu/3CX/venv/lib/python3.12/site-packages/django/db/models/query.py", line 91, in __iter__
+    results = compiler.execute_sql(
+              ^^^^^^^^^^^^^^^^^^^^^
+  File "/home/ubuntu/3CX/venv/lib/python3.12/site-packages/django/db/models/sql/compiler.py", line 1562, in execute_sql
+    cursor.execute(sql, params)
+  File "/home/ubuntu/3CX/venv/lib/python3.12/site-packages/django/db/backends/utils.py", line 79, in execute
+    return self._execute_with_wrappers(
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/ubuntu/3CX/venv/lib/python3.12/site-packages/django/db/backends/utils.py", line 92, in _execute_with_wrappers
+    return executor(sql, params, many, context)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/ubuntu/3CX/venv/lib/python3.12/site-packages/django/db/backends/utils.py", line 100, in _execute
+    with self.db.wrap_database_errors:
+  File "/home/ubuntu/3CX/venv/lib/python3.12/site-packages/django/db/utils.py", line 91, in __exit__
+    raise dj_exc_value.with_traceback(traceback) from exc_value
+  File "/home/ubuntu/3CX/venv/lib/python3.12/site-packages/django/db/backends/utils.py", line 105, in _execute
+    return self.cursor.execute(sql, params)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+django.db.utils.ProgrammingError: column cdr3cx_callrecord.debug_info does not exist
+LINE 1: ...d"."call_rate", "cdr3cx_callrecord"."total_cost", "cdr3cx_ca...
+                                                             ^
+
+WARNING 2024-09-06 20:44:24,443 log 52758 125196428117696 Not Found: /static/admin/css/base.css
+WARNING 2024-09-06 20:44:24,555 log 52758 125196327454400 Not Found: /static/admin/css/login.css
+WARNING 2024-09-06 20:44:24,556 log 52758 125196348425920 Not Found: /static/admin/css/dark_mode.css
+WARNING 2024-09-06 20:44:24,558 log 52758 125196337940160 Not Found: /static/admin/css/nav_sidebar.css
+WARNING 2024-09-06 20:44:24,560 log 52758 125196316968640 Not Found: /static/admin/css/responsive.css
+WARNING 2024-09-06 20:44:24,565 log 52758 125196306482880 Not Found: /static/admin/js/theme.js
+WARNING 2024-09-06 20:44:24,858 log 52758 125196428117696 Not Found: /static/admin/js/nav_sidebar.js
+WARNING 2024-09-06 20:44:25,269 log 52758 125196428117696 Not Found: /favicon.ico
+ERROR 2024-09-06 20:44:29,062 log 52758 125196428117696 Internal Server Error: /
+Traceback (most recent call last):
+  File "/home/ubuntu/3CX/venv/lib/python3.12/site-packages/django/db/backends/utils.py", line 105, in _execute
+    return self.cursor.execute(sql, params)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+psycopg2.errors.UndefinedColumn: column cdr3cx_callrecord.debug_info does not exist
+LINE 1: ...d"."call_rate", "cdr3cx_callrecord"."total_cost", "cdr3cx_ca...
+                                                             ^
+
+
+The above exception was the direct cause of the following exception:
+
+Traceback (most recent call last):
+  File "/home/ubuntu/3CX/venv/lib/python3.12/site-packages/django/core/handlers/exception.py", line 55, in inner
+    response = get_response(request)
+               ^^^^^^^^^^^^^^^^^^^^^
+  File "/home/ubuntu/3CX/venv/lib/python3.12/site-packages/django/core/handlers/base.py", line 197, in _get_response
+    response = wrapped_callback(request, *callback_args, **callback_kwargs)
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/ubuntu/3CX/venv/lib/python3.12/site-packages/django/contrib/auth/decorators.py", line 23, in _wrapper_view
+    return view_func(request, *args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/ubuntu/3CX/cdr/cdr3cx/views.py", line 178, in dashboard
+    for record in call_records:
+  File "/home/ubuntu/3CX/venv/lib/python3.12/site-packages/django/db/models/query.py", line 400, in __iter__
+    self._fetch_all()
+  File "/home/ubuntu/3CX/venv/lib/python3.12/site-packages/django/db/models/query.py", line 1928, in _fetch_all
+    self._result_cache = list(self._iterable_class(self))
+                         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/ubuntu/3CX/venv/lib/python3.12/site-packages/django/db/models/query.py", line 91, in __iter__
+    results = compiler.execute_sql(
+              ^^^^^^^^^^^^^^^^^^^^^
+  File "/home/ubuntu/3CX/venv/lib/python3.12/site-packages/django/db/models/sql/compiler.py", line 1562, in execute_sql
+    cursor.execute(sql, params)
+  File "/home/ubuntu/3CX/venv/lib/python3.12/site-packages/django/db/backends/utils.py", line 79, in execute
+    return self._execute_with_wrappers(
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/ubuntu/3CX/venv/lib/python3.12/site-packages/django/db/backends/utils.py", line 92, in _execute_with_wrappers
+    return executor(sql, params, many, context)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/ubuntu/3CX/venv/lib/python3.12/site-packages/django/db/backends/utils.py", line 100, in _execute
+    with self.db.wrap_database_errors:
+  File "/home/ubuntu/3CX/venv/lib/python3.12/site-packages/django/db/utils.py", line 91, in __exit__
+    raise dj_exc_value.with_traceback(traceback) from exc_value
+  File "/home/ubuntu/3CX/venv/lib/python3.12/site-packages/django/db/backends/utils.py", line 105, in _execute
+    return self.cursor.execute(sql, params)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+django.db.utils.ProgrammingError: column cdr3cx_callrecord.debug_info does not exist
+LINE 1: ...d"."call_rate", "cdr3cx_callrecord"."total_cost", "cdr3cx_ca...
+                                                             ^
+
+INFO 2024-09-06 20:44:42,271 autoreload 52758 125196629880960 /home/ubuntu/3CX/cdr/cdr3cx/models.py changed, reloading.
+INFO 2024-09-06 20:44:43,913 autoreload 52937 129007735734400 Watching for file changes with StatReloader
+INFO 2024-09-06 20:44:45,751 autoreload 52937 129007735734400 /home/ubuntu/3CX/cdr/cdr/settings.py changed, reloading.

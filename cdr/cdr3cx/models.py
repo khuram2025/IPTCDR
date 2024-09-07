@@ -6,6 +6,7 @@ from django.dispatch import receiver
 from django.db import models
 import phonenumbers
 from phonenumbers import geocoder, NumberParseException
+import re
 
 from accounts.models import Company
 
@@ -53,7 +54,6 @@ def apply_pattern_to_call_records(sender, instance, **kwargs):
 
 
 
-
 class CallRecord(models.Model):
     company = models.ForeignKey(Company, on_delete=models.SET_NULL, null=True, blank=True, related_name='call_records')
     caller = models.CharField(max_length=20, null=True, blank=True)
@@ -61,7 +61,6 @@ class CallRecord(models.Model):
     call_time = models.DateTimeField(null=True)
     external_number = models.CharField(max_length=20, default='Unknown')
     country = models.CharField(max_length=50, default='Unknown', blank=True)
-
     duration = models.IntegerField(null=True, blank=True)  # Duration in seconds
     time_answered = models.DateTimeField(null=True, blank=True)
     time_end = models.DateTimeField(null=True, blank=True)
@@ -85,39 +84,59 @@ class CallRecord(models.Model):
     call_rate = models.DecimalField(max_digits=5, decimal_places=2, default=0.00, help_text="Rate per minute in SAR")
     total_cost = models.DecimalField(max_digits=10, decimal_places=2, default=0.00, help_text="Total cost of the call")
 
-
     def __str__(self):
         return f"{self.caller} -> {self.callee} at {self.call_time}"
-    
-    def save(self, *args, **kwargs):
-        if not self.company:
-            self.company = Company.objects.get_or_create(name="Channab")[0]
-        super().save(*args, **kwargs)
-
     def categorize_call(self):
-        # First, use patterns defined by the company
         patterns = self.company.call_patterns.all()
-        for pattern in patterns:
-            if self.callee.startswith(pattern.pattern):
-                return pattern.call_type
 
-        # If no pattern matches, try to detect if it's international
+        print(f"Attempting to categorize call for callee: {self.callee}")
+
+        if not patterns:
+            print(f"No call patterns found for company: {self.company.name}")
+            self.call_category = 'Unknown'
+            return
+
+        for pattern in patterns:
+            # Convert the pattern to a regex pattern
+            regex_pattern = pattern.pattern.replace('x', r'\d').replace('X', r'\d').replace('+', r'\+?')
+            regex_pattern = '^' + regex_pattern + r'.*$'
+            print(f"Checking pattern: {pattern.pattern} -> Regex: {regex_pattern}")
+
+            # Use regex to check if the callee matches the pattern
+            if re.match(regex_pattern, self.callee):
+                print(f"Match found: {self.callee} matches {pattern.pattern}")
+                self.call_category = pattern.call_type
+                self.call_rate = pattern.rate_per_min
+                return  # Exit once a match is found
+
+        print(f"No pattern matched for callee: {self.callee}. Setting call category to 'Unknown'.")
+        self.call_category = 'Unknown'
+
+    def calculate_total_cost(self):
+        """
+        Calculate total cost based on the duration and rate per minute.
+        """
+        if self.duration:
+            duration_minutes = (self.duration + 59) // 60  # Round up to the nearest whole minute
+            self.total_cost = duration_minutes * self.call_rate
+
+    def save(self, *args, **kwargs):
         try:
-            parsed_number = phonenumbers.parse(self.callee, None)
-            if phonenumbers.is_valid_number(parsed_number):
-                if parsed_number.country_code != phonenumbers.region_code_for_number(parsed_number):
-                    self.country = geocoder.country_name_for_number(parsed_number, "en")
-                    return 'international'
-        except NumberParseException:
-            pass
+            if not self.company:
+                self.company = Company.objects.get_or_create(name="Channab")[0]
+
+            print(f"Saving CallRecord: {self.caller} -> {self.callee} at {self.call_time}")
+
+            self.categorize_call()
+            self.calculate_total_cost()
+
+        except Exception as e:
+            print(f"Error during save: {str(e)}")
         
-        return 'Unknown'
-    
-    
+        super().save(*args, **kwargs)
 
     class Meta:
         ordering = ['-call_time']  # Example of ordering by call_time descending
-
 
     
 class RoutingRule(models.Model):

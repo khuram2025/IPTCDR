@@ -6,27 +6,30 @@ import sys
 import logging
 from django.utils import timezone
 from django.utils.dateparse import parse_datetime
+from django.db.models import Q
 
 # Set up Django environment
 sys.path.append('/home/ubuntu/3CX/cdr')  # Path to your Django project
 os.environ.setdefault('DJANGO_SETTINGS_MODULE', 'cdr.settings')
 django.setup()
 
-from cdr3cx.models import CallRecord  # Use absolute import for the model
+from cdr3cx.models import CallRecord, Company  # Use absolute import for the models
 
 # Set up logging
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
-def handle_client_connection(client_socket):
+def get_company_for_port(port):
+    try:
+        return Company.objects.get(listening_port=port)
+    except Company.DoesNotExist:
+        logger.warning(f"No company found for port {port}. Using default company.")
+        return Company.objects.get_or_create(name="Default Company")[0]
+
+def handle_client_connection(client_socket, port):
     try:
         request = client_socket.recv(1024).decode('utf-8').strip()
-        logger.info(f"Received data: {request}")
-
-        # # Save raw data to a file for debugging
-        # records_file_path = os.path.join('/home/ubuntu/3CX/cdr', 'records.txt')
-        # with open(records_file_path, 'a') as f:
-        #     f.write(f"{request}\n")
+        logger.info(f"Received data on port {port}: {request}")
 
         # Remove 'Call ' prefix if present
         if request.startswith('Call '):
@@ -88,9 +91,13 @@ def handle_client_connection(client_socket):
             logger.error(f"Error parsing duration: {e}")
             duration = None
 
+        # Get the company based on the port
+        company = get_company_for_port(port)
+
         # Save to database
         try:
             call_record = CallRecord.objects.create(
+                company=company,
                 caller=caller,
                 callee=callee,
                 call_time=call_time,
@@ -113,7 +120,7 @@ def handle_client_connection(client_socket):
                 to_dispname=to_dispname,
                 final_dispname=final_dispname
             )
-            logger.info(f"Saved call record: {call_record}")
+            logger.info(f"Saved call record for company {company.name}: {call_record}")
             client_socket.send(b"CDR received and processed")
         except Exception as e:
             logger.error(f"Error saving call record: {e}")
@@ -126,23 +133,41 @@ def handle_client_connection(client_socket):
     finally:
         client_socket.close()
 
-# Main function to set up the server
-def main():
+def start_server(port):
     server = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-    server.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)  # Add this line
-    server.bind(('0.0.0.0', 8000))
+    server.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
+    server.bind(('0.0.0.0', port))
     server.listen(5)  # max backlog of connections
 
-    logger.info("Listening on port 8000")
+    logger.info(f"Listening on port {port}")
 
     while True:
         client_sock, address = server.accept()
-        logger.info(f"Accepted connection from {address}")
+        logger.info(f"Accepted connection from {address} on port {port}")
         client_handler = threading.Thread(
             target=handle_client_connection,
-            args=(client_sock,)  # pass client socket object
+            args=(client_sock, port)
         )
         client_handler.start()
+
+# Main function to set up the server
+def main():
+    # Get all unique ports from the Company model
+    ports = Company.objects.exclude(listening_port__isnull=True).values_list('listening_port', flat=True).distinct()
+    
+    # If no ports are configured, use a default port
+    if not ports:
+        ports = [8000]
+        logger.warning("No ports configured in Company model. Using default port 8000.")
+
+    threads = []
+    for port in ports:
+        thread = threading.Thread(target=start_server, args=(port,))
+        thread.start()
+        threads.append(thread)
+
+    for thread in threads:
+        thread.join()
 
 if __name__ == '__main__':
     main()

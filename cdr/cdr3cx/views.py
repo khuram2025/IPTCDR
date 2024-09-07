@@ -516,7 +516,7 @@ def caller_calls_view(request, caller_number):
         per_page = 100
 
     call_records = CallRecord.objects.filter(caller=caller_number)
-    print(f"Initial call_records count: {call_records.count()}")
+    
 
     # Apply date filter
     now = timezone.now()
@@ -545,7 +545,7 @@ def caller_calls_view(request, caller_number):
             Q(callee__icontains=search_query) | 
             Q(call_time__icontains=search_query)
         )
-        print(f"After search filter, call_records count: {call_records.count()}")
+       
 
     # Calculate statistics
     total_calls = call_records.count()
@@ -627,9 +627,8 @@ def caller_calls_view(request, caller_number):
         'international_call_cost': international_call_cost,
     }
 
-    print("Context variables:")
-    for key, value in context.items():
-        print(f"{key}: {value}")
+    
+   
 
     return render(request, 'cdr/caller_calls.html', context)
 

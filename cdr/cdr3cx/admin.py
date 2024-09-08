@@ -3,7 +3,7 @@ from django.db.models import Count, Sum
 from django.shortcuts import render
 
 from accounts.models import Company
-from .models import CallPattern, CallRecord, RoutingRule
+from .models import CallPattern, CallRecord
 
 @admin.register(CallPattern)
 class CallPatternAdmin(admin.ModelAdmin):
@@ -24,9 +24,22 @@ class CallRecordAdmin(admin.ModelAdmin):
     search_fields = ('caller', 'callee', 'external_number', 'from_no', 'to_no', 'final_number')
     date_hierarchy = 'call_time'
 
-@admin.register(RoutingRule)
-class RoutingRuleAdmin(admin.ModelAdmin):
-    list_display = ('external_number', 'original_caller', 'route_to')
-    search_fields = ('external_number', 'original_caller', 'route_to')
+
+from .models import Quota, UserQuota
 
 
+@admin.register(UserQuota)
+class UserQuotaAdmin(admin.ModelAdmin):
+    list_display = ('extension', 'quota', 'remaining_balance', 'last_reset')
+    actions = ['reset_quotas']
+
+    def reset_quotas(self, request, queryset):
+        for user_quota in queryset:
+            user_quota.reset_quota()
+            user_quota.save()
+        self.message_user(request, f"{queryset.count()} quotas were reset successfully.")
+    reset_quotas.short_description = "Reset selected quotas"
+
+@admin.register(Quota)
+class QuotaAdmin(admin.ModelAdmin):
+    list_display = ('name', 'amount', 'company')

@@ -1,5 +1,7 @@
 from django.db import models
 from django.contrib.auth.models import AbstractUser, BaseUserManager, Group, Permission
+from django.db.models.signals import post_save
+from django.dispatch import receiver
 
 class Company(models.Model):
     name = models.CharField(max_length=255)
@@ -82,4 +84,7 @@ class Extension(models.Model):
         from billing.models import UserQuota
         if not UserQuota.objects.filter(extension=self).exists():
             UserQuota.objects.create(extension=self)
+        
+
+
 

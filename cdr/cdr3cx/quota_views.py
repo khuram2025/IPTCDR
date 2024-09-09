@@ -66,7 +66,47 @@ def assign_quota(request):
     }
     return render(request, 'cdr/quota/assign_quota.html', context)
 
+from django.core.paginator import Paginator
+from django.db.models import F
+
+from django.db.models import F, ExpressionWrapper, DecimalField
+from django.db.models.functions import Coalesce
+
 @login_required
 def quota_usage(request):
-    user_quotas = UserQuota.objects.filter(extension__company=request.user.company)
-    return render(request, 'cdr/quota/quota_usage.html', {'user_quotas': user_quotas})
+    user_quotas = UserQuota.objects.filter(extension__company=request.user.company).select_related('extension', 'quota')
+    
+    # Search functionality
+    search_query = request.GET.get('search', '')
+    if search_query:
+        user_quotas = user_quotas.filter(extension__extension__icontains=search_query)
+    
+    # Add Used Amount as an annotation
+    user_quotas = user_quotas.annotate(
+        used_amount=ExpressionWrapper(
+            Coalesce(F('quota__amount'), 0) - F('remaining_balance'),
+            output_field=DecimalField()
+        )
+    )
+    
+    # Sorting
+    sort_by = request.GET.get('sort', 'extension__extension')
+    if sort_by == 'used_amount':
+        user_quotas = user_quotas.order_by('used_amount')
+    elif sort_by == '-used_amount':
+        user_quotas = user_quotas.order_by('-used_amount')
+    elif sort_by.startswith('-'):
+        user_quotas = user_quotas.order_by(F(sort_by[1:]).desc(nulls_last=True))
+    else:
+        user_quotas = user_quotas.order_by(F(sort_by).asc(nulls_last=True))
+    
+    # Pagination
+    paginator = Paginator(user_quotas, 100)
+    page_number = request.GET.get('page')
+    page_obj = paginator.get_page(page_number)
+    
+    return render(request, 'cdr/quota/quota_usage.html', {
+        'page_obj': page_obj, 
+        'sort_by': sort_by,
+        'search_query': search_query
+    })

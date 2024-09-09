@@ -121,6 +121,7 @@ def handle_client_connection(client_socket, port):
                 to_dispname=to_dispname,
                 final_dispname=final_dispname
             )
+            call_record.save()
             logger.info(f"Saved call record for company {company.name}: {call_record}")
             client_socket.send(b"CDR received and processed")
         except Exception as e:

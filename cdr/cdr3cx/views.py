@@ -538,7 +538,7 @@ def caller_calls_view(request, caller_number):
         end_date = timezone.make_aware(datetime.strptime(end_date_str, "%d %b, %Y").replace(hour=23, minute=59, second=59))
         call_records = call_records.filter(call_time__range=[start_date, end_date])
 
-    print(f"After date filter, call_records count: {call_records.count()}")
+   
 
     if search_query:
         call_records = call_records.filter(

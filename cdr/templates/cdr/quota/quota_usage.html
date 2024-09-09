@@ -1,0 +1,133 @@
+{% extends "partials/base.html" %} {% load static %} {% load custom_filters %} {% block title %}Quota Usage{% endblock title %} {% block content %}
+<div class="main-content">
+  <div class="page-content">
+    <div class="container-fluid">
+      {% block pagetitle %}
+      <div class="row">
+        <div class="col-12">
+          <div class="page-title-box d-sm-flex align-items-center justify-content-between">
+            <h4 class="mb-sm-0">Quota Usage</h4>
+          </div>
+        </div>
+      </div>
+      {% endblock pagetitle %}
+
+      <div class="row">
+        <div class="col-12">
+          <div class="card">
+            <div class="card-body">
+              <div id="quotaUsageTable_wrapper" class="dataTables_wrapper dt-bootstrap5 no-footer">
+                <div class="row">
+                  <div class="col-sm-12 col-md-6">
+                    <div class="dataTables_length" id="quotaUsageTable_length">
+                      <label
+                        >Show
+                        <select name="quotaUsageTable_length" aria-controls="quotaUsageTable" class="form-select form-select-sm">
+                          <option value="10">10</option>
+                          <option value="25">25</option>
+                          <option value="50">50</option>
+                          <option value="100">100</option>
+                        </select>
+                        entries
+                      </label>
+                    </div>
+                  </div>
+                  <div class="col-sm-12 col-md-6">
+                    <div id="quotaUsageTable_filter" class="dataTables_filter">
+                      <label>Search:<input type="search" class="form-control form-control-sm" placeholder="" aria-controls="quotaUsageTable" /></label>
+                    </div>
+                  </div>
+                </div>
+                <div class="row">
+                  <div class="col-sm-12">
+                    <table id="quotaUsageTable" class="table table-nowrap dt-responsive table-bordered display dataTable no-footer dtr-inline" style="width: 100%" aria-describedby="quotaUsageTable_info">
+                      <thead>
+                        <tr>
+                          <th class="sorting sorting_asc" tabindex="0" aria-controls="quotaUsageTable" rowspan="1" colspan="1" aria-sort="ascending" aria-label="Extension: activate to sort column descending">Extension</th>
+                          <th class="sorting" tabindex="0" aria-controls="quotaUsageTable" rowspan="1" colspan="1" aria-label="Quota Name: activate to sort column ascending">Quota Name</th>
+                          <th class="sorting" tabindex="0" aria-controls="quotaUsageTable" rowspan="1" colspan="1" aria-label="Total Amount: activate to sort column ascending">Total Amount</th>
+                          <th class="sorting" tabindex="0" aria-controls="quotaUsageTable" rowspan="1" colspan="1" aria-label="Used Amount: activate to sort column ascending">Used Amount</th>
+                          <th class="sorting" tabindex="0" aria-controls="quotaUsageTable" rowspan="1" colspan="1" aria-label="Remaining Balance: activate to sort column ascending">Remaining Balance</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {% for user_quota in user_quotas %}
+                        <tr class="{% cycle 'odd' 'even' %}">
+                          <td class="dtr-control sorting_1" tabindex="0">{{ user_quota.extension }}</td>
+                          <td>{{ user_quota.quota.name }}</td>
+                          <td>{{ user_quota.quota.amount }} SAR</td>
+                          <td>{{ user_quota.quota.amount|sub:user_quota.remaining_balance }} SAR</td>
+                          <td>{{ user_quota.remaining_balance }} SAR</td>
+                        </tr>
+                        {% endfor %}
+                      </tbody>
+                    </table>
+                  </div>
+                </div>
+                <div class="row">
+                  <div class="col-sm-12 col-md-5">
+                    <div class="dataTables_info" id="quotaUsageTable_info" role="status" aria-live="polite">Showing 1 to {{ user_quotas|length }} of {{ user_quotas|length }} entries</div>
+                  </div>
+                  <div class="col-sm-12 col-md-7">
+                    <div class="dataTables_paginate paging_simple_numbers" id="quotaUsageTable_paginate">
+                      <ul class="pagination">
+                        <li class="paginate_button page-item previous disabled" id="quotaUsageTable_previous">
+                          <a href="#" aria-controls="quotaUsageTable" data-dt-idx="0" tabindex="0" class="page-link">Previous</a>
+                        </li>
+                        <li class="paginate_button page-item active">
+                          <a href="#" aria-controls="quotaUsageTable" data-dt-idx="1" tabindex="0" class="page-link">1</a>
+                        </li>
+                        <li class="paginate_button page-item next disabled" id="quotaUsageTable_next">
+                          <a href="#" aria-controls="quotaUsageTable" data-dt-idx="2" tabindex="0" class="page-link">Next</a>
+                        </li>
+                      </ul>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  {% block footer %}{% include "partials/footer.html" %}{% endblock footer %}
+</div>
+{% endblock content %} {% block extra_js %}
+<script>
+  $(document).ready(function () {
+    $("#quotaUsageTable").DataTable({
+      paging: true,
+      pageLength: 10,
+      lengthChange: true,
+      searching: true,
+      ordering: true,
+      info: true,
+      autoWidth: false,
+      responsive: true,
+      language: {
+        paginate: {
+          previous: "Previous",
+          next: "Next",
+        },
+      },
+      drawCallback: function (settings) {
+        var api = this.api();
+        var pageInfo = api.page.info();
+
+        $("#quotaUsageTable_info").html("Showing " + (pageInfo.start + 1) + " to " + pageInfo.end + " of " + pageInfo.recordsTotal + " entries");
+
+        $("#quotaUsageTable_paginate .pagination").empty();
+        for (var i = 0; i < pageInfo.pages; i++) {
+          var active = pageInfo.page === i ? "active" : "";
+          $("#quotaUsageTable_paginate .pagination").append('<li class="paginate_button page-item ' + active + '">' + '<a href="#" aria-controls="quotaUsageTable" data-dt-idx="' + i + '" tabindex="0" class="page-link">' + (i + 1) + "</a>" + "</li>");
+        }
+
+        $("#quotaUsageTable_previous").toggleClass("disabled", pageInfo.page === 0);
+        $("#quotaUsageTable_next").toggleClass("disabled", pageInfo.page === pageInfo.pages - 1);
+      },
+    });
+  });
+</script>
+{% endblock extra_js %}

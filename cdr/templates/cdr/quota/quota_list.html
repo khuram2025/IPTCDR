@@ -1,0 +1,58 @@
+{% extends "partials/base.html" %} {% load static %} {% block title %}Quota List{% endblock title %} {% block extra_css %}
+<!-- Add any extra CSS here if needed -->
+{% endblock extra_css %} {% block content %}
+<div class="main-content">
+  <div class="page-content">
+    <div class="container-fluid">
+      {% block pagetitle %}
+      <div class="row">
+        <div class="col-12">
+          <div class="page-title-box d-sm-flex align-items-center justify-content-between">
+            <h4 class="mb-sm-0">Quotas</h4>
+          </div>
+        </div>
+      </div>
+      {% endblock pagetitle %}
+
+      <div class="row">
+        <div class="col-12">
+          <div class="card">
+            <div class="card-body">
+              <div class="d-flex justify-content-end mb-3">
+                <a href="{% url 'cdr3cx:quota_create' %}" class="btn btn-primary me-2">Create New Quota</a>
+                <a href="{% url 'cdr3cx:assign_quota' %}" class="btn btn-secondary me-2">Assign Quota</a>
+                <a href="{% url 'cdr3cx:quota_usage' %}" class="btn btn-info">View Quota Usage</a>
+              </div>
+              <table class="table table-striped table-bordered">
+                <thead>
+                  <tr>
+                    <th>Name</th>
+                    <th>Amount</th>
+                    <th>Actions</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {% for quota in quotas %}
+                  <tr>
+                    <td>{{ quota.name }}</td>
+                    <td>{{ quota.amount }} SAR</td>
+                    <td>
+                      <a href="{% url 'cdr3cx:quota_update' quota.id %}" class="btn btn-sm btn-primary"><i class="fas fa-edit"></i></a>
+                      <a href="{% url 'cdr3cx:quota_delete' quota.id %}" class="btn btn-sm btn-danger"><i class="fas fa-trash"></i></a>
+                    </td>
+                  </tr>
+                  {% endfor %}
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  {% block footer %} {% include "partials/footer.html" %} {% endblock footer %}
+</div>
+{% endblock content %} {% block extra_js %}
+<!-- Add any extra JS here if needed -->
+{% endblock extra_js %}

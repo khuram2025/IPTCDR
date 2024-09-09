@@ -9,6 +9,10 @@ def format_from_no(value):
     return "0" + value
 
 @register.filter
+def sub(value, arg):
+    return value - arg
+
+@register.filter
 def format_duration(value):
     if value is None:
         return "N/A"

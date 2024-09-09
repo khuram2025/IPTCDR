@@ -1,6 +1,6 @@
 from django.urls import path
 from .views import receive_cdr
-from . import views, views_api
+from . import views, views_api, quota_views
 
 app_name = 'cdr3cx' 
 
@@ -36,5 +36,13 @@ urlpatterns = [
     path('national_calls/', views.national_calls_view, name='national_calls'),
     path('international_calls/', views.international_calls_view, name='international_calls'),
     path('international-calls/<slug:country_slug>/', views.country_specific_calls_view, name='country_specific_calls'),
+
+
+    path('quotas/', quota_views.QuotaListView.as_view(), name='quota_list'),
+    path('quotas/create/', quota_views.QuotaCreateView.as_view(), name='quota_create'),
+    path('quotas/<int:pk>/update/', quota_views.QuotaUpdateView.as_view(), name='quota_update'),
+    path('quotas/<int:pk>/delete/', quota_views.QuotaDeleteView.as_view(), name='quota_delete'),
+    path('quotas/assign/', quota_views.assign_quota, name='assign_quota'),
+    path('quotas/usage/', quota_views.quota_usage, name='quota_usage'),
 
 ]

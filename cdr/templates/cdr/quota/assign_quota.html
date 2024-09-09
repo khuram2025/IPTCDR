@@ -1,0 +1,56 @@
+{% extends "partials/base.html" %} {% load static %} {% block title %}Assign Quota{% endblock title %} {% block extra_css %}
+<link href="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/css/select2.min.css" rel="stylesheet" />
+{% endblock extra_css %} {% block content %}
+<div class="main-content">
+  <div class="page-content">
+    <div class="container-fluid">
+      {% block pagetitle %}
+      <div class="row">
+        <div class="col-12">
+          <div class="page-title-box d-sm-flex align-items-center justify-content-between">
+            <h4 class="mb-sm-0">Assign Quota to Extensions</h4>
+          </div>
+        </div>
+      </div>
+      {% endblock pagetitle %}
+
+      <div class="row">
+        <div class="col-12">
+          <div class="card">
+            <div class="card-body">
+              <form method="post">
+                {% csrf_token %}
+                <div class="mb-3">
+                  <label for="{{ form.quota.id_for_label }}" class="form-label">{{ form.quota.label }}</label>
+                  {{ form.quota }} {% if form.quota.errors %}
+                  <div class="text-danger">{{ form.quota.errors }}</div>
+                  {% endif %}
+                </div>
+                <div class="mb-3">
+                  <label for="{{ form.extensions.id_for_label }}" class="form-label">{{ form.extensions.label }}</label>
+                  {{ form.extensions }} {% if form.extensions.errors %}
+                  <div class="text-danger">{{ form.extensions.errors }}</div>
+                  {% endif %}
+                </div>
+                <button type="submit" class="btn btn-primary">Assign</button>
+              </form>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  {% block footer %} {% include "partials/footer.html" %} {% endblock footer %}
+</div>
+{% endblock content %} {% block extra_js %}
+<script src="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/js/select2.min.js"></script>
+<script>
+  $(document).ready(function () {
+    $(".select2").select2({
+      placeholder: "Select extensions",
+      allowClear: true,
+    });
+  });
+</script>
+{% endblock extra_js %}

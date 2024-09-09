@@ -6,7 +6,7 @@ CONCATENATE("https://iptportal.channab.com/get-caller/?caller_number=",callflow$
 
 sudo systemctl restart gunicorn
 sudo systemctl restart nginx
-
+sudo systemctl restart socket_server.service
 
 sudo systemctl restart gunicorn && sudo systemctl restart nginx
 

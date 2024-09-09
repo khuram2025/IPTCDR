@@ -1,4 +1,5 @@
-from django.db import models
+from decimal import Decimal
+from django.db import models,transaction
 from django.utils import timezone
 from datetime import timedelta
 from django.db.models.signals import post_save
@@ -89,103 +90,130 @@ class CallRecord(models.Model):
 
     def __str__(self):
         return f"{self.caller} -> {self.callee} at {self.call_time}"
+    
     def categorize_call(self):
+        logger.info(f"Categorizing call for number: {self.callee}")
         patterns = self.company.call_patterns.all()
-
-        # print(f"Attempting to categorize call for callee: {self.callee}")
-
-        if not patterns:
-            # print(f"No call patterns found for company: {self.company.name}")
-            self.call_category = 'Unknown'
-            return
+        logger.info(f"Number of patterns found for company {self.company.name}: {patterns.count()}")
 
         for pattern in patterns:
-            # Convert the pattern to a regex pattern
-            regex_pattern = pattern.pattern.replace('x', r'\d').replace('X', r'\d').replace('+', r'\+?')
-            regex_pattern = '^' + regex_pattern + r'.*$'
-            # print(f"Checking pattern: {pattern.pattern} -> Regex: {regex_pattern}")
+            regex_pattern = f"^{pattern.pattern.replace('x', r'\d').replace('X', r'\d')}.*$"
+            logger.info(f"Checking pattern: {pattern.pattern} -> Regex: {regex_pattern}")
 
-            # Use regex to check if the callee matches the pattern
             if re.match(regex_pattern, self.callee):
-                # print(f"Match found: {self.callee} matches {pattern.pattern}")
+                logger.info(f"Match found: {self.callee} matches {pattern.pattern}")
                 self.call_category = pattern.call_type
-                self.call_rate = pattern.rate_per_min
-                return  # Exit once a match is found
+                self.call_rate = Decimal(str(pattern.rate_per_min))
+                logger.info(f"Set call category to {self.call_category} and rate to {self.call_rate}")
+                return
+
+        logger.warning(f"No pattern matched for callee: {self.callee}. Setting call category to 'Unknown' and rate to 0.")
+        self.call_category = 'Unknown'
+        self.call_rate = Decimal('0.00')
 
         # print(f"No pattern matched for callee: {self.callee}. Setting call category to 'Unknown'.")
         self.call_category = 'Unknown'
 
     def calculate_total_cost(self):
-        """
-        Calculate total cost based on the duration and rate per minute.
-        """
+        logger.info(f"Calculating total cost for call: duration={self.duration} seconds")
         if self.duration:
-            duration_minutes = (self.duration + 59) // 60  # Round up to the nearest whole minute
-            self.total_cost = duration_minutes * self.call_rate
+            # Ensure duration_minutes is a Decimal
+            duration_minutes = Decimal((self.duration + 59) // 60)  # Round up to the nearest whole minute
+            logger.info(f"Duration in minutes: {duration_minutes}")
 
+            # Convert self.call_rate to Decimal if it's not already
+            call_rate = Decimal(self.call_rate) if not isinstance(self.call_rate, Decimal) else self.call_rate
+            logger.info(f"Current call rate: {call_rate}")
+
+            # Calculate the total cost using Decimal for both operands
+            self.total_cost = duration_minutes * call_rate
+            logger.info(f"Calculated total cost: {self.total_cost}")
+        else:
+            logger.warning("Duration is None or 0, setting total cost to 0")
+            self.total_cost = Decimal('0.00')
+        return self.total_cost
+
+   
     def save(self, *args, **kwargs):
-        logger.info("--- Starting save process for CallRecord ---")
-        logger.info(f"Initial state: caller={self.caller}, callee={self.callee}, duration={self.duration}, total_cost={self.total_cost}")
-        
-        try:
-            if not self.company:
-                self.company, created = Company.objects.get_or_create(name="Channab")
-                logger.info(f"Company set to: {self.company.name} (Created: {created})")
+            logger.info("--- Starting save process for CallRecord ---")
+            print("--- Starting save process for CallRecord ---")  # Console output
+            logger.info(f"Initial state: caller={self.caller}, callee={self.callee}, duration={self.duration}, total_cost={self.total_cost}")
+            print(f"Initial state: caller={self.caller}, callee={self.callee}, duration={self.duration}, total_cost={self.total_cost}")  # Console output
             
-            if not self.pk or 'update_fields' not in kwargs or 'country' in kwargs.get('update_fields', []):
-                country_info = get_country_from_number(self.callee)
-                self.country = country_info
-                logger.info(f"Country set to: {self.country}")
-                
-                if 'Internal Company Call' in country_info:
-                    self.call_type = 'Internal'
-                elif 'Saudi Arabia' in country_info:
-                    self.call_type = 'National'
-                elif 'International' in country_info:
-                    self.call_type = 'International'
-                else:
-                    self.call_type = 'Unknown'
-                logger.info(f"Call type set to: {self.call_type}")
-
-            if not self.pk:  # This is a new record
-                logger.info("This is a new CallRecord")
-                self.categorize_call()
-                logger.info(f"After categorization: call_category={self.call_category}, call_rate={self.call_rate}")
-                
-                self.calculate_total_cost()
-                logger.info(f"After cost calculation: total_cost={self.total_cost}")
-
-                # Update quota
-                try:
-                    extension = Extension.objects.get(extension=self.caller, company=self.company)
-                    logger.info(f"Found extension: {extension}")
-                    
-                    from billing.models import UserQuota
-                    user_quota = UserQuota.objects.get(extension=extension)
-                    logger.info(f"Found UserQuota: current balance = {user_quota.remaining_balance}")
-                    
-                    user_quota.check_and_reset_if_needed()
-                    logger.info(f"After check_and_reset_if_needed: balance = {user_quota.remaining_balance}")
-                    
-                    if not user_quota.deduct_balance(self.total_cost):
-                        logger.warning(f"Warning: Quota exceeded for extension {self.caller}")
+            is_new_record = not self.pk
+            
+            try:
+                with transaction.atomic():
+                    if is_new_record:
+                        old_total_cost = Decimal('0.00')
+                        logger.info("This is a new CallRecord")
+                        print("This is a new CallRecord")  # Console output
                     else:
-                        logger.info(f"Successfully deducted {self.total_cost} from quota. New balance: {user_quota.remaining_balance}")
-                except Extension.DoesNotExist:
-                    logger.warning(f"Warning: No extension found for {self.caller}")
-                except UserQuota.DoesNotExist:
-                    logger.warning(f"Warning: No quota set for extension {self.caller}")
-                except Exception as e:
-                    logger.error(f"Unexpected error in quota deduction: {str(e)}")
-            else:
-                logger.info("This is an existing CallRecord being updated")
+                        old_record = CallRecord.objects.get(pk=self.pk)
+                        old_total_cost = old_record.total_cost
+                        logger.info(f"This is an existing CallRecord. Old total cost: {old_total_cost}")
+                        print(f"This is an existing CallRecord. Old total cost: {old_total_cost}")  # Console output
 
+                    # Categorize the call
+                    logger.info("Categorizing call...")
+                    print("Categorizing call...")  # Console output
+                    self.categorize_call()
+
+                    logger.info("Calculating total cost...")
+                    print("Calculating total cost...")  # Console output
+                    self.calculate_total_cost()
+                    logger.info(f"After cost calculation: old_total_cost={old_total_cost}, new_total_cost={self.total_cost}")
+                    print(f"After cost calculation: old_total_cost={old_total_cost}, new_total_cost={self.total_cost}")  # Console output
+
+                    # Save the record
+                    logger.info("Calling super().save()")
+                    print("Calling super().save()")  # Console output
+                    super().save(*args, **kwargs)
+
+                    # Update quota
+                    logger.info("Updating user quota...")
+                    print("Updating user quota...")  # Console output
+                    self.update_user_quota(old_total_cost)
+
+            except Exception as e:
+                logger.error(f"Error during save: {str(e)}")
+                print(f"Error during save: {str(e)}")  # Console output
+                raise  # Re-raise the exception after logging
+            
+            logger.info("--- Finished save process for CallRecord ---")
+            print("--- Finished save process for CallRecord ---")  # Console output
+
+    def update_user_quota(self, old_total_cost):
+        logger.info(f"Starting update_user_quota with old_total_cost={old_total_cost}")
+        try:
+            extension = Extension.objects.get(extension=self.caller, company=self.company)
+            logger.info(f"Found extension: {extension}")
+            user_quota = UserQuota.objects.get(extension=extension)
+            logger.info(f"Found UserQuota: current balance = {user_quota.remaining_balance}")
+            
+            user_quota.check_and_reset_if_needed()
+            logger.info(f"After check_and_reset_if_needed: balance = {user_quota.remaining_balance}")
+            
+            amount_to_deduct = self.total_cost - Decimal(str(old_total_cost))
+            logger.info(f"Amount to deduct: {amount_to_deduct}")
+            
+            if amount_to_deduct > Decimal('0'):
+                if not user_quota.deduct_balance(amount_to_deduct):
+                    logger.warning(f"Warning: Quota exceeded for extension {self.caller}")
+                else:
+                    logger.info(f"Successfully deducted {amount_to_deduct} from quota. New balance: {user_quota.remaining_balance}")
+            elif amount_to_deduct < Decimal('0'):
+                user_quota.add_balance(abs(amount_to_deduct))
+                logger.info(f"Added {abs(amount_to_deduct)} to quota due to cost reduction. New balance: {user_quota.remaining_balance}")
+            else:
+                logger.info("No change in total cost, quota remains the same.")
+        except Extension.DoesNotExist:
+            logger.warning(f"Warning: No extension found for {self.caller}")
+        except UserQuota.DoesNotExist:
+            logger.warning(f"Warning: No quota set for extension {self.caller}")
         except Exception as e:
-            logger.error(f"Error during save: {str(e)}")
-        
-        logger.info("Calling super().save()")
-        super().save(*args, **kwargs)
-        logger.info(f"--- Finished save process for CallRecord ---")
+            logger.error(f"Unexpected error in quota deduction: {str(e)}")
+            raise
 
     class Meta:
         ordering = ['-call_time']  # Example of ordering by call_time descending
@@ -216,26 +244,56 @@ class UserQuota(models.Model):
 
     def reset_quota(self):
         if self.quota:
+            logger.info(f"Resetting quota for {self.extension}. Old balance: {self.remaining_balance}")
+            print(f"Resetting quota for {self.extension}. Old balance: {self.remaining_balance}")  # Console output
             self.remaining_balance = self.quota.amount
             self.last_reset = timezone.now()
+            logger.info(f"Quota reset. New balance: {self.remaining_balance}")
+            print(f"Quota reset. New balance: {self.remaining_balance}")  # Console output
 
     def deduct_balance(self, amount):
+        amount = Decimal(str(amount))  # Ensure amount is a Decimal
+        logger.info(f"Attempting to deduct {amount} from balance {self.remaining_balance}")
+        print(f"Attempting to deduct {amount} from balance {self.remaining_balance}")  # Console output
         if self.remaining_balance >= amount:
             self.remaining_balance -= amount
             self.save()
+            logger.info(f"Successfully deducted {amount}. New balance: {self.remaining_balance}")
+            print(f"Successfully deducted {amount}. New balance: {self.remaining_balance}")  # Console output
             return True
+        logger.warning(f"Insufficient balance. Current: {self.remaining_balance}, Attempted deduction: {amount}")
+        print(f"Insufficient balance. Current: {self.remaining_balance}, Attempted deduction: {amount}")  # Console output
         return False
+
+    def add_balance(self, amount):
+        amount = Decimal(str(amount))  # Ensure amount is a Decimal
+        logger.info(f"Adding {amount} to balance {self.remaining_balance}")
+        print(f"Adding {amount} to balance {self.remaining_balance}")  # Console output
+        self.remaining_balance += amount
+        self.save()
+        logger.info(f"New balance after addition: {self.remaining_balance}")
+        print(f"New balance after addition: {self.remaining_balance}")  # Console output
 
     def should_reset(self):
         now = timezone.now()
-        return (now.year > self.last_reset.year or 
-                (now.year == self.last_reset.year and now.month > self.last_reset.month))
+        should_reset = (now.year > self.last_reset.year or 
+                        (now.year == self.last_reset.year and now.month > self.last_reset.month))
+        logger.info(f"Checking if quota should reset. Result: {should_reset}")
+        print(f"Checking if quota should reset. Result: {should_reset}")  # Console output
+        return should_reset
 
     def check_and_reset_if_needed(self):
+        logger.info(f"Checking if quota needs reset for {self.extension}")
+        print(f"Checking if quota needs reset for {self.extension}")  # Console output
         if self.should_reset():
+            logger.info("Quota reset needed. Resetting...")
+            print("Quota reset needed. Resetting...")  # Console output
             self.reset_quota()
             self.save()
-
+        else:
+            logger.info("Quota reset not needed")
+            print("Quota reset not needed")  # Console output
+            
 @receiver(post_save, sender=Extension)
 def create_user_quota(sender, instance, created, **kwargs):
     if created:

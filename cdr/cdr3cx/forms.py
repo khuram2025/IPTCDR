@@ -25,12 +25,12 @@ class AssignQuotaForm(forms.Form):
             self.fields['quota'].queryset = Quota.objects.filter(company=company)
             extensions = Extension.objects.filter(company=company)
             self.fields['extensions'].queryset = extensions
-            print(f"Company: {company}")
-            print(f"Number of quotas: {self.fields['quota'].queryset.count()}")
-            print(f"Number of extensions: {extensions.count()}")
-            print(f"Extensions: {list(extensions.values_list('extension', flat=True))}")
-        else:
-            print("No company provided to AssignQuotaForm")
+            # print(f"Company: {company}")
+            # print(f"Number of quotas: {self.fields['quota'].queryset.count()}")
+            # print(f"Number of extensions: {extensions.count()}")
+            # print(f"Extensions: {list(extensions.values_list('extension', flat=True))}")
+        # else:
+        #     print("No company provided to AssignQuotaForm")
 
         # Add Bootstrap classes to all fields
         for field in self.fields:

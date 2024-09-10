@@ -1,4 +1,18 @@
 {% extends "partials/base.html" %} {% load static %} {% load custom_filters %} {% block title %}Quota Usage{% endblock title %} {% block content %}
+<style>
+  .clickable-row {
+    transition: background-color 0.3s, color 0.3s;
+  }
+
+  .clickable-row:hover {
+    background-color: #364574;
+    color: white;
+  }
+
+  .clickable-row:hover td {
+    color: white;
+  }
+</style>
 <div class="main-content">
   <div class="page-content">
     <div class="container-fluid">
@@ -49,7 +63,7 @@
                 </thead>
                 <tbody>
                   {% for user_quota in page_obj %}
-                  <tr>
+                  <tr class="clickable-row" data-href="{% url 'cdr3cx:caller_calls' caller_number=user_quota.extension.extension %}">
                     <td>{{ user_quota.extension.extension }}</td>
                     <td>{{ user_quota.quota.name }}</td>
                     <td>{{ user_quota.quota.amount }} SAR</td>
@@ -93,6 +107,17 @@
       info: false,
       searching: false,
       responsive: true,
+    });
+  });
+</script>
+<script>
+  document.addEventListener("DOMContentLoaded", function () {
+    const rows = document.querySelectorAll(".clickable-row");
+    rows.forEach((row) => {
+      row.addEventListener("click", function () {
+        window.location.href = this.dataset.href;
+      });
+      row.style.cursor = "pointer"; // Change cursor to pointer to indicate clickable
     });
   });
 </script>

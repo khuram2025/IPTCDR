@@ -3,7 +3,10 @@
 {% load static %}
 
 {% block title %}Calls for {{ caller_number }}{% endblock title %}
-
+{% block extra_css %}
+<!-- Add this line if it's not already present -->
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/flatpickr/dist/flatpickr.min.css">
+{% endblock extra_css %}
 {% block content %}
 <div class="main-content">
     <div class="page-content">
@@ -20,11 +23,12 @@
                                 <div class="row g-3 mb-0 align-items-center">
                                     <div class="col-auto">
                                         <div>
-                                            <button type="submit" name="date_filter" value="today" class="btn btn-soft-secondary material-shadow-none btn-sm {% if date_filter == 'today' %}active{% endif %}">Today</button>
-                                            <button type="submit" name="date_filter" value="7d" class="btn btn-soft-secondary material-shadow-none btn-sm {% if date_filter == '7d' %}active{% endif %}">7D</button>
-                                            <button type="submit" name="date_filter" value="1M" class="btn btn-soft-secondary material-shadow-none btn-sm {% if date_filter == '1M' %}active{% endif %}">1M</button>
-                                            <button type="submit" name="date_filter" value="6M" class="btn btn-soft-secondary material-shadow-none btn-sm {% if date_filter == '6M' %}active{% endif %}">6M</button>
-                                            <button type="submit" name="date_filter" value="1Y" class="btn btn-soft-primary material-shadow-none btn-sm {% if date_filter == '1Y' %}active{% endif %}">1Y</button>
+                                            <button type="button" name="date_filter" value="today" class="btn btn-soft-secondary material-shadow-none btn-sm {% if date_filter == 'today' %}active{% endif %}">Today</button>
+                                            <button type="button" name="date_filter" value="7d" class="btn btn-soft-secondary material-shadow-none btn-sm {% if date_filter == '7d' %}active{% endif %}">7D</button>
+                                            <button type="button" name="date_filter" value="1M" class="btn btn-soft-secondary material-shadow-none btn-sm {% if date_filter == '1M' %}active{% endif %}">1M</button>
+                                            <button type="button" name="date_filter" value="6M" class="btn btn-soft-secondary material-shadow-none btn-sm {% if date_filter == '6M' %}active{% endif %}">6M</button>
+                                            <button type="button" name="date_filter" value="1Y" class="btn btn-soft-primary material-shadow-none btn-sm {% if date_filter == '1Y' %}active{% endif %}">1Y</button>
+                                            <input type="hidden" name="date_filter" value="{{ date_filter }}">
                                             <input type="hidden" name="per_page" value="{{ per_page }}">
                                             <input type="hidden" name="search" value="{{ search_query }}">
                                         </div>
@@ -50,30 +54,30 @@
             </div>
 
             <div class="row">
-               <div class="col-xl-3 col-md-6">
-    <div class="card card-animate">
-        <div class="card-body">
-            <div class="d-flex align-items-center">
-                <div class="flex-grow-1 overflow-hidden">
-                    <p class="text-uppercase fw-medium text-muted text-truncate mb-0">Total Calls</p>
+                <div class="col-xl-3 col-md-6">
+                    <div class="card card-animate">
+                        <div class="card-body">
+                            <div class="d-flex align-items-center">
+                                <div class="flex-grow-1 overflow-hidden">
+                                    <p class="text-uppercase fw-medium text-muted text-truncate mb-0">Total Calls</p>
+                                </div>
+                                <div class="flex-shrink-0">
+                                    <h5 class="text-success fs-14 mb-0"><i class="ri-arrow-right-up-line fs-13 align-middle"></i> {{ total_cost|floatformat:2 }} SAR</h5>
+                                </div>
+                            </div>
+                            <div class="d-flex align-items-end justify-content-between mt-4">
+                                <div>
+                                    <h4 class="fs-22 fw-semibold ff-secondary mb-4"><span class="counter-value" data-target="{{ total_calls }}">{{ total_calls }}</span></h4>
+                                </div>
+                                <div class="avatar-sm flex-shrink-0">
+                                    <span class="avatar-title bg-success-subtle rounded fs-3">
+                                        <i class="fas fa-phone-alt text-success"></i>
+                                    </span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
                 </div>
-                <div class="flex-shrink-0">
-                    <h5 class="text-success fs-14 mb-0"><i class="ri-arrow-right-up-line fs-13 align-middle"></i> {{ total_cost|floatformat:2 }} SAR</h5>
-                </div>
-            </div>
-            <div class="d-flex align-items-end justify-content-between mt-4">
-                <div>
-                    <h4 class="fs-22 fw-semibold ff-secondary mb-4"><span class="counter-value" data-target="{{ total_calls }}">{{ total_calls }}</span></h4>
-                </div>
-                <div class="avatar-sm flex-shrink-0">
-                    <span class="avatar-title bg-success-subtle rounded fs-3">
-                        <i class="fas fa-phone-alt text-success"></i>
-                    </span>
-                </div>
-            </div>
-        </div>
-    </div>
-</div>
 
                 <div class="col-xl-3 col-md-6">
                     <div class="card card-animate">
@@ -145,7 +149,7 @@
                                         <i class="bx bx-globe text-primary"></i>
                                     </span>
                                 </div>
-                                </div>
+                            </div>
                         </div>
                     </div>
                 </div>
@@ -185,76 +189,76 @@
                                         </form>
                                     </div>
                                 </div>
-                                
-                                <table id="caller-calls-table" class="table table-bordered dt-responsive nowrap table-striped align-middle">
-    <thead>
-        <tr>
-            <th>Call Time</th>
-            <th>Callee</th>
-            <th>Duration</th>
-            <th>Call Type</th>
-            <th>Cost</th>
-        </tr>
-    </thead>
-    <tbody>
-        {% for call in page_obj %}
-        <tr>
-            <td>{{ call.call_time|date:"d M, Y H:i:s" }}</td>
-            <td>{{ call.callee }}</td>
-            <td>{{ call.duration|format_duration }}</td>
-            <td>{{ call.to_type }}</td>
-            <td>{{ call.total_cost|floatformat:2 }} SAR</td>
-        </tr>
-        {% empty %}
-        <tr>
-            <td colspan="5" class="text-center">No calls found matching the current filters.</td>
-        </tr>
-        {% endfor %}
-    </tbody>
-</table>
 
-<div class="row">
-    <div class="col-sm-12 col-md-5">
-        <div class="dataTables_info" id="caller-calls-table_info" role="status" aria-live="polite">
-            Showing {{ page_obj.start_index }} to {{ page_obj.end_index }} of {{ paginator.count }} entries
-        </div>
-    </div>
-    <div class="col-sm-12 col-md-7">
-        <div class="dataTables_paginate paging_simple_numbers" id="caller-calls-table_paginate">
-            <ul class="pagination">
-                {% if page_obj.has_previous %}
-                <li class="paginate_button page-item previous">
-                    <a href="?page=1&per_page={{ per_page }}&search={{ search_query }}&date_filter={{ date_filter }}&custom_date={{ custom_date_range }}" class="page-link">First</a>
-                </li>
-                <li class="paginate_button page-item previous">
-                    <a href="?page={{ page_obj.previous_page_number }}&per_page={{ per_page }}&search={{ search_query }}&date_filter={{ date_filter }}&custom_date={{ custom_date_range }}" class="page-link">Previous</a>
-                </li>
-                {% endif %}
-                
-                {% for num in page_obj.paginator.page_range %}
-                {% if page_obj.number == num %}
-                <li class="paginate_button page-item active">
-                    <a href="?page={{ num }}&per_page={{ per_page }}&search={{ search_query }}&date_filter={{ date_filter }}&custom_date={{ custom_date_range }}" class="page-link">{{ num }}</a>
-                </li>
-                {% elif num > page_obj.number|add:'-3' and num < page_obj.number|add:'3' %}
-                <li class="paginate_button page-item">
-                    <a href="?page={{ num }}&per_page={{ per_page }}&search={{ search_query }}&date_filter={{ date_filter }}&custom_date={{ custom_date_range }}" class="page-link">{{ num }}</a>
-                </li>
-                {% endif %}
-                {% endfor %}
-                
-                {% if page_obj.has_next %}
-                <li class="paginate_button page-item next">
-                    <a href="?page={{ page_obj.next_page_number }}&per_page={{ per_page }}&search={{ search_query }}&date_filter={{ date_filter }}&custom_date={{ custom_date_range }}" class="page-link">Next</a>
-                </li>
-                <li class="paginate_button page-item next">
-                    <a href="?page={{ page_obj.paginator.num_pages }}&per_page={{ per_page }}&search={{ search_query }}&date_filter={{ date_filter }}&custom_date={{ custom_date_range }}" class="page-link">Last</a>
-                </li>
-                {% endif %}
-            </ul>
-        </div>
-    </div>
-</div>
+                                <table id="caller-calls-table" class="table table-bordered dt-responsive nowrap table-striped align-middle">
+                                    <thead>
+                                        <tr>
+                                            <th>Call Time</th>
+                                            <th>Callee</th>
+                                            <th>Duration</th>
+                                            <th>Call Type</th>
+                                            <th>Cost</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        {% for call in page_obj %}
+                                        <tr>
+                                            <td>{{ call.call_time|date:"d M, Y H:i:s" }}</td>
+                                            <td>{{ call.callee }}</td>
+                                            <td>{{ call.duration|format_duration }}</td>
+                                            <td>{{ call.to_type }}</td>
+                                            <td>{{ call.total_cost|floatformat:2 }} SAR</td>
+                                        </tr>
+                                        {% empty %}
+                                        <tr>
+                                            <td colspan="5" class="text-center">No calls found matching the current filters.</td>
+                                        </tr>
+                                        {% endfor %}
+                                    </tbody>
+                                </table>
+
+                                <div class="row">
+                                    <div class="col-sm-12 col-md-5">
+                                        <div class="dataTables_info" id="caller-calls-table_info" role="status" aria-live="polite">
+                                            Showing {{ page_obj.start_index }} to {{ page_obj.end_index }} of {{ paginator.count }} entries
+                                        </div>
+                                    </div>
+                                    <div class="col-sm-12 col-md-7">
+                                        <div class="dataTables_paginate paging_simple_numbers" id="caller-calls-table_paginate">
+                                            <ul class="pagination">
+                                                {% if page_obj.has_previous %}
+                                                <li class="paginate_button page-item previous">
+                                                    <a href="?page=1&per_page={{ per_page }}&search={{ search_query }}&date_filter={{ date_filter }}&custom_date={{ custom_date_range }}" class="page-link">First</a>
+                                                </li>
+                                                <li class="paginate_button page-item previous">
+                                                    <a href="?page={{ page_obj.previous_page_number }}&per_page={{ per_page }}&search={{ search_query }}&date_filter={{ date_filter }}&custom_date={{ custom_date_range }}" class="page-link">Previous</a>
+                                                </li>
+                                                {% endif %}
+
+                                                {% for num in page_obj.paginator.page_range %}
+                                                {% if page_obj.number == num %}
+                                                <li class="paginate_button page-item active">
+                                                    <a href="?page={{ num }}&per_page={{ per_page }}&search={{ search_query }}&date_filter={{ date_filter }}&custom_date={{ custom_date_range }}" class="page-link">{{ num }}</a>
+                                                </li>
+                                                {% elif num > page_obj.number|add:'-3' and num < page_obj.number|add:'3' %}
+                                                <li class="paginate_button page-item">
+                                                    <a href="?page={{ num }}&per_page={{ per_page }}&search={{ search_query }}&date_filter={{ date_filter }}&custom_date={{ custom_date_range }}" class="page-link">{{ num }}</a>
+                                                </li>
+                                                {% endif %}
+                                                {% endfor %}
+
+                                                {% if page_obj.has_next %}
+                                                <li class="paginate_button page-item next">
+                                                    <a href="?page={{ page_obj.next_page_number }}&per_page={{ per_page }}&search={{ search_query }}&date_filter={{ date_filter }}&custom_date={{ custom_date_range }}" class="page-link">Next</a>
+                                                </li>
+                                                <li class="paginate_button page-item next">
+                                                    <a href="?page={{ page_obj.paginator.num_pages }}&per_page={{ per_page }}&search={{ search_query }}&date_filter={{ date_filter }}&custom_date={{ custom_date_range }}" class="page-link">Last</a>
+                                                </li>
+                                                {% endif %}
+                                            </ul>
+                                        </div>
+                                    </div>
+                                </div>
                             </div>
                         </div>
                     </div>
@@ -267,45 +271,110 @@
 
 {% block javascript %}
 <script>
-function animateCounter(element, target, duration = 1000) {
-    const start = parseInt(element.textContent) || 0;
-    const end = parseInt(target);
-    
-    // If start and end are the same, or end is 0, just set the value and return
-    if (start === end || end === 0) {
-        element.textContent = end;
-        return;
+    function animateCounter(element, target, duration = 1000) {
+        const start = parseInt(element.textContent) || 0;
+        const end = parseInt(target);
+
+        // If start and end are the same, or end is 0, just set the value and return
+        if (start === end || end === 0) {
+            element.textContent = end;
+            return;
+        }
+
+        const range = Math.abs(end - start);
+        let current = start;
+        const increment = end > start ? 1 : -1;
+        const stepTime = Math.abs(Math.floor(duration / range));
+
+        const timer = setInterval(() => {
+            current += increment;
+            element.textContent = current;
+            if (current == end) {
+                clearInterval(timer);
+            }
+        }, stepTime);
     }
 
-    const range = Math.abs(end - start);
-    let current = start;
-    const increment = end > start ? 1 : -1;
-    const stepTime = Math.abs(Math.floor(duration / range));
-    
-    const timer = setInterval(() => {
-        current += increment;
-        element.textContent = current;
-        if (current == end) {
-            clearInterval(timer);
-        }
-    }, stepTime);
-}
+    document.addEventListener('DOMContentLoaded', function () {
+        document.querySelectorAll('.counter-value').forEach(counter => {
+            const target = counter.getAttribute('data-target');
+            animateCounter(counter, target);
+        });
 
-document.addEventListener('DOMContentLoaded', function() {
-    document.querySelectorAll('.counter-value').forEach(counter => {
-        const target = counter.getAttribute('data-target');
-        animateCounter(counter, target);
-    });
-
-    flatpickr("#customDateInput", {
-        mode: "range",
-        dateFormat: "d M, Y",
-        onChange: function(selectedDates, dateStr, instance) {
-            if (selectedDates.length === 2) {
-                document.getElementById('timePeriodForm').submit();
+        flatpickr("#customDateInput", {
+            mode: "range",
+            dateFormat: "d M, Y",
+            onChange: function (selectedDates, dateStr, instance) {
+                if (selectedDates.length === 2) {
+                    document.getElementById('timePeriodForm').submit();
+                }
             }
-        }
+        });
     });
-});
 </script>
+{% block extra_js %}
+<script src="https://cdn.jsdelivr.net/npm/flatpickr"></script>
+
+<script>
+    document.addEventListener('DOMContentLoaded', function () {
+        const customDateInput = document.getElementById('customDateInput');
+        const timePeriodForm = document.getElementById('timePeriodForm');
+
+        // Initialize Flatpickr
+        const flatpickrInstance = flatpickr("#customDateInput", {
+            mode: "range",
+            dateFormat: "d M, Y",
+            onChange: function (selectedDates, dateStr, instance) {
+                if (selectedDates.length === 2) {
+                    document.querySelector('input[name="date_filter"]').value = 'custom';
+                    timePeriodForm.submit();
+                }
+            }
+        });
+
+        // Add click event listeners to all filter buttons
+        document.querySelectorAll('button[name="date_filter"]').forEach(button => {
+            button.addEventListener('click', function (e) {
+                e.preventDefault();
+                // Clear the custom date input
+                customDateInput.value = '';
+                flatpickrInstance.clear();
+                // Set the date_filter value
+                document.querySelector('input[name="date_filter"]').value = this.value;
+                // Submit the form
+                timePeriodForm.submit();
+            });
+        });
+
+        // Counter animation code
+        function animateCounter(element, target, duration = 1000) {
+            const start = parseInt(element.textContent) || 0;
+            const end = parseInt(target);
+
+            if (start === end || end === 0) {
+                element.textContent = end;
+                return;
+            }
+
+            const range = Math.abs(end - start);
+            let current = start;
+            const increment = end > start ? 1 : -1;
+            const stepTime = Math.abs(Math.floor(duration / range));
+
+            const timer = setInterval(() => {
+                current += increment;
+                element.textContent = current;
+                if (current == end) {
+                    clearInterval(timer);
+                }
+            }, stepTime);
+        }
+
+        document.querySelectorAll('.counter-value').forEach(counter => {
+            const target = counter.getAttribute('data-target');
+            animateCounter(counter, target);
+        });
+    });
+</script>
+{% endblock extra_js %}
 {% endblock javascript %}

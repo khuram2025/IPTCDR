@@ -14,5 +14,9 @@
   },
   "emmet.includeLanguages": {
     "django-html": "html"
+  },
+  "djlint.formatterPath": "/home/ubuntu/3CX/venv/bin/djlint",
+  "[django-html]": {
+    "editor.defaultFormatter": "monosans.djlint"
   }
 }

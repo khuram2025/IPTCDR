@@ -219,6 +219,7 @@ def dashboard(request):
     # Calculate top talking countries
     countries = [record.country for record in call_records if record.country not in ('Unknown', 'Internal Company Call')]
     top_talking_countries = Counter(countries).most_common(10)
+    sort_by = request.GET.get('sort_by', 'amount')
 
     # New statistics for each caller
     caller_stats = call_records.filter(from_type='Extension').values('caller', 'from_dispname').annotate(
@@ -229,8 +230,14 @@ def dashboard(request):
         company_calls=Count('id', filter=Q(to_type='Extension')),
         company_duration=Sum('duration', filter=Q(to_type='Extension')),
         total_cost=Sum('total_cost')
-    ).order_by('-total_calls')
+    )
 
+    if sort_by == 'amount':
+        caller_stats = caller_stats.order_by('-total_cost')
+    elif sort_by == 'calls':
+        caller_stats = caller_stats.order_by('-total_calls')
+    else:
+        caller_stats = caller_stats.order_by('-total_calls')  # Default sorting
     chart_time_period = request.GET.get('chart_time_period', '1M')
     call_stats = get_call_stats(CallRecord.objects, chart_time_period)
 
@@ -251,6 +258,7 @@ def dashboard(request):
         'total_call_cost': total_call_cost,
         'local_call_cost': local_call_cost,
         'international_call_cost': international_call_cost,
+        'sort_by': sort_by,
 
     }
     return render(request, 'cdr/dashboard.html', context)
@@ -510,6 +518,9 @@ def caller_calls_view(request, caller_number):
     date_filter = request.GET.get('date_filter', '1M')
     custom_date_range = request.GET.get('custom_date', '')
 
+    print(f"Debug: date_filter = {date_filter}")
+    print(f"Debug: custom_date_range = {custom_date_range}")
+
     try:
         per_page = int(per_page)
     except ValueError:
@@ -520,7 +531,18 @@ def caller_calls_view(request, caller_number):
 
     # Apply date filter
     now = timezone.now()
-    if date_filter == 'ALL':
+    if custom_date_range:
+        try:
+            start_date_str, end_date_str = custom_date_range.split(" to ")
+            start_date = timezone.make_aware(datetime.strptime(start_date_str.strip(), "%d %b, %Y"))
+            end_date = timezone.make_aware(datetime.strptime(end_date_str.strip(), "%d %b, %Y").replace(hour=23, minute=59, second=59))
+            call_records = call_records.filter(call_time__range=[start_date, end_date])
+            date_filter = 'custom'  # Set date_filter to 'custom' when using custom range
+            print(f"Debug: Custom date range applied. Start: {start_date}, End: {end_date}")
+        except ValueError as e:
+            print(f"Debug: Error parsing custom date range: {e}")
+            
+    elif date_filter == 'ALL':
         pass
     elif date_filter == 'today':
         call_records = call_records.filter(call_time__date=now.date())
@@ -532,12 +554,8 @@ def caller_calls_view(request, caller_number):
         call_records = call_records.filter(call_time__gte=now - relativedelta(months=6))
     elif date_filter == '1Y':
         call_records = call_records.filter(call_time__gte=now - relativedelta(years=1))
-    elif custom_date_range:
-        start_date_str, end_date_str = custom_date_range.split(" to ")
-        start_date = timezone.make_aware(datetime.strptime(start_date_str, "%d %b, %Y"))
-        end_date = timezone.make_aware(datetime.strptime(end_date_str, "%d %b, %Y").replace(hour=23, minute=59, second=59))
-        call_records = call_records.filter(call_time__range=[start_date, end_date])
 
+    print(f"Debug: Filtered call_records count: {call_records.count()}")
    
 
     if search_query:

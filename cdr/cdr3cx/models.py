@@ -19,6 +19,7 @@ class CallPattern(models.Model):
         ('national', 'National'),
         ('international', 'International'),
         ('local', 'Local'),
+        ('unknown', 'Unknown'),
     ]
 
     company = models.ForeignKey(Company, on_delete=models.CASCADE, related_name='call_patterns')
@@ -30,6 +31,23 @@ class CallPattern(models.Model):
 
     def __str__(self):
         return f"{self.company.name} - {self.call_type} ({self.pattern})"
+
+    def get_regex_pattern(self):
+        if self.pattern == '+':
+            return r'^\+\d+'
+        elif self.pattern == '00':
+            return r'^00\d+'
+        elif self.pattern == '^\d{4}$':
+            return self.pattern
+        else:
+            return f'^{re.escape(self.pattern)}.*$'
+
+    def matches(self, number):
+        try:
+            pattern = self.get_regex_pattern()
+            return re.match(pattern, number) is not None
+        except re.error:
+            return False
 
 @receiver(post_save, sender=CallPattern)
 def apply_pattern_to_call_records(sender, instance, **kwargs):
@@ -93,26 +111,29 @@ class CallRecord(models.Model):
     
     def categorize_call(self):
         logger.info(f"Categorizing call for number: {self.callee}")
-        patterns = self.company.call_patterns.all()
+        patterns = self.company.call_patterns.all().order_by('-pattern')
         logger.info(f"Number of patterns found for company {self.company.name}: {patterns.count()}")
 
         for pattern in patterns:
-            regex_pattern = f"^{pattern.pattern.replace('x', r'\d').replace('X', r'\d')}.*$"
-            logger.info(f"Checking pattern: {pattern.pattern} -> Regex: {regex_pattern}")
-
-            if re.match(regex_pattern, self.callee):
+            logger.info(f"Checking pattern: {pattern.pattern}")
+            if pattern.matches(self.callee):
                 logger.info(f"Match found: {self.callee} matches {pattern.pattern}")
                 self.call_category = pattern.call_type
                 self.call_rate = Decimal(str(pattern.rate_per_min))
                 logger.info(f"Set call category to {self.call_category} and rate to {self.call_rate}")
                 return
 
-        logger.warning(f"No pattern matched for callee: {self.callee}. Setting call category to 'Unknown' and rate to 0.")
-        self.call_category = 'Unknown'
-        self.call_rate = Decimal('0.00')
+        # If no pattern matched, categorize as 'unknown'
+        logger.warning(f"No pattern matched for callee: {self.callee}. Setting call category to 'Unknown'.")
+        unknown_pattern = self.company.call_patterns.filter(call_type='unknown').first()
+        if unknown_pattern:
+            self.call_category = 'unknown'
+            self.call_rate = Decimal(str(unknown_pattern.rate_per_min))
+        else:
+            self.call_category = 'unknown'
+            self.call_rate = Decimal('0.00')
+        logger.info(f"Set call category to {self.call_category} and rate to {self.call_rate}")
 
-        # print(f"No pattern matched for callee: {self.callee}. Setting call category to 'Unknown'.")
-        self.call_category = 'Unknown'
 
     def calculate_total_cost(self):
         logger.info(f"Calculating total cost for call: duration={self.duration} seconds")
@@ -154,6 +175,7 @@ class CallRecord(models.Model):
                         logger.info(f"This is an existing CallRecord. Old total cost: {old_total_cost}")
                         print(f"This is an existing CallRecord. Old total cost: {old_total_cost}")  # Console output
 
+                    
                     # Categorize the call
                     logger.info("Categorizing call...")
                     print("Categorizing call...")  # Console output

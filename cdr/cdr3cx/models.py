@@ -321,7 +321,8 @@ class UserQuota(models.Model):
         else:
             logger.info("Quota reset not needed")
             print("Quota reset not needed")  # Console output
-            
+
+
 @receiver(post_save, sender=Extension)
 def create_user_quota(sender, instance, created, **kwargs):
     if created:
@@ -333,3 +334,5 @@ def set_initial_balance(sender, instance, created, **kwargs):
     if created and instance.quota:
         instance.remaining_balance = instance.quota.amount
         instance.save()
+
+

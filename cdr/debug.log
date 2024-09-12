@@ -17,3 +17,49 @@ WARNING 2024-09-12 03:13:26,720 log 798 128373787848832 Not Found: /index.php
 WARNING 2024-09-12 04:07:16,721 log 798 128373787848832 Not Found: /.env
 WARNING 2024-09-12 05:07:33,034 log 798 128373787848832 Not Found: /favicon.ico
 INFO 2024-09-12 05:08:52,058 views 798 128373787848832 Call stats result: [{'period': datetime.datetime(2024, 8, 1, 0, 0, tzinfo=zoneinfo.ZoneInfo(key='Asia/Riyadh')), 'total_calls': 37451, 'local_calls': 14168, 'international_calls': 427}, {'period': datetime.datetime(2024, 9, 1, 0, 0, tzinfo=zoneinfo.ZoneInfo(key='Asia/Riyadh')), 'total_calls': 19030, 'local_calls': 6653, 'international_calls': 174}]
+INFO 2024-09-12 05:20:03,996 autoreload 4230 135816090366080 Watching for file changes with StatReloader
+INFO 2024-09-12 05:24:17,759 autoreload 4230 135816090366080 /home/ubuntu/3CX/cdr/cdr/settings.py changed, reloading.
+INFO 2024-09-12 05:24:18,853 autoreload 4542 139348307931264 Watching for file changes with StatReloader
+WARNING 2024-09-12 05:26:58,273 log 798 128373787848832 Not Found: /.env
+WARNING 2024-09-12 05:26:58,453 log 798 128373787848832 Forbidden (CSRF cookie not set.): /
+INFO 2024-09-12 05:30:05,246 autoreload 4542 139348307931264 /home/ubuntu/3CX/cdr/cdr3cx/utils.py changed, reloading.
+INFO 2024-09-12 05:30:06,337 autoreload 4834 128740613709952 Watching for file changes with StatReloader
+INFO 2024-09-12 05:30:37,284 autoreload 4834 128740613709952 /home/ubuntu/3CX/cdr/cdr3cx/utils.py changed, reloading.
+INFO 2024-09-12 05:30:37,860 autoreload 4898 126614955688064 Watching for file changes with StatReloader
+INFO 2024-09-12 05:31:15,282 autoreload 4898 126614955688064 /home/ubuntu/3CX/cdr/cdr3cx/utils.py changed, reloading.
+INFO 2024-09-12 05:31:16,232 autoreload 4960 134532245926016 Watching for file changes with StatReloader
+INFO 2024-09-12 05:31:29,417 autoreload 4960 134532245926016 /home/ubuntu/3CX/cdr/cdr3cx/views.py changed, reloading.
+INFO 2024-09-12 05:31:30,517 autoreload 5021 128835384418432 Watching for file changes with StatReloader
+INFO 2024-09-12 05:32:24,829 autoreload 5021 128835384418432 /home/ubuntu/3CX/cdr/cdr3cx/views.py changed, reloading.
+INFO 2024-09-12 05:32:25,920 autoreload 5108 138181822947456 Watching for file changes with StatReloader
+INFO 2024-09-12 05:32:52,871 autoreload 5108 138181822947456 /home/ubuntu/3CX/cdr/cdr3cx/views.py changed, reloading.
+INFO 2024-09-12 05:32:53,949 autoreload 5196 139907987689600 Watching for file changes with StatReloader
+INFO 2024-09-12 05:35:10,089 autoreload 5196 139907987689600 /home/ubuntu/3CX/cdr/cdr3cx/management/commands/check_quotas.py changed, reloading.
+INFO 2024-09-12 05:35:11,176 autoreload 5523 136113390817408 Watching for file changes with StatReloader
+INFO 2024-09-12 05:35:48,123 autoreload 5523 136113390817408 /home/ubuntu/3CX/cdr/cdr3cx/management/commands/check_quotas.py changed, reloading.
+INFO 2024-09-12 05:35:49,516 autoreload 5665 131105073553536 Watching for file changes with StatReloader
+INFO 2024-09-12 05:35:57,617 autoreload 5665 131105073553536 /home/ubuntu/3CX/cdr/cdr3cx/management/commands/check_quotas.py changed, reloading.
+INFO 2024-09-12 05:35:58,749 autoreload 5727 136032382353536 Watching for file changes with StatReloader
+WARNING 2024-09-12 06:11:02,866 log 798 128373787848832 Forbidden (CSRF cookie not set.): /
+WARNING 2024-09-12 06:18:53,802 log 798 128373787848832 Not Found: //web/wp-includes/wlwmanifest.xml
+WARNING 2024-09-12 06:18:54,026 log 798 128373787848832 Not Found: //wordpress/wp-includes/wlwmanifest.xml
+WARNING 2024-09-12 06:18:54,490 log 798 128373787848832 Not Found: //wp/wp-includes/wlwmanifest.xml
+WARNING 2024-09-12 06:18:54,937 log 798 128373787848832 Not Found: //2018/wp-includes/wlwmanifest.xml
+WARNING 2024-09-12 06:18:55,843 log 798 128373787848832 Not Found: //test/wp-includes/wlwmanifest.xml
+WARNING 2024-09-12 06:18:56,727 log 798 128373787848832 Not Found: //cms/wp-includes/wlwmanifest.xml
+WARNING 2024-09-12 06:18:56,951 log 798 128373787848832 Not Found: //sito/wp-includes/wlwmanifest.xml
+WARNING 2024-09-12 06:37:28,059 log 798 128373787848832 Not Found: /.env
+WARNING 2024-09-12 06:55:09,068 log 798 128373787848832 Not Found: /cgi-bin/luci/;stok=/locale
+WARNING 2024-09-12 08:12:18,370 log 798 128373787848832 Not Found: /webui/
+WARNING 2024-09-12 08:13:15,771 log 798 128373787848832 Not Found: /favicon.ico
+WARNING 2024-09-12 08:31:23,768 log 798 128373787848832 Not Found: /.env
+WARNING 2024-09-12 08:31:24,345 log 798 128373787848832 Forbidden (CSRF cookie not set.): /
+INFO 2024-09-12 08:36:55,334 views 798 128373787848832 Call stats result: [{'period': datetime.datetime(2024, 8, 1, 0, 0, tzinfo=zoneinfo.ZoneInfo(key='Asia/Riyadh')), 'total_calls': 36920, 'local_calls': 13904, 'international_calls': 421}, {'period': datetime.datetime(2024, 9, 1, 0, 0, tzinfo=zoneinfo.ZoneInfo(key='Asia/Riyadh')), 'total_calls': 19054, 'local_calls': 6663, 'international_calls': 174}]
+WARNING 2024-09-12 09:17:47,669 log 798 128373787848832 Not Found: /login
+INFO 2024-09-12 09:20:33,323 views 798 128373787848832 Call stats result: [{'period': datetime.datetime(2024, 8, 1, 0, 0, tzinfo=zoneinfo.ZoneInfo(key='Asia/Riyadh')), 'total_calls': 36824, 'local_calls': 13845, 'international_calls': 418}, {'period': datetime.datetime(2024, 9, 1, 0, 0, tzinfo=zoneinfo.ZoneInfo(key='Asia/Riyadh')), 'total_calls': 19173, 'local_calls': 6713, 'international_calls': 175}]
+INFO 2024-09-12 09:20:41,768 autoreload 13486 135925610430592 Watching for file changes with StatReloader
+WARNING 2024-09-12 09:24:52,909 log 798 128373787848832 Not Found: //wordpress/wp-includes/wlwmanifest.xml
+WARNING 2024-09-12 09:24:53,450 log 798 128373787848832 Not Found: //wp/wp-includes/wlwmanifest.xml
+WARNING 2024-09-12 09:24:55,585 log 798 128373787848832 Not Found: //site/wp-includes/wlwmanifest.xml
+WARNING 2024-09-12 09:24:55,847 log 798 128373787848832 Not Found: //cms/wp-includes/wlwmanifest.xml
+WARNING 2024-09-12 09:24:56,108 log 798 128373787848832 Not Found: //sito/wp-includes/wlwmanifest.xml

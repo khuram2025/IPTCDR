@@ -204,13 +204,13 @@ DATABASES = {
     }
 }
 
-EMAIL_BACKEND = 'django.core.mail.backends.smtp.EmailBackend'
-EMAIL_HOST = 'smtp.zoho.com'
-EMAIL_PORT = 465
-EMAIL_USE_SSL = True
-EMAIL_HOST_USER = 'no-reply@channab.com'
-EMAIL_HOST_PASSWORD = '!yulfDj5'
-DEFAULT_FROM_EMAIL = 'no-reply@channab.com'
+# EMAIL_BACKEND = 'django.core.mail.backends.smtp.EmailBackend'
+# EMAIL_HOST = 'smtp.zoho.com'
+# EMAIL_PORT = 465
+# EMAIL_USE_SSL = True
+# EMAIL_HOST_USER = 'no-reply@channab.com'
+# EMAIL_HOST_PASSWORD = '!yulfDj5'
+# DEFAULT_FROM_EMAIL = 'no-reply@channab.com'
 
 # Password validation
 # https://docs.djangoproject.com/en/5.0/ref/settings/#auth-password-validators

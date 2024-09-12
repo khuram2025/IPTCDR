@@ -10,7 +10,7 @@ from django.utils import timezone
 from datetime import datetime, timedelta
 from collections import Counter
 from .project_numbers import COUNTRY_CODES
-from .models import CallRecord
+from .models import CallRecord, UserQuota
 from django.shortcuts import render
 from django.db.models.functions import Length
 from django.db.models import Q,Sum, Count
@@ -670,3 +670,50 @@ def call_record_summary_view(request):
         'summary': summary,
     }
     return render(request, "cdr/call_record_summary.html", context)
+
+
+from django.core.mail import send_mail
+from django.conf import settings
+from decimal import Decimal
+
+def check_balance_and_send_email():
+    # Get all UserQuota objects
+    user_quotas = UserQuota.objects.all()
+
+    for user_quota in user_quotas:
+        if user_quota.quota:
+            # Calculate the percentage of remaining balance
+            total_quota = user_quota.quota.amount
+            remaining_balance = user_quota.remaining_balance
+            remaining_percentage = (remaining_balance / total_quota) * 100
+
+            # Check if remaining balance is 50% or less
+            if remaining_percentage <= 50:
+                # Prepare email content
+                subject = f"Low Balance Alert for Extension {user_quota.extension}"
+                message = f"""
+                Dear Administrator,
+
+                The remaining balance for extension {user_quota.extension} is now at {remaining_percentage:.2f}% of its total quota.
+
+                Total Quota: {total_quota}
+                Remaining Balance: {remaining_balance}
+
+                Please take necessary actions.
+
+                Best regards,
+                Your System
+                """
+                from_email = settings.DEFAULT_FROM_EMAIL
+                recipient_list = ['khuram2025@gmail.com']  # Add any other recipients here
+
+                # Send email
+                send_mail(
+                    subject,
+                    message,
+                    from_email,
+                    recipient_list,
+                    fail_silently=False,
+                )
+
+                print(f"Email sent for extension {user_quota.extension}")

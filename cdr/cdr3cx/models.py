@@ -175,7 +175,13 @@ class CallRecord(models.Model):
                         logger.info(f"This is an existing CallRecord. Old total cost: {old_total_cost}")
                         print(f"This is an existing CallRecord. Old total cost: {old_total_cost}")  # Console output
 
-                    
+                    # Determine and save the country for international calls
+                    logger.info(f"Before determining country, Caller: {self.caller}, Callee: {self.callee}")
+                    print(f"Before determining country, Caller: {self.caller}, Callee: {self.callee}")
+                    self.country = get_country_from_number(self.callee)
+                    logger.info(f"Determined country for callee number: {self.country}")
+                    print(f"Determined country for callee number: {self.country}")  # Console output
+
                     # Categorize the call
                     logger.info("Categorizing call...")
                     print("Categorizing call...")  # Console output

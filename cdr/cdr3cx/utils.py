@@ -1,9 +1,14 @@
+import logging
+logger = logging.getLogger(__name__)
+
 import re
 from .project_numbers import COUNTRY_CODES
 
 def get_country_from_number(number):
+    logger.info(f"Original number: {number}")
     # Remove any non-digit characters from the number
     cleaned_number = re.sub(r'\D', '', number)
+    logger.info(f"Cleaned number: {cleaned_number}")
     
     # Internal company call (4 digits)
     if len(cleaned_number) == 4:

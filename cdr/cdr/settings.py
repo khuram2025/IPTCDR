@@ -171,7 +171,7 @@ LOGGING = {
             'class': 'logging.handlers.RotatingFileHandler',
             'filename': '/home/ubuntu/3CX/cdr/debug.log',  # Adjust this path
             'maxBytes': 1024 * 1024 * 5,  # 5 MB
-            'backupCount': 5,
+            'backupCount': 2,
             'formatter': 'verbose',
         },
     },

@@ -35,7 +35,7 @@ def get_country_from_number(number):
         # Check against country codes
         for code, country in COUNTRY_CODES.items():
             if international_number.startswith(code):
-                return f"International - {country}"
+                return country
         
         # If no match found in COUNTRY_CODES
         return 'International - Unknown Country'

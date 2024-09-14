@@ -1,0 +1,13 @@
+{% block content %}
+<h1>Send Email Confirmation</h1>
+<p>Are you sure you want to send this email to {{ notification.recipient }}?</p>
+<p><strong>Subject:</strong> {{ notification.subject }}</p>
+<p><strong>Message:</strong></p>
+<p>{{ notification.message }}</p>
+
+<form method="post">
+  {% csrf_token %}
+  <button type="submit">Yes, Send Email</button>
+  <a href="{% url 'notifications:notification_list' %}">Cancel</a>
+</form>
+{% endblock %}

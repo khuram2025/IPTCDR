@@ -1,0 +1,8 @@
+{% block content %}
+<h1>{{ notification.subject }}</h1>
+<p><strong>To:</strong> {{ notification.recipient }}</p>
+<p><strong>Message:</strong></p>
+<p>{{ notification.message }}</p>
+<a href="{% url 'notifications:notification_update' notification.pk %}">Edit</a> | <a href="{% url 'notifications:notification_delete' notification.pk %}">Delete</a> |
+<a href="{% url 'notifications:notification_list' %}">Back to List</a>
+{% endblock %}

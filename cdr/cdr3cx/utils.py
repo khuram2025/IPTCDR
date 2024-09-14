@@ -20,6 +20,15 @@ def get_country_from_number(number):
     if len(cleaned_number) == 10 and cleaned_number.startswith('05'):
         return 'Saudi Arabia Mobile'
     
+    # Handle Saudi Arabia numbers with international prefixes (+966 or 00966)
+    if cleaned_number.startswith('00966'):
+        cleaned_number = cleaned_number[5:]  # Remove '00966'
+    elif cleaned_number.startswith('966') and len(cleaned_number) > 9:
+        cleaned_number = cleaned_number[3:]  # Remove '966' when prefixed by '+'
+    
+    if len(cleaned_number) == 9 and cleaned_number.startswith('5'):
+        return 'Saudi Arabia Mobile'
+    
     # Saudi Arabia landline (9 digits starting with 01, 02, 03, 04, 06, 07)
     if len(cleaned_number) == 9 and cleaned_number[0] == '0' and cleaned_number[1] in '123467':
         return 'Saudi Arabia Landline'

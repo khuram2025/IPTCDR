@@ -1,0 +1,7 @@
+{% block content %}
+<h1>{% if notification %}Edit{% else %}Create{% endif %} Notification</h1>
+<form method="post">
+  {% csrf_token %} {{ form.as_p }}
+  <button type="submit">{% if notification %}Update{% else %}Create{% endif %}</button>
+</form>
+{% endblock %}

@@ -1,0 +1,25 @@
+{% block content %}
+<h1>Notifications</h1>
+<a href="{% url 'notifications:notification_create' %}">Create New Notification</a>
+<table>
+  <thead>
+    <tr>
+      <th>Subject</th>
+      <th>Recipient</th>
+      <th>Actions</th>
+    </tr>
+  </thead>
+  <tbody>
+    {% for notification in notifications %}
+    <tr>
+      <td>{{ notification.subject }}</td>
+      <td>{{ notification.recipient }}</td>
+      <td>
+        <a href="{% url 'notifications:notification_detail' notification.pk %}">View</a> | <a href="{% url 'notifications:notification_update' notification.pk %}">Edit</a> | <a href="{% url 'notifications:notification_delete' notification.pk %}">Delete</a> |
+        <a href="{% url 'notifications:notification_send_email' notification.pk %}">Send Email</a>
+      </td>
+    </tr>
+    {% endfor %}
+  </tbody>
+</table>
+{% endblock %}

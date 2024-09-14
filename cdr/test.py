@@ -9,7 +9,7 @@ urllib3.disable_warnings(urllib3.exceptions.InsecureRequestWarning)
 PBX_DOMAIN = 'smasco.3cx.ae:5001'  # e.g., 'pbx.example.com' or '192.168.1.100'
 USER_NUM = '1001'  # Your extension number for authentication
 USER_PASS = 'Smasco@445'  # Your web client password for authentication
-TARGET_EXTENSION = '1001'  # The extension you want to modify
+TARGET_EXTENSION = '1003'  # The extension you want to modify
 
 def authenticate_user():
     url = f'https://{PBX_DOMAIN}/webclient/api/Login/GetAccessToken'
@@ -93,7 +93,7 @@ def enable_record_calls(access_token, user_id):
     }
 
     payload = {
-        "ExternalCallsOnly": True
+        "Internal": False
     }
 
     print("\nEnable Record Calls Request:")

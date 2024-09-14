@@ -21,7 +21,8 @@ urlpatterns = [
     path('admin/', admin.site.urls),
     path('', include('cdr3cx.urls')),
     path('accounts/', include('accounts.urls')),
-    # path('billing/', include(('billing.urls', 'billing'), namespace='billing')),
+    path('notifications/', include('notifications.urls', namespace='notifications')),
+
 
     
 

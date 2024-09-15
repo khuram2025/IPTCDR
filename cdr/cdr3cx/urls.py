@@ -1,6 +1,8 @@
 from django.urls import path
 from .views import receive_cdr
 from . import views, views_api, quota_views
+from . import views as cdr_views
+
 
 app_name = 'cdr3cx' 
 
@@ -44,5 +46,8 @@ urlpatterns = [
     path('quotas/<int:pk>/delete/', quota_views.QuotaDeleteView.as_view(), name='quota_delete'),
     path('quotas/assign/', quota_views.assign_quota, name='assign_quota'),
     path('quotas/usage/', quota_views.quota_usage, name='quota_usage'),
+    path('extension/<int:extension_id>/add-balance/', quota_views.add_balance, name='add_balance'),
+    path('quotas/send_email/<int:extension_id>/', quota_views.send_quota_email, name='send_quota_email'),  # New URL pattern
+
 
 ]

@@ -59,6 +59,7 @@
                     <th>
                       <a href="?sort={% if sort_by == 'remaining_balance' %}-{% endif %}remaining_balance{% if search_query %}&search={{ search_query }}{% endif %}"> Remaining Balance {% if sort_by == 'remaining_balance' %}↑{% elif sort_by == '-remaining_balance' %}↓{% endif %} </a>
                     </th>
+                    <th>Actions</th>
                   </tr>
                 </thead>
                 <tbody>
@@ -66,9 +67,15 @@
                   <tr class="clickable-row" data-href="{% url 'cdr3cx:caller_calls' caller_number=user_quota.extension.extension %}">
                     <td>{{ user_quota.extension.extension }}</td>
                     <td>{{ user_quota.quota.name }}</td>
-                    <td>{{ user_quota.quota.amount }} SAR</td>
+                    <td>{{ user_quota.total_amount }} SAR</td>
                     <td>{{ user_quota.used_amount }} SAR</td>
                     <td>{{ user_quota.remaining_balance }} SAR</td>
+                    <td>
+                      {% if user_quota.extension.email %}
+                      <a href="{% url 'cdr3cx:send_quota_email' user_quota.extension.pk %}">Send Email</a>
+                      {% else %} No Email {% endif %} |
+                      <a href="{% url 'cdr3cx:add_balance' extension_id=user_quota.extension.pk %}">Add Balance</a>
+                    </td>
                   </tr>
                   {% endfor %}
                 </tbody>
@@ -114,8 +121,11 @@
   document.addEventListener("DOMContentLoaded", function () {
     const rows = document.querySelectorAll(".clickable-row");
     rows.forEach((row) => {
-      row.addEventListener("click", function () {
-        window.location.href = this.dataset.href;
+      row.addEventListener("click", function (event) {
+        // Check if the clicked element is a link
+        if (event.target.tagName.toLowerCase() !== "a") {
+          window.location.href = this.dataset.href;
+        }
       });
       row.style.cursor = "pointer"; // Change cursor to pointer to indicate clickable
     });

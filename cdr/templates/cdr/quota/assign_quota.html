@@ -1,5 +1,25 @@
 {% extends "partials/base.html" %} {% load static %} {% block title %}Assign Quota{% endblock title %} {% block extra_css %}
 <link href="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/css/select2.min.css" rel="stylesheet" />
+<style>
+  .extension-list {
+    max-height: 300px;
+    overflow-y: auto;
+    border: 1px solid #ced4da;
+    border-radius: 0.25rem;
+    padding: 0.5rem;
+  }
+  .extension-item {
+    display: flex;
+    align-items: center;
+    margin-bottom: 0.5rem;
+  }
+  .extension-item input[type="checkbox"] {
+    margin-right: 0.5rem;
+  }
+  .search-box {
+    margin-bottom: 1rem;
+  }
+</style>
 {% endblock extra_css %} {% block content %}
 <div class="main-content">
   <div class="page-content">
@@ -18,7 +38,7 @@
         <div class="col-12">
           <div class="card">
             <div class="card-body">
-              <form method="post">
+              <form method="post" id="assignQuotaForm">
                 {% csrf_token %}
                 <div class="mb-3">
                   <label for="{{ form.quota.id_for_label }}" class="form-label">{{ form.quota.label }}</label>
@@ -27,8 +47,26 @@
                   {% endif %}
                 </div>
                 <div class="mb-3">
+                  <label for="extensionSearch" class="form-label">Search Extensions</label>
+                  <input type="text" id="extensionSearch" class="form-control search-box" placeholder="Search extensions..." />
+                </div>
+                <div class="mb-3">
+                  <div class="form-check">
+                    <input class="form-check-input" type="checkbox" id="selectAll" />
+                    <label class="form-check-label" for="selectAll"> Select All Extensions </label>
+                  </div>
+                </div>
+                <div class="mb-3">
                   <label for="{{ form.extensions.id_for_label }}" class="form-label">{{ form.extensions.label }}</label>
-                  {{ form.extensions }} {% if form.extensions.errors %}
+                  <div class="extension-list">
+                    {% for extension in form.extensions.field.queryset %}
+                    <div class="extension-item">
+                      <input type="checkbox" name="{{ form.extensions.name }}" value="{{ extension.pk }}" id="extension_{{ extension.pk }}" class="form-check-input" />
+                      <label for="extension_{{ extension.pk }}" class="form-check-label">{{ extension.extension }} - {{ extension.name }}</label>
+                    </div>
+                    {% endfor %}
+                  </div>
+                  {% if form.extensions.errors %}
                   <div class="text-danger">{{ form.extensions.errors }}</div>
                   {% endif %}
                 </div>
@@ -43,14 +81,83 @@
 
   {% block footer %} {% include "partials/footer.html" %} {% endblock footer %}
 </div>
-{% endblock content %} {% block extra_js %}
+{% endblock content %}{% block extra_js %}
+<!-- Load jQuery first -->
+<script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+<!-- Then load Select2 -->
 <script src="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/js/select2.min.js"></script>
+<!-- Your custom script -->
 <script>
   $(document).ready(function () {
-    $(".select2").select2({
-      placeholder: "Select extensions",
+    console.log("Document ready");
+
+    // Initialize Select2 for quota selection
+    $("#{{ form.quota.id_for_label }}").select2({
+      placeholder: "Select a quota",
       allowClear: true,
     });
+
+    var $extensionList = $(".extension-list");
+    var $selectAll = $("#selectAll");
+    var $extensionSearch = $("#extensionSearch");
+
+    console.log("Extensions count:", $extensionList.find(".extension-item").length);
+
+    // Function to sort and filter extension items
+    function sortAndFilterExtensions() {
+      console.log("Sorting and filtering extensions");
+      var searchValue = $extensionSearch.val().toLowerCase();
+      console.log("Search value:", searchValue);
+
+      var $items = $extensionList.find(".extension-item").detach().toArray();
+
+      $items.sort(function (a, b) {
+        return $(a).text().localeCompare($(b).text());
+      });
+
+      $items = $items.filter(function (item) {
+        var text = $(item).text().toLowerCase();
+        return text.indexOf(searchValue) > -1;
+      });
+
+      console.log("Filtered and sorted items count:", $items.length);
+
+      $extensionList.append($items);
+      updateSelectAllState();
+    }
+
+    // Select All functionality
+    $selectAll.change(function () {
+      console.log("Select All changed");
+      var isChecked = $(this).prop("checked");
+      console.log("Select All checked:", isChecked);
+      $extensionList.find('input[type="checkbox"]:visible').prop("checked", isChecked);
+      console.log("Checkboxes updated");
+    });
+
+    // Search and sort functionality
+    $extensionSearch.on("keyup", function () {
+      console.log("Search keyup event triggered");
+      sortAndFilterExtensions();
+    });
+
+    // Update Select All checkbox state
+    function updateSelectAllState() {
+      var $visibleCheckboxes = $extensionList.find('input[type="checkbox"]:visible');
+      var allChecked = $visibleCheckboxes.length > 0 && $visibleCheckboxes.length === $visibleCheckboxes.filter(":checked").length;
+      $selectAll.prop("checked", allChecked);
+      console.log("Select All state updated:", allChecked);
+    }
+
+    // Event listener for individual checkboxes
+    $extensionList.on("change", 'input[type="checkbox"]', function () {
+      console.log("Individual checkbox changed");
+      updateSelectAllState();
+    });
+
+    // Initial sort
+    sortAndFilterExtensions();
+    console.log("Initial sort completed");
   });
 </script>
 {% endblock extra_js %}

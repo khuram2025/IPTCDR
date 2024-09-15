@@ -5,11 +5,15 @@ from datetime import timedelta
 from django.db.models.signals import post_save
 from django.dispatch import receiver
 from django.db import models
+
+from notifications.models import Notification
 from .utils import get_country_from_number
 import phonenumbers
-
+from django.template.loader import render_to_string
 from phonenumbers import geocoder, NumberParseException
 import re
+from django.core.mail import send_mail
+from django.conf import settings
 
 from accounts.models import Company, Extension
 
@@ -217,10 +221,10 @@ class CallRecord(models.Model):
             extension = Extension.objects.get(extension=self.caller, company=self.company)
             logger.info(f"Found extension: {extension}")
             user_quota = UserQuota.objects.get(extension=extension)
-            logger.info(f"Found UserQuota: current balance = {user_quota.remaining_balance}")
+            logger.info(f"Found UserQuota: current total_amount = {user_quota.total_amount}, used_amount = {user_quota.used_amount}")
             
             user_quota.check_and_reset_if_needed()
-            logger.info(f"After check_and_reset_if_needed: balance = {user_quota.remaining_balance}")
+            logger.info(f"After check_and_reset_if_needed: total_amount = {user_quota.total_amount}, used_amount = {user_quota.used_amount}")
             
             amount_to_deduct = self.total_cost - Decimal(str(old_total_cost))
             logger.info(f"Amount to deduct: {amount_to_deduct}")
@@ -229,10 +233,10 @@ class CallRecord(models.Model):
                 if not user_quota.deduct_balance(amount_to_deduct):
                     logger.warning(f"Warning: Quota exceeded for extension {self.caller}")
                 else:
-                    logger.info(f"Successfully deducted {amount_to_deduct} from quota. New balance: {user_quota.remaining_balance}")
+                    logger.info(f"Successfully deducted {amount_to_deduct} from quota. New balance: {user_quota.total_amount - user_quota.used_amount}")
             elif amount_to_deduct < Decimal('0'):
                 user_quota.add_balance(abs(amount_to_deduct))
-                logger.info(f"Added {abs(amount_to_deduct)} to quota due to cost reduction. New balance: {user_quota.remaining_balance}")
+                logger.info(f"Added {abs(amount_to_deduct)} to quota due to cost reduction. New balance: {user_quota.total_amount - user_quota.used_amount}")
             else:
                 logger.info("No change in total cost, quota remains the same.")
         except Extension.DoesNotExist:
@@ -242,7 +246,7 @@ class CallRecord(models.Model):
         except Exception as e:
             logger.error(f"Unexpected error in quota deduction: {str(e)}")
             raise
-
+        
     class Meta:
         ordering = ['-call_time']  # Example of ordering by call_time descending
 
@@ -257,50 +261,92 @@ class Quota(models.Model):
         return f"{self.name} - {self.amount} SAR"
 
 class UserQuota(models.Model):
-    extension = models.OneToOneField(Extension, on_delete=models.CASCADE, related_name='quota')
+    extension = models.OneToOneField('accounts.Extension', on_delete=models.CASCADE, related_name='quota')
     quota = models.ForeignKey('Quota', on_delete=models.SET_NULL, null=True, blank=True)
-    remaining_balance = models.DecimalField(max_digits=10, decimal_places=2, default=0)
+    total_amount = models.DecimalField(max_digits=10, decimal_places=2, default=0)
+    used_amount = models.DecimalField(max_digits=10, decimal_places=2, default=0)
     last_reset = models.DateTimeField(default=timezone.now)
 
     def __str__(self):
         return f"Quota for {self.extension}"
 
-    def save(self, *args, **kwargs):
-        if not self.pk or self.remaining_balance == 0:
-            self.reset_quota()
-        super().save(*args, **kwargs)
+    @property
+    def remaining_balance(self):
+        return self.total_amount - self.used_amount
 
     def reset_quota(self):
         if self.quota:
-            logger.info(f"Resetting quota for {self.extension}. Old balance: {self.remaining_balance}")
-            print(f"Resetting quota for {self.extension}. Old balance: {self.remaining_balance}")  # Console output
-            self.remaining_balance = self.quota.amount
+            logger.info(f"Resetting quota for {self.extension}. Old total: {self.total_amount}")
+            self.total_amount = self.quota.amount
+            self.used_amount = Decimal('0')
             self.last_reset = timezone.now()
-            logger.info(f"Quota reset. New balance: {self.remaining_balance}")
-            print(f"Quota reset. New balance: {self.remaining_balance}")  # Console output
-
-    def deduct_balance(self, amount):
-        amount = Decimal(str(amount))  # Ensure amount is a Decimal
-        logger.info(f"Attempting to deduct {amount} from balance {self.remaining_balance}")
-        print(f"Attempting to deduct {amount} from balance {self.remaining_balance}")  # Console output
-        if self.remaining_balance >= amount:
-            self.remaining_balance -= amount
             self.save()
-            logger.info(f"Successfully deducted {amount}. New balance: {self.remaining_balance}")
-            print(f"Successfully deducted {amount}. New balance: {self.remaining_balance}")  # Console output
+            logger.info(f"Quota reset. New total: {self.total_amount}")
+    
+    def add_custom_balance(self, amount):
+        amount = Decimal(str(amount))
+        if amount > 0:
+            logger.info(f"Adding custom balance of {amount} to {self.extension}")
+            self.total_amount += amount
+            self.save()
+            logger.info(f"New total amount: {self.total_amount}")
             return True
-        logger.warning(f"Insufficient balance. Current: {self.remaining_balance}, Attempted deduction: {amount}")
-        print(f"Insufficient balance. Current: {self.remaining_balance}, Attempted deduction: {amount}")  # Console output
+        logger.warning(f"Invalid amount for custom balance addition: {amount}")
         return False
 
+    def deduct_balance(self, amount):
+        amount = Decimal(str(amount))
+        logger.info(f"Attempting to deduct {amount} from balance {self.remaining_balance}")
+        if self.remaining_balance >= amount:
+            self.used_amount += amount
+            self.save()
+            logger.info(f"Successfully deducted {amount}. New remaining balance: {self.remaining_balance}")
+            return True
+        logger.warning(f"Insufficient balance. Current: {self.remaining_balance}, Attempted deduction: {amount}")
+        return False
+
+    def should_send_quota_alert(self):
+        if self.quota and self.quota.amount > 0:
+            used_percentage = (self.used_amount / self.total_amount) * 100
+            logger.info(f"Quota used: {used_percentage}%")
+            return used_percentage >= 90
+        return False
+
+    def send_quota_alert(self):
+        logger.info(f"Sending quota alert for {self.extension}")
+
+        # Prepare email content
+        subject = f"Quota Alert for Extension {self.extension.extension}"
+        message = render_to_string('notifications/quota_alert_email.html', {
+            'extension': self.extension.extension,
+            'remaining_balance': self.remaining_balance,
+            'quota_amount': self.quota.amount,
+        })
+        # recipient = self.extension.user.email 
+        recipient = 'khuram2025@gmail.com'  # Assuming each extension has an associated user with an email
+
+        # Send the email
+        send_mail(
+            subject,
+            message,
+            settings.DEFAULT_FROM_EMAIL,
+            [recipient],
+            fail_silently=False,
+        )
+
+        # Create a Notification record
+        Notification.objects.create(
+            recipient=recipient,
+            subject=subject,
+            message=message,
+        )
+
     def add_balance(self, amount):
-        amount = Decimal(str(amount))  # Ensure amount is a Decimal
-        logger.info(f"Adding {amount} to balance {self.remaining_balance}")
-        print(f"Adding {amount} to balance {self.remaining_balance}")  # Console output
-        self.remaining_balance += amount
+        amount = Decimal(str(amount))
+        logger.info(f"Adding {amount} to total amount {self.total_amount}")
+        self.total_amount += amount
         self.save()
-        logger.info(f"New balance after addition: {self.remaining_balance}")
-        print(f"New balance after addition: {self.remaining_balance}")  # Console output
+        logger.info(f"New total amount: {self.total_amount}")
 
     def should_reset(self):
         now = timezone.now()
@@ -332,7 +378,8 @@ def create_user_quota(sender, instance, created, **kwargs):
 @receiver(post_save, sender=UserQuota)
 def set_initial_balance(sender, instance, created, **kwargs):
     if created and instance.quota:
-        instance.remaining_balance = instance.quota.amount
+        instance.total_amount = instance.quota.amount
+        instance.used_amount = Decimal('0')
         instance.save()
 
 

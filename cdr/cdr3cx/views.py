@@ -717,3 +717,5 @@ def check_balance_and_send_email():
                 )
 
                 print(f"Email sent for extension {user_quota.extension}")
+
+

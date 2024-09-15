@@ -1,0 +1,86 @@
+{% extends "partials/base.html" %} {% load static %} {% block title %}Add Balance{% endblock title %} {% block content %}
+<div class="main-content">
+  <div class="page-content">
+    <div class="container-fluid">
+      {% block pagetitle %}
+      <div class="row">
+        <div class="col-12">
+          <div class="page-title-box d-sm-flex align-items-center justify-content-between">
+            <h4 class="mb-sm-0">Add Balance for Extension {{ extension.extension }}</h4>
+          </div>
+        </div>
+      </div>
+      {% endblock pagetitle %}
+
+      <div class="row">
+        <div class="col-12">
+          <div class="card">
+            <div class="card-body">
+              <p class="card-title-desc">Current Balance: {{ user_quota.remaining_balance }} SAR</p>
+
+              <form method="post" class="needs-validation" novalidate>
+                {% csrf_token %}
+                <div class="row mb-3">
+                  <label for="amount" class="col-sm-2 col-form-label">Amount to Add (SAR):</label>
+                  <div class="col-sm-10">
+                    <input type="number" class="form-control" id="amount" name="amount" step="0.01" min="0.01" required />
+                    <div class="invalid-feedback">Please enter a valid amount.</div>
+                  </div>
+                </div>
+                <div class="row mb-3">
+                  <div class="col-sm-10 offset-sm-2">
+                    <button type="submit" class="btn btn-primary">Add Balance</button>
+                  </div>
+                </div>
+              </form>
+
+              {% if messages %}
+              <div class="mt-3">
+                {% for message in messages %}
+                <div class="alert alert-{{ message.tags }} alert-dismissible fade show" role="alert">
+                  {{ message }}
+                  <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+                </div>
+                {% endfor %}
+              </div>
+              {% endif %}
+
+              <div class="mt-3">
+                <a href="{% url 'cdr3cx:quota_usage' %}" class="btn btn-secondary">Back to Extension List</a>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  {% block footer %}{% include "partials/footer.html" %}{% endblock footer %}
+</div>
+{% endblock content %} {% block extra_js %}
+<script>
+  // Example starter JavaScript for disabling form submissions if there are invalid fields
+  (function () {
+    "use strict";
+
+    // Fetch all the forms we want to apply custom Bootstrap validation styles to
+    var forms = document.querySelectorAll(".needs-validation");
+
+    // Loop over them and prevent submission
+    Array.prototype.slice.call(forms).forEach(function (form) {
+      form.addEventListener(
+        "submit",
+        function (event) {
+          if (!form.checkValidity()) {
+            event.preventDefault();
+            event.stopPropagation();
+          }
+
+          form.classList.add("was-validated");
+        },
+        false
+      );
+    });
+  })();
+</script>
+{% endblock extra_js %}

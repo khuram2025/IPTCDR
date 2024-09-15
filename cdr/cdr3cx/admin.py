@@ -26,18 +26,30 @@ class CallRecordAdmin(admin.ModelAdmin):
 
 
 from .models import Quota, UserQuota
-
+from django.db.models import F, ExpressionWrapper, DecimalField
 
 @admin.register(UserQuota)
 class UserQuotaAdmin(admin.ModelAdmin):
-    list_display = ('extension', 'quota', 'remaining_balance', 'last_reset')
+    list_display = ('extension', 'quota', 'get_remaining_balance', 'last_reset')
     list_filter = ('quota', 'last_reset')
-    search_fields = ('extension__extension', 'extension__full_name', 'remaining_balance')
-    ordering = ('extension__extension', 'remaining_balance')
+    search_fields = ('extension__extension', 'extension__full_name')
+    ordering = ('extension__extension',)
     actions = ['reset_quotas']
 
     def get_queryset(self, request):
-        return super().get_queryset(request).select_related('extension', 'quota')
+        queryset = super().get_queryset(request).select_related('extension', 'quota')
+        queryset = queryset.annotate(
+            calculated_remaining_balance=ExpressionWrapper(
+                F('total_amount') - F('used_amount'),
+                output_field=DecimalField()
+            )
+        )
+        return queryset
+
+    def get_remaining_balance(self, obj):
+        return obj.remaining_balance
+    get_remaining_balance.short_description = 'Remaining Balance'
+    get_remaining_balance.admin_order_field = 'calculated_remaining_balance'
 
     def reset_quotas(self, request, queryset):
         for user_quota in queryset:
@@ -52,7 +64,7 @@ class UserQuotaAdmin(admin.ModelAdmin):
         try:
             # Search for exact matches in remaining_balance
             balance = float(search_term)
-            queryset |= self.model.objects.filter(remaining_balance=balance)
+            queryset |= self.get_queryset(request).filter(calculated_remaining_balance=balance)
         except ValueError:
             # If search_term is not a valid float, ignore this part
             pass

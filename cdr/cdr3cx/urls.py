@@ -49,5 +49,7 @@ urlpatterns = [
     path('extension/<int:extension_id>/add-balance/', quota_views.add_balance, name='add_balance'),
     path('quotas/send_email/<int:extension_id>/', quota_views.send_quota_email, name='send_quota_email'),  # New URL pattern
 
+    path('top-extensions/', views.top_extensions, name='top_extensions'),
+
 
 ]

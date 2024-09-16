@@ -151,13 +151,7 @@ def dashboard(request):
     # Filter call records by the selected time period
     call_records = CallRecord.objects.filter(call_time__range=[start_date, end_date])
 
-    # # Update country field if it is 'Unknown'
-    # for record in call_records:
-    #     if record.country == 'Unknown':
-    #         record.country = get_country_from_number(record.callee)
-    #         record.save()
-
-    # Calculate statistics after filtering by time period
+    
     total_calls = call_records.count()
     total_external_calls = call_records.filter(
         Q(callee__regex=r'^\d{10}$') |
@@ -719,3 +713,187 @@ def check_balance_and_send_email():
                 print(f"Email sent for extension {user_quota.extension}")
 
 
+from django.shortcuts import render
+from django.db.models import Count, Sum, F, Q
+from django.utils import timezone
+from datetime import datetime, timedelta
+from .models import CallRecord
+
+def get_date_range(request):
+    now = timezone.now()
+    time_period = request.GET.get('time_period', 'today')
+    custom_date_range = request.GET.get('custom_date', '')
+
+    if time_period == 'today':
+        start_date = now.replace(hour=0, minute=0, second=0, microsecond=0)
+        end_date = now
+    elif time_period == '7d':
+        start_date = now - timedelta(days=7)
+        end_date = now
+    elif time_period == '1m':
+        start_date = now - timedelta(days=30)
+        end_date = now
+    elif time_period == '6m':
+        start_date = now - timedelta(days=182)
+        end_date = now
+    elif time_period == '1y':
+        start_date = now - timedelta(days=365)
+        end_date = now
+    elif time_period == 'custom' and custom_date_range:
+        start_date_str, end_date_str = custom_date_range.split(" to ")
+        start_date = timezone.make_aware(datetime.strptime(start_date_str, "%d %b, %Y"))
+        end_date = timezone.make_aware(datetime.strptime(end_date_str, "%d %b, %Y").replace(hour=23, minute=59, second=59, microsecond=999999))
+    else:
+        start_date = now
+        end_date = now
+
+    return start_date, end_date, time_period, custom_date_range
+
+
+
+def calculate_call_stats(call_records):
+    total_calls = call_records.count()
+    total_call_cost = call_records.aggregate(Sum('total_cost'))['total_cost__sum'] or 0
+
+    total_local_calls = call_records.filter(
+        Q(callee__regex=r'^\d{10}$') |
+        Q(callee__regex=r'^\+966\d{9}$') |
+        Q(callee__regex=r'^00966\d{9}$')
+    ).count()
+    local_call_cost = call_records.filter(
+        Q(callee__regex=r'^\d{10}$') |
+        Q(callee__regex=r'^\+966\d{9}$') |
+        Q(callee__regex=r'^00966\d{9}$')
+    ).aggregate(Sum('total_cost'))['total_cost__sum'] or 0
+
+    total_incoming_calls = call_records.filter(to_type='Extension').count()
+    
+    total_international_calls = call_records.exclude(
+        Q(callee__regex=r'^\d{10}$') |
+        Q(callee__regex=r'^\+966\d{9}$') |
+        Q(callee__regex=r'^00966\d{9}$')
+    ).count()
+    international_call_cost = call_records.exclude(
+        Q(callee__regex=r'^\d{10}$') |
+        Q(callee__regex=r'^\+966\d{9}$') |
+        Q(callee__regex=r'^00966\d{9}$')
+    ).aggregate(Sum('total_cost'))['total_cost__sum'] or 0
+
+    return {
+        'total_calls': total_calls,
+        'total_call_cost': total_call_cost,
+        'total_local_calls': total_local_calls,
+        'local_call_cost': local_call_cost,
+        'total_incoming_calls': total_incoming_calls,
+        'total_international_calls': total_international_calls,
+        'international_call_cost': international_call_cost,
+    }
+
+def top_extensions(request):
+    start_date, end_date, time_period, custom_date_range = get_date_range(request)
+    limit = request.GET.get('limit', 20)
+    try:
+        limit = int(limit)
+    except ValueError:
+        limit = 20
+
+    top_extensions = CallRecord.objects.filter(
+        call_time__range=[start_date, end_date],
+        to_type='Line'
+    ).values('caller').annotate(
+        total_calls=Count('id'),
+        total_duration=Sum('duration'),
+        total_cost=Sum('total_cost')
+    ).order_by('-total_calls')[:limit]
+
+    top_callers = [ext['caller'] for ext in top_extensions]
+
+    call_records = CallRecord.objects.filter(
+        call_time__range=[start_date, end_date],
+        caller__in=top_callers,
+        to_type='Line'
+    )
+
+    call_stats = calculate_call_stats(call_records)
+
+    context = {
+        'top_extensions': top_extensions,
+        'title': f'Top {limit} Extensions by Total Calls (Line Calls)',
+        'time_period': time_period,
+        'custom_date_range': custom_date_range,
+        'limit': limit,
+        **call_stats,
+    }
+    return render(request, 'cdr/top_extensions.html', context)
+
+def top_extensions_talk_time(request):
+    start_date, end_date, time_period, custom_date_range = get_date_range(request)
+    limit = request.GET.get('limit', 20)
+    try:
+        limit = int(limit)
+    except ValueError:
+        limit = 20
+
+    top_extensions = CallRecord.objects.filter(
+        call_time__range=[start_date, end_date],
+        to_type='Line'
+    ).values('caller').annotate(
+        total_calls=Count('id'),
+        total_duration=Sum('duration'),
+        total_cost=Sum('total_cost')
+    ).order_by('-total_duration')[:limit]
+
+    top_callers = [ext['caller'] for ext in top_extensions]
+    call_records = CallRecord.objects.filter(
+        call_time__range=[start_date, end_date],
+        caller__in=top_callers,
+        to_type='Line'
+    )
+
+    call_stats = calculate_call_stats(call_records)
+
+    context = {
+        'top_extensions': top_extensions,
+        'title': f'Top {limit} Extensions by Talk Time (Line Calls)',
+        'time_period': time_period,
+        'custom_date_range': custom_date_range,
+        'limit': limit,
+        **call_stats,
+    }
+    return render(request, 'cdr/top_extensions.html', context)
+
+def top_extensions_cost(request):
+    start_date, end_date, time_period, custom_date_range = get_date_range(request)
+    limit = request.GET.get('limit', 20)
+    try:
+        limit = int(limit)
+    except ValueError:
+        limit = 20
+
+    top_extensions = CallRecord.objects.filter(
+        call_time__range=[start_date, end_date],
+        to_type='Line'
+    ).values('caller').annotate(
+        total_calls=Count('id'),
+        total_duration=Sum('duration'),
+        total_cost=Sum('total_cost')
+    ).order_by('-total_cost')[:limit]
+
+    top_callers = [ext['caller'] for ext in top_extensions]
+    call_records = CallRecord.objects.filter(
+        call_time__range=[start_date, end_date],
+        caller__in=top_callers,
+        to_type='Line'
+    )
+
+    call_stats = calculate_call_stats(call_records)
+
+    context = {
+        'top_extensions': top_extensions,
+        'title': f'Top {limit} Extensions by Cost (Line Calls)',
+        'time_period': time_period,
+        'custom_date_range': custom_date_range,
+        'limit': limit,
+        **call_stats,
+    }
+    return render(request, 'cdr/top_extensions.html', context)

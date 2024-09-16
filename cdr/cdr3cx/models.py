@@ -253,12 +253,26 @@ class CallRecord(models.Model):
 
 
 class Quota(models.Model):
+    FREQUENCY_CHOICES = [
+        ('monthly', 'Monthly'),
+        ('daily', 'Daily'),
+        ('weekly', 'Weekly'),
+    ]
     name = models.CharField(max_length=100)
     amount = models.DecimalField(max_digits=10, decimal_places=2)
     company = models.ForeignKey(Company, on_delete=models.CASCADE, related_name='quotas')
+    frequency = models.CharField(
+        max_length=10, 
+        choices=FREQUENCY_CHOICES, 
+        default='monthly',
+        null=True,  # Allow NULL values
+        blank=True  # Allow blank values in forms
+    )
 
     def __str__(self):
-        return f"{self.name} - {self.amount} SAR"
+        frequency_display = self.get_frequency_display() if self.frequency else 'No frequency set'
+        return f"{self.name} - {self.amount} SAR ({frequency_display})"
+from dateutil.relativedelta import relativedelta
 
 class UserQuota(models.Model):
     extension = models.OneToOneField('accounts.Extension', on_delete=models.CASCADE, related_name='quota')
@@ -343,30 +357,42 @@ class UserQuota(models.Model):
 
     def add_balance(self, amount):
         amount = Decimal(str(amount))
-        logger.info(f"Adding {amount} to total amount {self.total_amount}")
+        # logger.info(f"Adding {amount} to total amount {self.total_amount}")
         self.total_amount += amount
         self.save()
-        logger.info(f"New total amount: {self.total_amount}")
+        # logger.info(f"New total amount: {self.total_amount}")
 
     def should_reset(self):
+        if not self.quota:
+           
+            return False
+
+        if not self.quota.frequency:
+           
+            return False
+
         now = timezone.now()
-        should_reset = (now.year > self.last_reset.year or 
-                        (now.year == self.last_reset.year and now.month > self.last_reset.month))
-        logger.info(f"Checking if quota should reset. Result: {should_reset}")
-        print(f"Checking if quota should reset. Result: {should_reset}")  # Console output
+        if self.quota.frequency == 'monthly':
+            next_reset = self.last_reset + relativedelta(months=1)
+        elif self.quota.frequency == 'daily':
+            next_reset = self.last_reset + relativedelta(days=1)
+        elif self.quota.frequency == 'weekly':
+            next_reset = self.last_reset + relativedelta(weeks=1)
+        else:
+            # logger.warning(f"Unknown frequency '{self.quota.frequency}' for {self.extension}")
+            return False
+
+        should_reset = now >= next_reset
+        logger.info(f"Quota for {self.extension}: Last reset: {self.last_reset}, Next reset: {next_reset}, Current time: {now}, Should reset: {should_reset}")
         return should_reset
 
     def check_and_reset_if_needed(self):
-        logger.info(f"Checking if quota needs reset for {self.extension}")
-        print(f"Checking if quota needs reset for {self.extension}")  # Console output
+        # logger.info(f"Checking if quota needs reset for {self.extension}")
         if self.should_reset():
-            logger.info("Quota reset needed. Resetting...")
-            print("Quota reset needed. Resetting...")  # Console output
+            logger.info(f"Resetting quota for {self.extension}")
             self.reset_quota()
-            self.save()
         else:
-            logger.info("Quota reset not needed")
-            print("Quota reset not needed")  # Console output
+            logger.info(f"Quota reset not needed for {self.extension}")
 
 
 @receiver(post_save, sender=Extension)

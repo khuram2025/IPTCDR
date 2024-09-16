@@ -71,6 +71,27 @@ class UserQuotaAdmin(admin.ModelAdmin):
 
         return queryset, use_distinct
 
+
+from .models import Quota
+
 @admin.register(Quota)
 class QuotaAdmin(admin.ModelAdmin):
-    list_display = ('name', 'amount', 'company')
+    list_display = ('name', 'amount', 'company', 'frequency')
+    list_filter = ('company', 'frequency')
+    search_fields = ('name', 'company__name')
+    list_editable = ('amount', 'frequency')
+
+    def get_frequency_display(self, obj):
+        return obj.get_frequency_display() if obj.frequency else 'Not set'
+    get_frequency_display.short_description = 'Frequency'
+
+    fieldsets = (
+        (None, {
+            'fields': ('name', 'amount', 'company')
+        }),
+        ('Frequency Settings', {
+            'fields': ('frequency',),
+            'classes': ('collapse',),
+            'description': 'Set the frequency for quota renewal. Leave blank for no automatic renewal.'
+        }),
+    )

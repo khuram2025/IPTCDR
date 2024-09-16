@@ -50,6 +50,8 @@ urlpatterns = [
     path('quotas/send_email/<int:extension_id>/', quota_views.send_quota_email, name='send_quota_email'),  # New URL pattern
 
     path('top-extensions/', views.top_extensions, name='top_extensions'),
+    path('top-extensions/excel-report/', views.generate_excel_report, name='top_extensions_excel_report'),
+
 
 
 ]

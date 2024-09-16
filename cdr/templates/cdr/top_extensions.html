@@ -113,9 +113,12 @@
       <div class="row">
         <div class="col-12">
           <div class="card">
-            <div class="card-header align-items-center d-flex">
-              <h4 class="card-title mb-0 flex-grow-1">{{ title }}</h4>
-              <div class="flex-shrink-0">
+            <div class="card-header">
+              <div class="d-flex align-items-center justify-content-between">
+                <div class="d-flex align-items-center">
+                  <h4 class="card-title mb-0 me-3">{{ title }}</h4>
+                  <a href="{% url 'cdr3cx:top_extensions_excel_report' %}?time_period={{ time_period }}&custom_date={{ custom_date_range }}&limit={{ limit }}" class="btn btn-primary btn-sm"> Export to Excel </a>
+                </div>
                 <form id="filterForm" action="{{ request.path }}" method="GET" class="d-flex align-items-center">
                   <div class="me-2">
                     <button type="button" class="btn btn-soft-secondary btn-sm" onclick="submitForm('today')">Today</button>
@@ -126,7 +129,7 @@
                   </div>
                   <input type="hidden" name="time_period" id="timePeriodInput" value="{{ time_period }}" />
                   <input type="text" class="form-control form-control-sm me-2" style="width: 200px" id="customDateInput" name="custom_date" placeholder="Custom Date Range" value="{{ custom_date_range }}" />
-                  <input type="number" class="form-control form-control-sm me-2" style="width: 100px" id="limitInput" name="limit" placeholder="Limit Extensions" value="{{ limit }}" min="1" />
+                  <input type="number" class="form-control form-control-sm me-2" style="width: 100px" id="limitInput" name="limit" placeholder="Limit" value="{{ limit }}" min="1" />
                   <button type="submit" class="btn btn-primary btn-sm">Apply</button>
                 </form>
               </div>
@@ -163,6 +166,16 @@
 </div>
 {% endblock content %} {% block extra_js %}
 <script src="https://cdnjs.cloudflare.com/ajax/libs/flatpickr/4.6.13/flatpickr.min.js"></script>
+<script>
+  document.addEventListener("DOMContentLoaded", function () {
+    const rows = document.querySelectorAll("tr[data-href]");
+    rows.forEach((row) => {
+      row.addEventListener("click", function () {
+        window.location.href = this.dataset.href;
+      });
+    });
+  });
+</script>
 <script>
   document.addEventListener("DOMContentLoaded", function () {
     const rows = document.querySelectorAll("tr[data-href]");

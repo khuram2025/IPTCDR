@@ -511,6 +511,7 @@ def caller_calls_view(request, caller_number):
     per_page = request.GET.get('per_page', 100)
     date_filter = request.GET.get('date_filter', '1M')
     custom_date_range = request.GET.get('custom_date', '')
+    export_excel = request.GET.get('export_excel', 'false') == 'true'
 
     print(f"Debug: date_filter = {date_filter}")
     print(f"Debug: custom_date_range = {custom_date_range}")
@@ -615,6 +616,41 @@ def caller_calls_view(request, caller_number):
         ) & Q(callee_length__gt=11)
     ).aggregate(Sum('total_cost'))['total_cost__sum'] or 0
 
+    if export_excel:
+        # Create Excel file
+        wb = Workbook()
+        ws = wb.active
+        ws.title = f"Calls for {caller_number}"
+
+        # Add headers
+        headers = ['Call Time', 'Callee', 'Duration', 'Call Type', 'Cost']
+        for col, header in enumerate(headers, start=1):
+            cell = ws.cell(row=1, column=col, value=header)
+            cell.font = Font(bold=True)
+            cell.fill = PatternFill(start_color="CCCCCC", end_color="CCCCCC", fill_type="solid")
+            cell.alignment = Alignment(horizontal='center')
+
+        # Add data
+        for row, call in enumerate(call_records, start=2):
+            ws.cell(row=row, column=1, value=call.call_time.strftime("%d %b, %Y %H:%M:%S"))
+            ws.cell(row=row, column=2, value=call.callee)
+            # Handle potential None values for duration
+            duration_str = str(timedelta(seconds=call.duration)) if call.duration is not None else "N/A"
+            ws.cell(row=row, column=3, value=duration_str)
+            ws.cell(row=row, column=4, value=call.to_type)
+            ws.cell(row=row, column=5, value=f"{call.total_cost:.2f} SAR")
+
+        # Adjust column widths
+        for col in range(1, 6):
+            ws.column_dimensions[get_column_letter(col)].auto_size = True
+
+        # Create response
+        response = HttpResponse(content_type='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet')
+        response['Content-Disposition'] = f'attachment; filename=calls_for_{caller_number}.xlsx'
+
+        wb.save(response)
+        return response
+    
     # Paginate the filtered results
     paginator = Paginator(call_records, per_page)
     page_number = request.GET.get('page')
@@ -715,9 +751,14 @@ def check_balance_and_send_email():
 
 from django.shortcuts import render
 from django.db.models import Count, Sum, F, Q
+from django.http import HttpResponse, HttpResponseBadRequest
+
 from django.utils import timezone
 from datetime import datetime, timedelta
 from .models import CallRecord
+from openpyxl import Workbook
+from openpyxl.styles import Font, Alignment, PatternFill
+from openpyxl.utils import get_column_letter
 
 def get_date_range(request):
     now = timezone.now()
@@ -789,13 +830,23 @@ def calculate_call_stats(call_records):
         'international_call_cost': international_call_cost,
     }
 
-def top_extensions(request):
+def get_top_extensions_data(request, sort_by):
     start_date, end_date, time_period, custom_date_range = get_date_range(request)
     limit = request.GET.get('limit', 20)
     try:
         limit = int(limit)
     except ValueError:
         limit = 20
+
+    # Define valid sorting options
+    valid_sort_options = {
+        'total_calls': '-total_calls',
+        'talk_time': '-total_duration',
+        'cost': '-total_cost'
+    }
+
+    # Use the provided sort_by if valid, otherwise default to 'total_calls'
+    sort_field = valid_sort_options.get(sort_by, '-total_calls')
 
     top_extensions = CallRecord.objects.filter(
         call_time__range=[start_date, end_date],
@@ -804,10 +855,9 @@ def top_extensions(request):
         total_calls=Count('id'),
         total_duration=Sum('duration'),
         total_cost=Sum('total_cost')
-    ).order_by('-total_calls')[:limit]
+    ).order_by(sort_field)[:limit]
 
     top_callers = [ext['caller'] for ext in top_extensions]
-
     call_records = CallRecord.objects.filter(
         call_time__range=[start_date, end_date],
         caller__in=top_callers,
@@ -816,84 +866,88 @@ def top_extensions(request):
 
     call_stats = calculate_call_stats(call_records)
 
-    context = {
+    return {
         'top_extensions': top_extensions,
-        'title': f'Top {limit} Extensions by Total Calls (Line Calls)',
+        'title': f'Top {limit} Extensions by {sort_by.replace("_", " ").title()} (Line Calls)',
         'time_period': time_period,
         'custom_date_range': custom_date_range,
         'limit': limit,
+        'start_date': start_date,
+        'end_date': end_date,
         **call_stats,
     }
+
+
+
+def top_extensions(request):
+    context = get_top_extensions_data(request, 'total_calls')
     return render(request, 'cdr/top_extensions.html', context)
 
 def top_extensions_talk_time(request):
-    start_date, end_date, time_period, custom_date_range = get_date_range(request)
-    limit = request.GET.get('limit', 20)
-    try:
-        limit = int(limit)
-    except ValueError:
-        limit = 20
-
-    top_extensions = CallRecord.objects.filter(
-        call_time__range=[start_date, end_date],
-        to_type='Line'
-    ).values('caller').annotate(
-        total_calls=Count('id'),
-        total_duration=Sum('duration'),
-        total_cost=Sum('total_cost')
-    ).order_by('-total_duration')[:limit]
-
-    top_callers = [ext['caller'] for ext in top_extensions]
-    call_records = CallRecord.objects.filter(
-        call_time__range=[start_date, end_date],
-        caller__in=top_callers,
-        to_type='Line'
-    )
-
-    call_stats = calculate_call_stats(call_records)
-
-    context = {
-        'top_extensions': top_extensions,
-        'title': f'Top {limit} Extensions by Talk Time (Line Calls)',
-        'time_period': time_period,
-        'custom_date_range': custom_date_range,
-        'limit': limit,
-        **call_stats,
-    }
+    context = get_top_extensions_data(request, 'total_duration')
     return render(request, 'cdr/top_extensions.html', context)
 
 def top_extensions_cost(request):
-    start_date, end_date, time_period, custom_date_range = get_date_range(request)
-    limit = request.GET.get('limit', 20)
-    try:
-        limit = int(limit)
-    except ValueError:
-        limit = 20
-
-    top_extensions = CallRecord.objects.filter(
-        call_time__range=[start_date, end_date],
-        to_type='Line'
-    ).values('caller').annotate(
-        total_calls=Count('id'),
-        total_duration=Sum('duration'),
-        total_cost=Sum('total_cost')
-    ).order_by('-total_cost')[:limit]
-
-    top_callers = [ext['caller'] for ext in top_extensions]
-    call_records = CallRecord.objects.filter(
-        call_time__range=[start_date, end_date],
-        caller__in=top_callers,
-        to_type='Line'
-    )
-
-    call_stats = calculate_call_stats(call_records)
-
-    context = {
-        'top_extensions': top_extensions,
-        'title': f'Top {limit} Extensions by Cost (Line Calls)',
-        'time_period': time_period,
-        'custom_date_range': custom_date_range,
-        'limit': limit,
-        **call_stats,
-    }
+    context = get_top_extensions_data(request, 'total_cost')
     return render(request, 'cdr/top_extensions.html', context)
+
+
+def generate_excel_report(request):
+    # Map URL names to sort_by values
+    url_to_sort_map = {
+        'top_extensions': 'total_calls',
+        'top_extensions_talk_time': 'talk_time',
+        'top_extensions_cost': 'cost'
+    }
+
+    # Get the current URL name
+    current_url_name = request.resolver_match.url_name
+
+    # Determine the sort_by value
+    sort_by = url_to_sort_map.get(current_url_name, 'total_calls')
+
+    try:
+        data = get_top_extensions_data(request, sort_by)
+    except Exception as e:
+        return HttpResponseBadRequest(f"Error generating report: {str(e)}")
+
+    wb = Workbook()
+    ws = wb.active
+    ws.title = "Top Extensions Report"
+
+    # Add title
+    ws['A1'] = data['title']
+    ws['A1'].font = Font(size=16, bold=True)
+    ws.merge_cells('A1:D1')
+
+    # Add date range
+    ws['A2'] = f"Date Range: {data['start_date'].strftime('%Y-%m-%d')} to {data['end_date'].strftime('%Y-%m-%d')}"
+    ws['A2'].font = Font(size=12)
+    ws.merge_cells('A2:D2')
+
+    # Add headers
+    headers = ['Extension', 'Total Calls', 'Total Duration', 'Total Cost']
+    for col, header in enumerate(headers, start=1):
+        cell = ws.cell(row=4, column=col, value=header)
+        cell.font = Font(bold=True)
+        cell.fill = PatternFill(start_color="CCCCCC", end_color="CCCCCC", fill_type="solid")
+        cell.alignment = Alignment(horizontal='center')
+
+    # Add data
+    for row, ext in enumerate(data['top_extensions'], start=5):
+        ws.cell(row=row, column=1, value=ext['caller'])
+        ws.cell(row=row, column=2, value=ext['total_calls'])
+        ws.cell(row=row, column=3, value=str(timedelta(seconds=ext['total_duration'])))
+        ws.cell(row=row, column=4, value=f"{ext['total_cost']:.2f} SAR")
+
+    # Adjust column widths
+    for col in range(1, 5):
+        ws.column_dimensions[get_column_letter(col)].auto_size = True
+
+    # Create response
+    response = HttpResponse(content_type='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet')
+    response['Content-Disposition'] = f'attachment; filename="{sort_by}_top_extensions_report.xlsx"'
+
+    wb.save(response)
+
+    return response

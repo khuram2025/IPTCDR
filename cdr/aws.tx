@@ -79,3 +79,10 @@ sudo journalctl -u socket_server.service --since "2024-09-07 19:30:00" --until "
 
 
  /home/ubuntu/3CX/cdr/cdr3cx/socket_server.py
+
+
+We are working on th reports 
+
+http://52.7.101.147:8003/caller-calls/7161/?date_filter=1M&per_page=100&search=&custom_date=
+
+export to pdf not working properly only show default today date in pdf for international calls working fine 

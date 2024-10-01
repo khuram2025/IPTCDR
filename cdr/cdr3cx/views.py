@@ -28,6 +28,7 @@ from reportlab.lib.pagesizes import letter, inch
 from reportlab.lib import colors
 from reportlab.lib.pagesizes import letter
 from reportlab.platypus import SimpleDocTemplate, Table, TableStyle
+from .views_reports import export_caller_calls_pdf
 
 @csrf_exempt
 def receive_cdr(request):
@@ -542,6 +543,7 @@ def caller_calls_view(request, caller_number):
     date_filter = request.GET.get('date_filter', '1M')
     custom_date_range = request.GET.get('custom_date', '')
     export_excel = request.GET.get('export_excel', 'false') == 'true'
+    export_pdf = request.GET.get('export_pdf', 'false') == 'true'
 
     print(f"Debug: date_filter = {date_filter}")
     print(f"Debug: custom_date_range = {custom_date_range}")
@@ -646,6 +648,30 @@ def caller_calls_view(request, caller_number):
         ) & Q(callee_length__gt=11)
     ).aggregate(Sum('total_cost'))['total_cost__sum'] or 0
 
+    call_type = request.GET.get('call_type', 'all')
+
+    # Filter call records based on call type
+    if call_type == 'local':
+        call_records = call_records.annotate(callee_length=Length('callee')).filter(
+            callee_length__gt=4
+        ).exclude(
+            (Q(callee__startswith='+') | Q(callee__startswith='00')) & 
+            ~(Q(callee__startswith='+966') | Q(callee__startswith='00966')) & 
+            Q(callee_length__gt=11)
+        )
+    elif call_type == 'international':
+        call_records = call_records.annotate(callee_length=Length('callee')).filter(
+            (
+                Q(callee__startswith='+') | 
+                Q(callee__startswith='00')
+            ) & ~(
+                Q(callee__startswith='+966') | 
+                Q(callee__startswith='00966')
+            ) & Q(callee_length__gt=11)
+        )
+    elif call_type == 'incoming':
+        call_records = call_records.filter(from_type="Line")
+
     if export_excel:
         # Create Excel file
         wb = Workbook()
@@ -680,6 +706,9 @@ def caller_calls_view(request, caller_number):
 
         wb.save(response)
         return response
+
+    if export_pdf:
+        return export_caller_calls_pdf(request, caller_number)
     
     # Paginate the filtered results
     paginator = Paginator(call_records, per_page)
@@ -703,6 +732,7 @@ def caller_calls_view(request, caller_number):
         'incoming_call_cost': incoming_call_cost,
         'total_international_calls': total_international_calls,
         'international_call_cost': international_call_cost,
+        'call_type': call_type,
     }
 
     
@@ -789,36 +819,8 @@ from .models import CallRecord
 from openpyxl import Workbook
 from openpyxl.styles import Font, Alignment, PatternFill
 from openpyxl.utils import get_column_letter
+from .utils import get_date_range
 
-def get_date_range(request):
-    now = timezone.now()
-    time_period = request.GET.get('time_period', 'today')
-    custom_date_range = request.GET.get('custom_date', '')
-
-    if time_period == 'today':
-        start_date = now.replace(hour=0, minute=0, second=0, microsecond=0)
-        end_date = now
-    elif time_period == '7d':
-        start_date = now - timedelta(days=7)
-        end_date = now
-    elif time_period == '1m':
-        start_date = now - timedelta(days=30)
-        end_date = now
-    elif time_period == '6m':
-        start_date = now - timedelta(days=182)
-        end_date = now
-    elif time_period == '1y':
-        start_date = now - timedelta(days=365)
-        end_date = now
-    elif time_period == 'custom' and custom_date_range:
-        start_date_str, end_date_str = custom_date_range.split(" to ")
-        start_date = timezone.make_aware(datetime.strptime(start_date_str, "%d %b, %Y"))
-        end_date = timezone.make_aware(datetime.strptime(end_date_str, "%d %b, %Y").replace(hour=23, minute=59, second=59))
-    else:
-        start_date = now
-        end_date = now
-
-    return start_date, end_date, time_period, custom_date_range
 
 
 

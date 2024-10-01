@@ -24,9 +24,11 @@ SECRET_KEY = 'django-insecure-fme&i9jk17a680#6d+_^w*j+pe_^=$zvt_@i7n*s9q1_8k%bjs
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = True
 
-ALLOWED_HOSTS = ["*"]
+ALLOWED_HOSTS = ['52.7.101.147', 'iptportal.channab.com', '*']
+
 CSRF_TRUSTED_ORIGINS = [
     'https://iptportal.channab.com',
+    
 ]
 CSRF_TRUSTED_ORIGINS = [
     'https://iptportal.channab.com',
@@ -80,7 +82,8 @@ MIDDLEWARE = [
     'django.contrib.auth.middleware.AuthenticationMiddleware',
     'django.contrib.messages.middleware.MessageMiddleware',
     'django.middleware.clickjacking.XFrameOptionsMiddleware',
-    'cdr3cx.middleware.CDRRequestMiddleware'
+    'cdr3cx.middleware.CDRRequestMiddleware',
+    'cdr3cx.middleware.DomainRoutingMiddleware', 
 ]
 
 ROOT_URLCONF = 'cdr.urls'

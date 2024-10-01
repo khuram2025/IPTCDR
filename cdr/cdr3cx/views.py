@@ -412,6 +412,9 @@ def home(request):
 def aboutus(request):
     return render(request, 'home/about_us.html')
 
+def ipt_landing(request):
+    return render(request, 'home/ipt_landing.html')
+
 from django.http import JsonResponse, HttpResponse
 from django.views.decorators.http import require_GET
 from .models import CallRecord

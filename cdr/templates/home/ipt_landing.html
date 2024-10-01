@@ -1,0 +1,415 @@
+{% extends "home/base.html" %}
+{% load static %}
+{% block title %}Channab - Global IP Telephony, Security, and Development Solutions{% endblock title %}
+{% block extra_css %}
+<!-- jsvectormap css -->
+<link href="{% static 'libs/jsvectormap/dist/css/jsvectormap.min.css'%}" rel="stylesheet" type="text/css" />
+
+<!--Swiper slider css-->
+<link href="{% static 'libs/swiper/swiper-bundle.min.css'%}" rel="stylesheet" type="text/css" />
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.4/css/all.min.css" />
+
+{% endblock extra_css %}
+{% block content %}
+  <body data-bs-spy="scroll" data-bs-target="#navbar-example">
+    <!-- Begin page -->
+    <div class="layout-wrapper landing">
+      <nav class="navbar navbar-expand-lg navbar-landing fixed-top" id="navbar">
+        <div class="container">
+          <a class="navbar-brand" href="{%url 'cdr3cx:home' %}">
+      <span class="card-logo card-logo-dark" style="font-size: 17px; font-weight: bold">Channab</span>
+      <span class="card-logo card-logo-light" style="font-size: 17px; font-weight: bold">Channab</span>
+    </a>
+          <button class="navbar-toggler py-0 fs-20 text-body" type="button" data-bs-toggle="collapse" data-bs-target="#navbarSupportedContent" aria-controls="navbarSupportedContent" aria-expanded="false" aria-label="Toggle navigation">
+            <i class="mdi mdi-menu"></i>
+          </button>
+
+          <div class="collapse navbar-collapse" id="navbarSupportedContent">
+            <ul class="navbar-nav mx-auto mt-2 mt-lg-0" id="navbar-example">
+              <li class="nav-item">
+                <a class="nav-link active" href="{%url 'cdr3cx:home' %}">Home</a>
+              </li>
+              <li class="nav-item">
+                <a class="nav-link" href="#services">Services</a>
+              </li>
+               <li class="nav-item">
+                <a class="nav-link" href="{%url 'cdr3cx:aboutus' %}">About Us</a>
+              </li>
+              <!-- <li class="nav-item">
+                <a class="nav-link" href="#features">Features</a>
+              </li>
+              <li class="nav-item">
+                <a class="nav-link" href="#plans">Plans</a>
+              </li>
+              <li class="nav-item">
+                <a class="nav-link" href="#reviews">Reviews</a>
+              </li>
+              <li class="nav-item">
+                <a class="nav-link" href="#team">Team</a>
+              </li>
+              <li class="nav-item">
+                <a class="nav-link" href="#contact">Contact</a>
+              </li> -->
+            </ul>
+
+            <div class="">
+              <a href="auth-signin-basic.html" class="btn btn-link fw-medium text-decoration-none text-body">Sign in</a>
+              <a href="auth-signup-basic.html" class="btn btn-primary">Sign Up</a>
+            </div>
+          </div>
+        </div>
+      </nav>
+      <!-- end navbar -->
+      <div class="vertical-overlay" data-bs-toggle="collapse" data-bs-target="#navbarSupportedContent.show"></div>
+
+      <section class="section pb-0 hero-section" id="hero">
+            <div class="bg-overlay bg-overlay-pattern"></div>
+            <div class="container">
+                <div class="row justify-content-center">
+                    <div class="col-lg-8 col-sm-10">
+                        <div class="text-center mt-lg-5 pt-5">
+                            <h1 class="display-6 fw-semibold mb-3 lh-base">Revolutionize Your Business Communication with <span class="text-success">3CX</span> and <span class="text-primary">Channab</span></h1>
+                            <p class="lead text-muted lh-base">Channab offers expert 3CX installation, management, and customization services. Enhance your IP telephony with our AI-powered solutions, tailored billing systems, and comprehensive security services.</p>
+
+                           
+
+                            <div class="d-flex gap-2 justify-content-center mt-4">
+                                <a href="#" class="btn btn-primary">Get a Free Consultation <i class="ri-customer-service-line align-middle ms-1"></i></a>
+                                <a href="#" class="btn btn-success">Explore Our Services <i class="ri-arrow-right-line align-middle ms-1"></i></a>
+                            </div>
+                        </div>
+
+                        <div class="mt-4 mt-sm-5 pt-sm-5 mb-sm-n5 demo-carousel">
+                            <div class="demo-img-patten-top d-none d-sm-block">
+                                <img src="assets/images/landing/img-pattern.png" class="d-block img-fluid" alt="...">
+                            </div>
+                            <div class="demo-img-patten-bottom d-none d-sm-block">
+                                <img src="assets/images/landing/img-pattern.png" class="d-block img-fluid" alt="...">
+                            </div>
+                            <div class="carousel slide carousel-fade" data-bs-ride="carousel">
+                                <div class="carousel-inner shadow-lg p-2 bg-white rounded">
+                                    <div class="carousel-item" data-bs-interval="2000">
+                                        <img src="{% static 'images/3CX/01.png' %}" class="d-block w-100" alt="...">
+                                    </div>
+                                    <div class="carousel-item" data-bs-interval="2000">
+                                        <img src="{% static 'images/3CX/01.png' %}" class="d-block w-100" alt="...">
+                                    </div>
+                                    <div class="carousel-item" data-bs-interval="2000">
+                                        <img src="{% static 'images/3CX/01.png' %}" class="d-block w-100" alt="...">
+                                    </div>
+                                    <div class="carousel-item" data-bs-interval="2000">
+                                        <img src="{% static 'images/3CX/02.png' %}" class="d-block w-100" alt="...">
+                                    </div>
+                                    <div class="carousel-item" data-bs-interval="2000">
+                                        <img src="{% static 'images/3CX/03.png' %}" class="d-block w-100" alt="...">
+                                    </div>
+                                    <div class="carousel-item" data-bs-interval="2000">
+                                        <img src="{% static 'images/3CX/04.png' %}" class="d-block w-100" alt="...">
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <!-- end row -->
+            </div>
+            <!-- end container -->
+            <div class="position-absolute start-0 end-0 bottom-0 hero-shape-svg">
+                <svg xmlns="http://www.w3.org/2000/svg" version="1.1" xmlns:xlink="http://www.w3.org/1999/xlink" viewBox="0 0 1440 120">
+                    <g mask="url(&quot;#SvgjsMask1003&quot;)" fill="none">
+                        <path d="M 0,118 C 288,98.6 1152,40.4 1440,21L1440 140L0 140z">
+                        </path>
+                    </g>
+                </svg>
+            </div>
+            <!-- end shape -->
+        </section>
+
+<section class="section" id="3cx-services">
+  <div class="container">
+    <div class="row justify-content-center">
+      <div class="col-lg-8">
+        <div class="text-center mb-5">
+          <h2 class="mb-3 ff-secondary fw-semibold lh-base">Channab - Your Global 3CX Solutions Partner</h2>
+          <p class="text-muted">We deliver cutting-edge 3CX phone systems and IP telephony solutions to businesses worldwide, enhancing communication and productivity.</p>
+        </div>
+      </div>
+    </div>
+
+    <div class="row g-4">
+      <div class="col-lg-4">
+        <div class="d-flex p-3 shadow-sm rounded">
+          <div class="flex-shrink-0 me-3">
+            <div class="avatar-sm icon-effect">
+              <div class="avatar-title bg-transparent text-primary rounded-circle">
+                <i class="ri-install-line fs-36"></i>
+              </div>
+            </div>
+          </div>
+          <div class="flex-grow-1">
+            <h3 class="fs-18">3CX Installation & Configuration</h3>
+            <p class="text-muted my-3 ff-secondary">Expert 3CX phone system setup, customization, and integration for seamless business communication.</p>
+            <div>
+              <a href="#" class="fs-13 fw-medium">Explore 3CX Installation <i class="ri-arrow-right-s-line align-bottom"></i></a>
+            </div>
+          </div>
+        </div>
+      </div>
+      <div class="col-lg-4">
+        <div class="d-flex p-3 shadow-sm rounded">
+          <div class="flex-shrink-0 me-3">
+            <div class="avatar-sm icon-effect">
+              <div class="avatar-title bg-transparent text-primary rounded-circle">
+                <i class="ri-customer-service-2-line fs-36"></i>
+              </div>
+            </div>
+          </div>
+          <div class="flex-grow-1">
+            <h3 class="fs-18">3CX as a Service (3CXaaS)</h3>
+            <p class="text-muted my-3 ff-secondary">Fully managed 3CX cloud solutions with 24/7 support, updates, and scalability for your growing business.</p>
+            <div>
+              <a href="#" class="fs-13 fw-medium">Learn About 3CXaaS <i class="ri-arrow-right-s-line align-bottom"></i></a>
+            </div>
+          </div>
+        </div>
+      </div>
+      <div class="col-lg-4">
+        <div class="d-flex p-3 shadow-sm rounded">
+          <div class="flex-shrink-0 me-3">
+            <div class="avatar-sm icon-effect">
+              <div class="avatar-title bg-transparent text-primary rounded-circle">
+                <i class="ri-money-dollar-circle-line fs-36"></i>
+              </div>
+            </div>
+          </div>
+          <div class="flex-grow-1">
+            <h3 class="fs-18">3CX Billing Systems</h3>
+            <p class="text-muted my-3 ff-secondary">Custom billing solutions integrated with 3CX for accurate call tracking, reporting, and cost management.</p>
+            <div>
+              <a href="#" class="fs-13 fw-medium">Discover 3CX Billing <i class="ri-arrow-right-s-line align-bottom"></i></a>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="text-center mt-5">
+      <a href="#" class="btn btn-primary">View All 3CX Services <i class="ri-arrow-right-line align-middle ms-1"></i></a>
+    </div>
+  </div>
+</section>
+      <!-- end services -->
+
+      <!-- start features -->
+     
+      <!-- end features -->
+
+      <!-- start cta -->
+      <section class="py-5 bg-primary position-relative">
+        <div class="bg-overlay bg-overlay-pattern opacity-50"></div>
+        <div class="container">
+          <div class="row align-items-center gy-4">
+            <div class="col-sm">
+              <div>
+                <h4 class="text-white mb-0 fw-semibold">Elevate Your IT with Channab's Advanced AI Solutions</h4>
+              </div>
+            </div>
+            <!-- end col -->
+            <div class="col-sm-auto">
+              <div>
+                <a href="#" target="_blank" class="btn bg-gradient btn-danger"><i class="ri-shopping-cart-2-line align-middle me-1"></i> Buy Now</a>
+              </div>
+            </div>
+            <!-- end col -->
+          </div>
+          <!-- end row -->
+        </div>
+        <!-- end container -->
+      </section>
+      <!-- end cta -->
+
+      <!-- start features -->
+     
+      <!-- end features -->
+
+      <!-- start plan -->
+    
+      <!-- end plan -->
+
+      <!-- start faqs -->
+      <section class="section">
+        <div class="container">
+          <div class="row justify-content-center">
+            <div class="col-lg-8">
+              <div class="text-center mb-5">
+                <h3 class="mb-3 fw-semibold">Frequently Asked Questions</h3>
+                <p class="text-muted mb-4 ff-secondary">If you can not find answer to your question in our FAQ, you can always contact us or email us. We will answer you shortly!</p>
+
+                <div class="hstack gap-2 justify-content-center">
+                  <button type="button" class="btn btn-primary btn-label rounded-pill"><i class="ri-mail-line label-icon align-middle rounded-pill fs-16 me-2"></i> Email Us</button>
+                  <button type="button" class="btn btn-info btn-label rounded-pill"><i class="ri-twitter-line label-icon align-middle rounded-pill fs-16 me-2"></i> Send Us Tweet</button>
+                </div>
+              </div>
+            </div>
+          </div>
+          <!-- end row -->
+
+          <div class="row g-lg-5 g-4">
+            <div class="col-lg-6">
+              <div class="d-flex align-items-center mb-2">
+                <div class="flex-shrink-0 me-1">
+                  <i class="ri-question-line fs-24 align-middle text-success me-1"></i>
+                </div>
+                <div class="flex-grow-1">
+                  <h5 class="mb-0 fw-semibold">General Questions</h5>
+                </div>
+              </div>
+              <div class="accordion custom-accordionwithicon custom-accordion-border accordion-border-box" id="genques-accordion">
+                <div class="accordion-item">
+                  <h2 class="accordion-header" id="genques-headingOne">
+                    <button class="accordion-button" type="button" data-bs-toggle="collapse" data-bs-target="#genques-collapseOne" aria-expanded="true" aria-controls="genques-collapseOne">What is the purpose of using Channab Monitoring System?</button>
+                  </h2>
+                  <div id="genques-collapseOne" class="accordion-collapse collapse show" aria-labelledby="genques-headingOne" data-bs-parent="#genques-accordion">
+                    <div class="accordion-body ff-secondary">IP telephony systems often lack comprehensive native reporting capabilities.
+                       To address this gap, we have developed an AI-based monitoring system specifically designed for IP telephony. Our solution provides detailed insights and ensures that no critical information is overlooked. Since IP telephony is a vital component of any organization, it is essential to have complete visibility and control over its performance. Channab Monitoring System helps you achieve this by delivering thorough, real-time reports,
+                       allowing you to manage and optimize your IP telephony infrastructure effectively.</div>
+                  </div>
+                </div>
+                <div class="accordion-item">
+                  <h2 class="accordion-header" id="genques-headingTwo">
+                    <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#genques-collapseTwo" aria-expanded="false" aria-controls="genques-collapseTwo">How does Channab's IP Telephony Monitoring System improve operational efficiency?</button>
+                  </h2>
+                  <div id="genques-collapseTwo" class="accordion-collapse collapse" aria-labelledby="genques-headingTwo" data-bs-parent="#genques-accordion">
+                    <div class="accordion-body ff-secondary">Channab's IP Telephony Monitoring System enhances operational efficiency by providing real-time data and analytics 
+                      for your telephony infrastructure. Whether you choose our cloud-based or on-premise solution, our system offers continuous monitoring and alerts, helping you quickly identify and resolve issues before they impact your business operations. This proactive approach minimizes downtime and ensures your communication systems run smoothly,
+                       enabling your team to focus on core business activities.</div>
+                  </div>
+                </div>
+                <div class="accordion-item">
+                  <h2 class="accordion-header" id="genques-headingThree">
+                    <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#genques-collapseThree" aria-expanded="false" aria-controls="genques-collapseThree">Can Channab's monitoring system integrate with existing telephony infrastructure?</button>
+                  </h2>
+                  <div id="genques-collapseThree" class="accordion-collapse collapse" aria-labelledby="genques-headingThree" data-bs-parent="#genques-accordion">
+                    <div class="accordion-body ff-secondary">Yes, Channab's monitoring system is designed to seamlessly integrate with your existing IP telephony infrastructure, whether it's cloud-based or on-premise. Our solution is highly adaptable, ensuring compatibility with various IP telephony systems. This integration allows for a unified monitoring experience, providing comprehensive visibility and control over your entire telephony environment,
+                       regardless of its current configuration.</div>
+                  </div>
+                </div>
+                <div class="accordion-item">
+                  <h2 class="accordion-header" id="genques-headingFour">
+                    <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#genques-collapseFour" aria-expanded="false" aria-controls="genques-collapseFour">What are the benefits of using Channab's cloud-based IP Telephony Monitoring over traditional on-premise solutions?</button>
+                  </h2>
+                  <div id="genques-collapseFour" class="accordion-collapse collapse" aria-labelledby="genques-headingFour" data-bs-parent="#genques-accordion">
+                    <div class="accordion-body ff-secondary">Channab's cloud-based IP Telephony Monitoring offers several advantages over traditional on-premise solutions. With our cloud-based option, you benefit from greater scalability, reduced capital expenditure, and simplified management. The cloud platform allows for easy updates and maintenance, ensuring you always have the latest features and security enhancements. Additionally, our cloud solution provides remote access, enabling you to monitor and manage your telephony systems from anywhere, at any time. However, for organizations requiring direct control and data sovereignty, our on-premise solution remains a robust and reliable choice.</div>
+                  </div>
+                </div>
+              </div>
+              <!--end accordion-->
+            </div>
+            <!-- end col -->
+            <div class="col-lg-6">
+        <div class="d-flex align-items-center mb-2">
+          <div class="flex-shrink-0 me-1">
+            <i class="ri-shield-keyhole-line fs-24 align-middle text-success me-1"></i>
+          </div>
+          <div class="flex-grow-1">
+            <h5 class="mb-0 fw-semibold">Privacy & Security</h5>
+          </div>
+        </div>
+
+        <div class="accordion custom-accordionwithicon custom-accordion-border accordion-border-box" id="channab-accordion">
+          <div class="accordion-item">
+            <h2 class="accordion-header" id="channab-headingOne">
+              <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#channab-collapseOne" aria-expanded="false" aria-controls="channab-collapseOne">How does Channab ensure the privacy of data in its monitoring systems?</button>
+            </h2>
+            <div id="channab-collapseOne" class="accordion-collapse collapse" aria-labelledby="channab-headingOne" data-bs-parent="#channab-accordion">
+              <div class="accordion-body ff-secondary">Channab employs robust encryption methods and strict access controls to ensure the privacy of your data. Whether you choose our cloud-based or on-premise solution, your data is protected with industry-standard security protocols, ensuring that sensitive information remains confidential and secure.</div>
+            </div>
+          </div>
+          <div class="accordion-item">
+            <h2 class="accordion-header" id="channab-headingTwo">
+              <button class="accordion-button" type="button" data-bs-toggle="collapse" data-bs-target="#channab-collapseTwo" aria-expanded="true" aria-controls="channab-collapseTwo">What security measures are in place to protect against unauthorized access?</button>
+            </h2>
+            <div id="channab-collapseTwo" class="accordion-collapse collapse show" aria-labelledby="channab-headingTwo" data-bs-parent="#channab-accordion">
+              <div class="accordion-body ff-secondary">Channab's monitoring systems incorporate multi-factor authentication, regular security audits, and real-time threat detection to protect against unauthorized access. These measures ensure that only authorized personnel can access sensitive data, safeguarding your IP telephony and network infrastructure from potential threats.</div>
+            </div>
+          </div>
+          <div class="accordion-item">
+            <h2 class="accordion-header" id="channab-headingThree">
+              <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#channab-collapseThree" aria-expanded="false" aria-controls="channab-collapseThree">How does Channab handle data compliance and regulatory requirements?</button>
+            </h2>
+            <div id="channab-collapseThree" class="accordion-collapse collapse" aria-labelledby="channab-headingThree" data-bs-parent="#channab-accordion">
+              <div class="accordion-body ff-secondary">Channab's solutions are designed to comply with international data protection regulations, including GDPR and HIPAA. Our monitoring systems offer customizable compliance reporting and auditing features, ensuring that your organization meets all necessary regulatory requirements while maintaining high standards of data privacy and security.</div>
+            </div>
+          </div>
+          <div class="accordion-item">
+            <h2 class="accordion-header" id="channab-headingFour">
+              <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#channab-collapseFour" aria-expanded="false" aria-controls="channab-collapseFour">What are the benefits of using Channab's cloud-based security solutions?</button>
+            </h2>
+            <div id="channab-collapseFour" class="accordion-collapse collapse" aria-labelledby="channab-headingFour" data-bs-parent="#channab-accordion">
+              <div class="accordion-body ff-secondary">Channab's cloud-based security solutions offer enhanced scalability, automatic updates, and global accessibility. These solutions are designed to provide continuous protection and ensure that your systems are always up-to-date with the latest security measures. Additionally, our cloud platform allows for easy integration and centralized management of security protocols, providing comprehensive protection for your IP telephony and network infrastructure.</div>
+            </div>
+          </div>
+        </div>
+        <!--end accordion-->
+</div>
+
+            <!-- end col -->
+          </div>
+          <!-- end row -->
+        </div>
+        <!-- end container -->
+      </section>
+      <!-- end faqs -->
+
+      <!-- start review -->
+     
+      <!-- end review -->
+
+      <!-- start counter -->
+    
+      <!-- end counter -->
+
+      <!-- start Work Process -->
+      
+      <!-- end Work Process -->
+
+      <!-- start team -->
+     
+      <!-- end team -->
+
+      <!-- start contact -->
+   
+      <!-- end contact -->
+
+      <!-- start cta -->
+      
+      <!-- end cta -->
+
+      <!-- Start footer -->
+      {% include 'home/footer.html' %}
+      <!-- end footer -->
+
+      <!--start back-to-top-->
+      <button onclick="topFunction()" class="btn btn-danger btn-icon landing-back-top" id="back-to-top">
+        <i class="ri-arrow-up-line"></i>
+      </button>
+      <!--end back-to-top-->
+    </div>
+    <!-- end layout wrapper -->
+
+    <!-- JAVASCRIPT -->
+    <script src="assets/libs/bootstrap/js/bootstrap.bundle.min.js"></script>
+    <script src="assets/libs/simplebar/simplebar.min.js"></script>
+    <script src="assets/libs/node-waves/waves.min.js"></script>
+    <script src="assets/libs/feather-icons/feather.min.js"></script>
+    <script src="assets/js/pages/plugins/lord-icon-2.1.0.js"></script>
+    <script src="assets/js/plugins.js"></script>
+
+    <!--Swiper slider js-->
+    <script src="assets/libs/swiper/swiper-bundle.min.js"></script>
+
+    <!-- landing init -->
+    <script src="assets/js/pages/landing.init.js"></script>
+  </body>
+</html>
+{% endblock  %}

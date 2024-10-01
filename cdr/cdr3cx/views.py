@@ -23,7 +23,11 @@ logger = logging.getLogger(__name__)
 from django.contrib.auth.decorators import login_required
 from pytz import UTC
 from .utils import get_country_from_number
-
+from io import BytesIO 
+from reportlab.lib.pagesizes import letter, inch
+from reportlab.lib import colors
+from reportlab.lib.pagesizes import letter
+from reportlab.platypus import SimpleDocTemplate, Table, TableStyle
 
 @csrf_exempt
 def receive_cdr(request):
@@ -369,19 +373,23 @@ def incomingCalls(request):
 def outgoingInternationalCalls(request):
     search_query = request.GET.get('search', '')
     per_page = request.GET.get('per_page', 100)
+    time_period = request.GET.get('time_period', '7d')
+    custom_date_range = request.GET.get('custom_date', '')
 
-    # Ensure per_page is an integer, defaulting to 100 if not a valid integer
     try:
         per_page = int(per_page)
     except ValueError:
         per_page = 100
 
-    # Define the filtering logic
+    start_date, end_date, time_period, custom_date_range = get_date_range(request)
+
     call_records = CallRecord.objects.filter(
         Q(callee__regex=r'^\+[^9]') | 
         Q(callee__regex=r'^\+9[0-8]') | 
         Q(callee__regex=r'^00[^9]') | 
-        Q(callee__regex=r'^009[0-8]')
+        Q(callee__regex=r'^009[0-8]'),
+        call_time__range=[start_date, end_date],
+        duration__isnull=False
     ).exclude(
         Q(callee__startswith='+966') | Q(callee__startswith='00966')
     )
@@ -389,11 +397,30 @@ def outgoingInternationalCalls(request):
     if search_query:
         call_records = call_records.filter(Q(caller__icontains=search_query) | Q(callee__icontains=search_query))
 
+    # Calculate summary data
+    summary = call_records.aggregate(
+        total_calls=Count('id'),
+        total_duration=Sum('duration'),
+        total_cost=Sum('total_cost')
+    )
+
     paginator = Paginator(call_records, per_page)
     page_number = request.GET.get('page')
     page_obj = paginator.get_page(page_number)
 
-    return render(request, 'cdr/outgoingInternationalCalls.html', {'page_obj': page_obj, 'paginator': paginator, 'search_query': search_query, 'per_page': per_page})
+    context = {
+        'page_obj': page_obj,
+        'paginator': paginator,
+        'search_query': search_query,
+        'per_page': per_page,
+        'time_period': time_period,
+        'custom_date_range': custom_date_range,
+        'total_calls': summary['total_calls'],
+        'total_duration': summary['total_duration'] // 60 if summary['total_duration'] else 0,  # Convert seconds to minutes
+        'total_cost': summary['total_cost'] or 0,
+    }
+
+    return render(request, 'cdr/outgoingInternationalCalls.html', context)
 
 def local_calls_view(request):
     call_records = CallRecord.objects.annotate(callee_length=Length('callee')).filter(callee_length=4)
@@ -786,7 +813,7 @@ def get_date_range(request):
     elif time_period == 'custom' and custom_date_range:
         start_date_str, end_date_str = custom_date_range.split(" to ")
         start_date = timezone.make_aware(datetime.strptime(start_date_str, "%d %b, %Y"))
-        end_date = timezone.make_aware(datetime.strptime(end_date_str, "%d %b, %Y").replace(hour=23, minute=59, second=59, microsecond=999999))
+        end_date = timezone.make_aware(datetime.strptime(end_date_str, "%d %b, %Y").replace(hour=23, minute=59, second=59))
     else:
         start_date = now
         end_date = now
@@ -854,7 +881,7 @@ def get_top_extensions_data(request, sort_by):
     top_extensions = CallRecord.objects.filter(
         call_time__range=[start_date, end_date],
         to_type='Line'
-    ).values('caller').annotate(
+    ).values('caller', 'from_dispname').annotate(
         total_calls=Count('id'),
         total_duration=Sum('duration'),
         total_cost=Sum('total_cost')
@@ -954,3 +981,108 @@ def generate_excel_report(request):
     wb.save(response)
 
     return response
+from reportlab.lib import colors
+from reportlab.lib.pagesizes import letter, inch
+from reportlab.platypus import SimpleDocTemplate, Table, TableStyle, Paragraph, Spacer
+from reportlab.lib.styles import getSampleStyleSheet, ParagraphStyle
+from reportlab.lib.enums import TA_CENTER, TA_RIGHT
+from datetime import timedelta
+from reportlab.lib.colors import HexColor
+from django.utils import timezone
+
+def top_extensions_pdf_report(request):
+    context = get_top_extensions_data(request, 'total_calls')
+    
+    buffer = BytesIO()
+    doc = SimpleDocTemplate(buffer, pagesize=letter, topMargin=0.5*inch, bottomMargin=0.5*inch, leftMargin=0.5*inch, rightMargin=0.5*inch)
+    elements = []
+
+    # Styles
+    styles = getSampleStyleSheet()
+    title_style = ParagraphStyle('Title', parent=styles['Heading1'], alignment=TA_CENTER, fontSize=20, spaceAfter=12)
+    subtitle_style = ParagraphStyle('Subtitle', parent=styles['Heading2'], alignment=TA_CENTER, fontSize=14, spaceAfter=12, textColor=HexColor('#4a4a4a'))
+    card_style = ParagraphStyle('Card', parent=styles['Normal'], fontSize=10, alignment=TA_CENTER)
+
+    # Color scheme
+    primary_color = HexColor('#1c4587')
+    secondary_color = HexColor('#cfe2f3')
+    accent_color = HexColor('#f9cb9c')
+
+    # Title and Subtitle
+    elements.append(Paragraph("SMASCO Call Record", title_style))
+    
+    if context['time_period'] == 'custom':
+        date_range = f"{context['start_date'].strftime('%B %d, %Y')} - {context['end_date'].strftime('%B %d, %Y')}"
+    else:
+        date_range = f"Last {context['time_period']}"
+    elements.append(Paragraph(f"Call Records for {date_range}", subtitle_style))
+
+    elements.append(Spacer(1, 0.25*inch))
+
+    # Cards
+    card_data = [
+        ["Total Calls", "Local Calls", "International Calls"],
+        [f"{context['total_calls']}", f"{context['total_local_calls']}", f"{context['total_international_calls']}"],
+        [f"{context['total_call_cost']:.2f} SAR", f"{context['local_call_cost']:.2f} SAR", f"{context['international_call_cost']:.2f} SAR"]
+    ]
+    card_table = Table(card_data, colWidths=[2*inch]*3)
+    card_table.setStyle(TableStyle([
+        ('BACKGROUND', (0, 0), (-1, 0), primary_color),
+        ('TEXTCOLOR', (0, 0), (-1, 0), colors.white),
+        ('ALIGN', (0, 0), (-1, -1), 'CENTER'),
+        ('FONTNAME', (0, 0), (-1, -1), 'Helvetica-Bold'),
+        ('FONTSIZE', (0, 0), (-1, 0), 12),
+        ('FONTSIZE', (0, 1), (-1, -1), 11),
+        ('TOPPADDING', (0, 0), (-1, -1), 6),
+        ('BOTTOMPADDING', (0, 0), (-1, -1), 6),
+        ('BOX', (0, 0), (-1, -1), 1, primary_color),
+        ('GRID', (0, 0), (-1, -1), 0.5, primary_color),
+        ('VALIGN', (0, 0), (-1, -1), 'MIDDLE'),
+        ('BACKGROUND', (0, 1), (-1, -1), secondary_color),
+        ('TEXTCOLOR', (0, 1), (-1, -1), colors.black),
+    ]))
+    elements.append(card_table)
+    elements.append(Spacer(1, 0.5*inch))
+
+    # Call Details Table
+    data = [['Extension', 'Name', 'Total Calls', 'Total Talk Time', 'Total Cost']]
+    for extension in context['top_extensions']:
+        data.append([
+            extension['caller'],
+            extension['from_dispname'] or 'N/A',
+            extension['total_calls'],
+            str(timedelta(seconds=extension['total_duration'])),
+            f"{extension['total_cost']:.2f} SAR"
+        ])
+
+    table = Table(data, colWidths=[0.9*inch, 1.5*inch, 1*inch, 1.3*inch, 1.3*inch])
+    table.setStyle(TableStyle([
+        ('BACKGROUND', (0, 0), (-1, 0), primary_color),
+        ('TEXTCOLOR', (0, 0), (-1, 0), colors.white),
+        ('ALIGN', (0, 0), (-1, -1), 'CENTER'),
+        ('FONTNAME', (0, 0), (-1, 0), 'Helvetica-Bold'),
+        ('FONTSIZE', (0, 0), (-1, 0), 10),
+        ('BOTTOMPADDING', (0, 0), (-1, 0), 12),
+        ('BACKGROUND', (0, 1), (-1, -1), colors.white),
+        ('TEXTCOLOR', (0, 1), (-1, -1), colors.black),
+        ('ALIGN', (0, 0), (-1, -1), 'CENTER'),
+        ('FONTNAME', (0, 1), (-1, -1), 'Helvetica'),
+        ('FONTSIZE', (0, 1), (-1, -1), 8),
+        ('TOPPADDING', (0, 1), (-1, -1), 6),
+        ('BOTTOMPADDING', (0, 1), (-1, -1), 6),
+        ('GRID', (0, 0), (-1, -1), 0.5, primary_color),
+        ('VALIGN', (0, 0), (-1, -1), 'MIDDLE'),
+        ('BACKGROUND', (0, 1), (-1, -1), colors.white),
+        ('ROWBACKGROUNDS', (0, 1), (-1, -1), [colors.white, secondary_color])
+    ]))
+    elements.append(table)
+
+    # Footer
+    elements.append(Spacer(1, 0.5*inch))
+    footer_text = f"Report generated on {timezone.now().strftime('%B %d, %Y at %I:%M %p')}"
+    footer_style = ParagraphStyle('Footer', parent=styles['Normal'], fontSize=8, textColor=colors.gray, alignment=TA_RIGHT)
+    elements.append(Paragraph(footer_text, footer_style))
+
+    doc.build(elements)
+    buffer.seek(0)
+    return HttpResponse(buffer, content_type='application/pdf')

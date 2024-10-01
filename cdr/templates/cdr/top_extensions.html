@@ -117,7 +117,12 @@
               <div class="d-flex align-items-center justify-content-between">
                 <div class="d-flex align-items-center">
                   <h4 class="card-title mb-0 me-3">{{ title }}</h4>
-                  <a href="{% url 'cdr3cx:top_extensions_excel_report' %}?time_period={{ time_period }}&custom_date={{ custom_date_range }}&limit={{ limit }}" class="btn btn-primary btn-sm"> Export to Excel </a>
+                  <a href="{% url 'cdr3cx:top_extensions_excel_report' %}?time_period={{ time_period }}&custom_date={{ custom_date_range }}&limit={{ limit }}" class="btn btn-primary btn-sm me-2">
+                    Export to Excel
+                  </a>
+                  <a href="{% url 'cdr3cx:top_extensions_pdf_report' %}?time_period={{ time_period }}&custom_date={{ custom_date_range }}&limit={{ limit }}" class="btn btn-secondary btn-sm">
+                    Export to PDF
+                  </a>
                 </div>
                 <form id="filterForm" action="{{ request.path }}" method="GET" class="d-flex align-items-center">
                   <div class="me-2">

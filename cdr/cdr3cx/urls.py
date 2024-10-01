@@ -1,6 +1,6 @@
 from django.urls import path
 from .views import receive_cdr
-from . import views, views_api, quota_views
+from . import views, views_api, quota_views, views_reports
 from . import views as cdr_views
 
 
@@ -52,7 +52,9 @@ urlpatterns = [
 
     path('top-extensions/', views.top_extensions, name='top_extensions'),
     path('top-extensions/excel-report/', views.generate_excel_report, name='top_extensions_excel_report'),
+    path('top-extensions/pdf/', views.top_extensions_pdf_report, name='top_extensions_pdf_report'),
 
 
-
+    path('outgoing_international/excel/', views_reports.export_international_calls_excel, name='export_international_calls_excel'),
+    path('outgoing_international/pdf/', views_reports.export_international_calls_pdf, name='export_international_calls_pdf'),
 ]

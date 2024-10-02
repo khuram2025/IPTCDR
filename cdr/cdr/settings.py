@@ -83,7 +83,7 @@ MIDDLEWARE = [
     'django.contrib.messages.middleware.MessageMiddleware',
     'django.middleware.clickjacking.XFrameOptionsMiddleware',
     'cdr3cx.middleware.CDRRequestMiddleware',
-    # 'cdr3cx.middleware.DomainRoutingMiddleware', 
+    'cdr3cx.middleware.DomainRoutingMiddleware', 
 ]
 
 ROOT_URLCONF = 'cdr.urls'

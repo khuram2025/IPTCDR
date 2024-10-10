@@ -1,0 +1,230 @@
+{% extends "partials/base.html" %}
+{% load custom_filters %}
+{% load static %}
+{% block title %}Sales Reports{% endblock title %}
+{% block extra_css %}
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/flatpickr/4.6.13/flatpickr.min.css" />
+{% endblock extra_css %}
+{% block content %}
+<div class="main-content">
+  <div class="page-content">
+    <div class="container-fluid">
+      <!-- Summary Cards -->
+      <div class="row">
+        <div class="col-xl-6 col-md-6">
+          <div class="card card-animate">
+            <div class="card-body">
+              <div class="d-flex align-items-center">
+                <div class="flex-grow-1 overflow-hidden">
+                  <p class="text-uppercase fw-medium text-muted text-truncate mb-0">TOTAL CALLS</p>
+                </div>
+              </div>
+              <div class="d-flex align-items-end justify-content-between mt-4">
+                <div>
+                  <h4 class="fs-22 fw-semibold ff-secondary mb-4">
+                    {{ total_calls }}
+                  </h4>
+                </div>
+                <div class="avatar-sm flex-shrink-0">
+                  <span class="avatar-title bg-primary-subtle rounded fs-3">
+                    <i class="bx bx-phone-call text-primary"></i>
+                  </span>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div class="col-xl-6 col-md-6">
+          <div class="card card-animate">
+            <div class="card-body">
+              <div class="d-flex align-items-center">
+                <div class="flex-grow-1 overflow-hidden">
+                  <p class="text-uppercase fw-medium text-muted text-truncate mb-0">TOTAL DURATION</p>
+                </div>
+              </div>
+              <div class="d-flex align-items-end justify-content-between mt-4">
+                <div>
+                  <h4 class="fs-22 fw-semibold ff-secondary mb-4">
+                    {{ total_duration|format_duration }}
+                  </h4>
+                </div>
+                <div class="avatar-sm flex-shrink-0">
+                  <span class="avatar-title bg-info-subtle rounded fs-3">
+                    <i class="bx bx-time-five text-info"></i>
+                  </span>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+      </div>
+
+      <!-- Existing content -->
+      <div class="row">
+        <div class="col-lg-8">
+          <div class="card">
+            <div class="card-header">
+              <div class="d-flex align-items-center justify-content-between">
+                <h5 class="card-title mb-0">Sales Calls Report</h5>
+                <div class="d-flex align-items-center">
+                  <!-- You can add export buttons here if needed -->
+                </div>
+              </div>
+            </div>
+            <div class="card-body">
+              <form id="filterForm" action="{% url 'cdr3cx:sales_reports' %}" method="GET" class="mb-4">
+                <div class="row align-items-center">
+                  <div class="col-auto">
+                    <button type="button" class="btn btn-soft-secondary btn-sm" onclick="submitForm('today')">Today</button>
+                    <button type="button" class="btn btn-soft-secondary btn-sm" onclick="submitForm('7d')">7D</button>
+                    <button type="button" class="btn btn-soft-secondary btn-sm" onclick="submitForm('1m')">1M</button>
+                    <button type="button" class="btn btn-soft-secondary btn-sm" onclick="submitForm('6m')">6M</button>
+                    <button type="button" class="btn btn-soft-secondary btn-sm" onclick="submitForm('1y')">1Y</button>
+                  </div>
+                  <div class="col-auto">
+                    <input type="hidden" name="time_period" id="timePeriodInput" value="{{ time_period }}" />
+                    <input type="text" class="form-control form-control-sm" style="width: 200px" id="customDateInput" name="custom_date" placeholder="Custom Date Range" value="{{ custom_date_range }}" />
+                  </div>
+                  <div class="col-auto">
+                    <input type="search" name="search" class="form-control form-control-sm" placeholder="Search" value="{{ search_query }}">
+                  </div>
+                  <div class="col-auto">
+                    <select name="per_page" class="form-select form-select-sm">
+                      <option value="10" {% if per_page == 10 %}selected{% endif %}>10</option>
+                      <option value="25" {% if per_page == 25 %}selected{% endif %}>25</option>
+                      <option value="50" {% if per_page == 50 %}selected{% endif %}>50</option>
+                      <option value="100" {% if per_page == 100 %}selected{% endif %}>100</option>
+                    </select>
+                  </div>
+                  <div class="col-auto">
+                    <button type="submit" class="btn btn-primary btn-sm">Apply</button>
+                  </div>
+                </div>
+              </form>
+
+              <div class="table-responsive">
+                <table id="sales-table" class="display table table-bordered dt-responsive dataTable dtr-inline" style="width: 100%">
+                  <thead>
+                    <tr>
+                      <th>#</th>
+                      <th>Call Time</th>
+                      <th>Caller</th>
+                      <th>Callee</th>
+                      <th>Duration</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {% for call in call_records %}
+                      <tr>
+                        <td>{{ forloop.counter0|add:call_records.start_index }}</td>
+                        <td>{{ call.call_time|date:"d M, Y H:i:s" }}</td>
+                        <td>{{ call.caller }}</td>
+                        <td>{{ call.callee }}</td>
+                        <td>{{ call.duration|format_duration }}</td>
+                      </tr>
+                    {% empty %}
+                      <tr>
+                        <td colspan="5" class="text-center">No call records found.</td>
+                      </tr>
+                    {% endfor %}
+                  </tbody>
+                </table>
+              </div>
+
+              <!-- Pagination -->
+              {% if paginator.num_pages > 1 %}
+              <nav aria-label="Page navigation" class="mt-4">
+                <ul class="pagination justify-content-center">
+                  {% if call_records.has_previous %}
+                    <li class="page-item"><a class="page-link" href="?page=1{% if query_string %}&{{ query_string }}{% endif %}">First</a></li>
+                    <li class="page-item"><a class="page-link" href="?page={{ call_records.previous_page_number }}{% if query_string %}&{{ query_string }}{% endif %}">Previous</a></li>
+                  {% endif %}
+
+                  {% for num in paginator.page_range %}
+                    {% if num == current_page %}
+                      <li class="page-item active"><span class="page-link">{{ num }}</span></li>
+                    {% elif num > current_page|add:'-3' and num < current_page|add:'3' %}
+                      <li class="page-item"><a class="page-link" href="?page={{ num }}{% if query_string %}&{{ query_string }}{% endif %}">{{ num }}</a></li>
+                    {% endif %}
+                  {% endfor %}
+
+                  {% if call_records.has_next %}
+                    <li class="page-item"><a class="page-link" href="?page={{ call_records.next_page_number }}{% if query_string %}&{{ query_string }}{% endif %}">Next</a></li>
+                    <li class="page-item"><a class="page-link" href="?page={{ paginator.num_pages }}{% if query_string %}&{{ query_string }}{% endif %}">Last</a></li>
+                  {% endif %}
+                </ul>
+              </nav>
+              {% endif %}
+            </div>
+          </div>
+        </div>
+       <div class="col-lg-4">
+  <div class="card">
+    <div class="card-header">
+      <div class="d-flex align-items-center justify-content-between">
+        <h5 class="card-title mb-0">Calls Summary</h5>
+      </div>
+    </div>
+    <div class="card-body">
+      <h5 class="mb-3">Top 5 Callers</h5>
+      <div class="table-responsive">
+        <table class="table table-sm table-bordered">
+          <thead>
+            <tr>
+              <th>Caller</th>
+              <th>Total Calls</th>
+              <th>Total Duration</th>
+            </tr>
+          </thead>
+          <tbody>
+            {% for caller in top_callers %}
+              <tr>
+                 <td>
+                  <a href="{% url 'cdr3cx:caller_calls' caller_number=caller.caller %}?{{ query_string }}">
+                    {{ caller.caller }}
+                  </a>
+                </td>
+                <td>{{ caller.total_calls }}</td>
+                <td>{{ caller.total_duration|format_duration }}</td>
+              </tr>
+            {% empty %}
+              <tr>
+                <td colspan="3" class="text-center">No data available</td>
+              </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+    </div>
+           
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock content %}
+
+{% block extra_js %}
+<script src="https://cdnjs.cloudflare.com/ajax/libs/flatpickr/4.6.13/flatpickr.min.js"></script>
+<script>
+  function submitForm(period) {
+    document.getElementById("timePeriodInput").value = period;
+    document.getElementById("customDateInput").value = "";
+    document.getElementById("filterForm").submit();
+  }
+
+  document.addEventListener("DOMContentLoaded", function () {
+    flatpickr("#customDateInput", {
+      mode: "range",
+      dateFormat: "d M, Y",
+      onChange: function (selectedDates, dateStr, instance) {
+        if (selectedDates.length === 2) {
+          document.getElementById("timePeriodInput").value = "custom";
+          // document.getElementById("filterForm").submit();
+        }
+      },
+    });
+  });
+</script>
+{% endblock extra_js %}

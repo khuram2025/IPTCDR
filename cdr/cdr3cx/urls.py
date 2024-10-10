@@ -41,6 +41,7 @@ urlpatterns = [
     path('international-calls/<slug:country_slug>/', views.country_specific_calls_view, name='country_specific_calls'),
 
 
+
     path('quotas/', quota_views.QuotaListView.as_view(), name='quota_list'),
     path('quotas/create/', quota_views.QuotaCreateView.as_view(), name='quota_create'),
     path('quotas/<int:pk>/update/', quota_views.QuotaUpdateView.as_view(), name='quota_update'),
@@ -54,6 +55,7 @@ urlpatterns = [
     path('top-extensions/excel-report/', views.generate_excel_report, name='top_extensions_excel_report'),
     path('top-extensions/pdf/', views.top_extensions_pdf_report, name='top_extensions_pdf_report'),
 
+    path('sales-reports/', views.sales_reports, name='sales_reports'),
 
     path('outgoing_international/excel/', views_reports.export_international_calls_excel, name='export_international_calls_excel'),
     path('outgoing_international/pdf/', views_reports.export_international_calls_pdf, name='export_international_calls_pdf'),

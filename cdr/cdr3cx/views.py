@@ -13,9 +13,9 @@ from .project_numbers import COUNTRY_CODES
 from .models import CallRecord, UserQuota
 from django.shortcuts import render
 from django.db.models.functions import Length
-from django.db.models import Q,Sum, Count
+from django.db.models import Q,Sum, Count, Value, IntegerField, DecimalField
 from django.shortcuts import redirect
-from django.core.paginator import Paginator
+from django.core.paginator import Paginator, EmptyPage, PageNotAnInteger
 from django.http import JsonResponse
 from django.views.decorators.csrf import csrf_exempt
 from django.views.decorators.http import require_GET
@@ -29,6 +29,9 @@ from reportlab.lib import colors
 from reportlab.lib.pagesizes import letter
 from reportlab.platypus import SimpleDocTemplate, Table, TableStyle
 from .views_reports import export_caller_calls_pdf
+from django.db.models.functions import Coalesce
+from urllib.parse import urlencode
+
 
 @csrf_exempt
 def receive_cdr(request):
@@ -36,13 +39,13 @@ def receive_cdr(request):
     records_file_path = os.path.join(os.path.dirname(__file__), 'records.txt')
 
     # Log the request method, URL, and headers
-    logger.info(f"Received request: {request.method} {request.build_absolute_uri()}")
-    logger.info(f"Request headers: {request.headers}")
+    print(f"Received request: {request.method} {request.build_absolute_uri()}")
+    print(f"Request headers: {request.headers}")
 
     if request.method == 'POST':
         # Log the full POST data
         raw_data = request.body.decode('utf-8')
-        logger.info(f"Received raw data: {raw_data}")
+        print(f"Received raw data: {raw_data}")
 
         # Save raw data to records.txt for debugging
         with open(records_file_path, 'a') as f:
@@ -54,7 +57,7 @@ def receive_cdr(request):
 
         # Split the data
         cdr_data = raw_data.split(',')
-        logger.info(f"Parsed CDR data: {cdr_data}")
+        print(f"Parsed CDR data: {cdr_data}")
 
         if len(cdr_data) < 3:
             logger.error("Insufficient data fields")
@@ -81,7 +84,7 @@ def receive_cdr(request):
                 call_time=call_time,
                 external_number=callee.strip()  # Assuming external_number is the same as callee
             )
-            logger.info(f"Saved call record: {call_record}")
+            print(f"Saved call record: {call_record}")
             return HttpResponse("CDR received and processed", status=200)
         except Exception as e:
             logger.error(f"Error saving call record: {e}")
@@ -90,6 +93,96 @@ def receive_cdr(request):
         logger.error("Invalid request method")
         return HttpResponse("Error: Invalid request method", status=405)
     
+
+
+def sales_reports(request):
+    # Get parameters from GET request
+    search_query = request.GET.get('search', '')
+    per_page = request.GET.get('per_page', 25)
+    time_period = request.GET.get('time_period', '7d')
+    custom_date_range = request.GET.get('custom_date', '')
+    page = request.GET.get('page', 1)
+
+    try:
+        per_page = int(per_page)
+    except ValueError:
+        per_page = 25
+
+    # Get date range based on the time_period and custom_date_range
+    start_date, end_date, time_period, custom_date_range = get_date_range(request)
+
+    # Define the list of numbers to filter
+    numbers_to_filter = [
+        '7850', '7842', '7852', '7155', '7781', '7464', '7127', '7795', '7195', '7729', '7793', '7841',
+        '7843', '7844', '7814', '7849', '7812', '7851', '7182', '7821', '7840', '7837', '7789', '7846',
+        '7826', '7426', '7106', '7232', '7791', '7177', '7783', '7790', '7189', '7158', '7201', '7738',
+        '7548', '7560', '7784', '7820', '7136'
+    ]
+
+    # Query the CallRecord objects where caller or callee is in the list and within the date range
+    call_records = CallRecord.objects.filter(
+        (Q(caller__in=numbers_to_filter) | Q(callee__in=numbers_to_filter)),
+        call_time__range=[start_date, end_date],
+        duration__isnull=False
+    ).order_by('-call_time')
+
+    # Apply search filter if search_query is provided
+    if search_query:
+        call_records = call_records.filter(
+            Q(caller__icontains=search_query) |
+            Q(callee__icontains=search_query) |
+            Q(from_dispname__icontains=search_query) |
+            Q(to_dispname__icontains=search_query)
+        )
+
+    # Calculate summary data
+    summary = call_records.aggregate(
+        total_calls=Count('id'),
+        total_duration=Sum('duration'),
+        total_cost=Sum('total_cost')
+    )
+
+    top_callers = call_records.values('caller').annotate(
+        total_calls=Count('id'),
+        total_duration=Sum('duration')
+    ).order_by('-total_calls')[:5]
+
+    # Paginate the call records
+    paginator = Paginator(call_records, per_page)
+    try:
+        page = int(page)
+    except ValueError:
+        page = 1
+
+    try:
+        page_obj = paginator.page(page)
+    except PageNotAnInteger:
+        page_obj = paginator.page(1)
+    except EmptyPage:
+        page_obj = paginator.page(paginator.num_pages)
+
+    # Create a query string without the 'page' parameter
+    query_params = request.GET.copy()
+    if 'page' in query_params:
+        del query_params['page']
+    query_string = urlencode(query_params)
+
+    context = {
+        'call_records': page_obj,
+        'paginator': paginator,
+        'current_page': page,
+        'search_query': search_query,
+        'per_page': per_page,
+        'time_period': time_period,
+        'custom_date_range': custom_date_range,
+        'total_calls': summary['total_calls'],
+        'total_duration': summary['total_duration'] or 0,
+        'total_cost': summary['total_cost'] or 0,
+        'query_string': query_string, 
+        'top_callers': top_callers,
+    }
+
+    return render(request, 'cdr/sales_reports.html', context)
 
 def get_call_stats(queryset, time_period):
     now = timezone.now()
@@ -119,7 +212,6 @@ def get_call_stats(queryset, time_period):
     result = list(call_stats)
     logging.info(f"Call stats result: {result}")
     return result
-
 
 from collections import Counter
 from django.db.models.functions import Length
@@ -305,7 +397,7 @@ def update_country(request, record_id):
         record.country = country
         record.save()
     return redirect('dashboard')
-
+@login_required
 def all_calls_view(request):
     search_query = request.GET.get('search', '')
     per_page = request.GET.get('per_page', 100)
@@ -328,7 +420,7 @@ def all_calls_view(request):
     return render(request, 'cdr/all_calls1.html', {'page_obj': page_obj, 'paginator': paginator, 'search_query': search_query, 'per_page': per_page})
 
 
-
+@login_required
 def outgoingExtCalls(request):
     search_query = request.GET.get('search', '')
     per_page = request.GET.get('per_page', 100)
@@ -349,7 +441,7 @@ def outgoingExtCalls(request):
     page_obj = paginator.get_page(page_number)
 
     return render(request, 'cdr/outgoingExtCalls.html', {'page_obj': page_obj, 'paginator': paginator, 'search_query': search_query, 'per_page': per_page})
-
+@login_required
 def incomingCalls(request):
     search_query = request.GET.get('search', '')
     per_page = request.GET.get('per_page', 100)
@@ -370,7 +462,7 @@ def incomingCalls(request):
     page_obj = paginator.get_page(page_number)
 
     return render(request, 'cdr/incomingCalls.html', {'page_obj': page_obj, 'paginator': paginator, 'search_query': search_query, 'per_page': per_page})
-
+@login_required
 def outgoingInternationalCalls(request):
     search_query = request.GET.get('search', '')
     per_page = request.GET.get('per_page', 100)
@@ -422,15 +514,15 @@ def outgoingInternationalCalls(request):
     }
 
     return render(request, 'cdr/outgoingInternationalCalls.html', context)
-
+@login_required
 def local_calls_view(request):
     call_records = CallRecord.objects.annotate(callee_length=Length('callee')).filter(callee_length=4)
     return render(request, 'cdr/local_calls.html', {'call_records': call_records})
-
+@login_required
 def national_calls_view(request):
     call_records = CallRecord.objects.filter(callee__startswith='0').exclude(callee__startswith='00')
     return render(request, 'cdr/national_calls.html', {'call_records': call_records})
-
+@login_required
 def international_calls_view(request):
     call_records = CallRecord.objects.annotate(callee_length=Length('callee')).filter(callee__startswith='00', callee_length__gt=10)
     return render(request, 'cdr/international_calls.html', {'call_records': call_records})

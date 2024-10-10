@@ -230,10 +230,8 @@ class CallRecord(models.Model):
             logger.info(f"Amount to deduct: {amount_to_deduct}")
             
             if amount_to_deduct > Decimal('0'):
-                if not user_quota.deduct_balance(amount_to_deduct):
-                    logger.warning(f"Warning: Quota exceeded for extension {self.caller}")
-                else:
-                    logger.info(f"Successfully deducted {amount_to_deduct} from quota. New balance: {user_quota.total_amount - user_quota.used_amount}")
+                user_quota.deduct_balance(amount_to_deduct)
+                logger.info(f"Deducted {amount_to_deduct} from quota. New used amount: {user_quota.used_amount}, Remaining balance: {user_quota.remaining_balance}")
             elif amount_to_deduct < Decimal('0'):
                 user_quota.add_balance(abs(amount_to_deduct))
                 logger.info(f"Added {abs(amount_to_deduct)} to quota due to cost reduction. New balance: {user_quota.total_amount - user_quota.used_amount}")
@@ -311,13 +309,14 @@ class UserQuota(models.Model):
     def deduct_balance(self, amount):
         amount = Decimal(str(amount))
         logger.info(f"Attempting to deduct {amount} from balance {self.remaining_balance}")
-        if self.remaining_balance >= amount:
-            self.used_amount += amount
-            self.save()
-            logger.info(f"Successfully deducted {amount}. New remaining balance: {self.remaining_balance}")
-            return True
-        logger.warning(f"Insufficient balance. Current: {self.remaining_balance}, Attempted deduction: {amount}")
-        return False
+        
+        # Remove the check for remaining balance
+        self.used_amount += amount
+        self.save()
+        logger.info(f"Successfully deducted {amount}. New used amount: {self.used_amount}, Remaining balance: {self.remaining_balance}")
+        
+        # Optionally, you can still return False if the balance goes negative
+        return self.remaining_balance >= 0
 
     def should_send_quota_alert(self):
         if self.quota and self.quota.amount > 0:

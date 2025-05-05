@@ -64,13 +64,18 @@ class CustomUserManager(BaseUserManager):
         if extra_fields.get('is_superuser') is not True:
             raise ValueError('Superuser must have is_superuser=True.')
 
-        return self.create_user(email, company, password, **extra_fields)
+        return self.create_user(email, company, password, role='superadmin', **extra_fields)
 
 class CustomUser(AbstractUser):
+    ROLE_CHOICES = [
+        ('superadmin', 'Super Admin'),
+        ('company_admin', 'Company Admin'),
+        ('user', 'User (Readonly)')
+    ]
     username = None  # Remove the username field
     email = models.EmailField(unique=True)
     company = models.ForeignKey(Company, on_delete=models.CASCADE, related_name='users', null=True, blank=True)
-
+    role = models.CharField(max_length=20, choices=ROLE_CHOICES, default='user')
     groups = models.ManyToManyField(Group, related_name='custom_user_set')
     user_permissions = models.ManyToManyField(Permission, related_name='custom_user_set')
 
@@ -81,6 +86,15 @@ class CustomUser(AbstractUser):
 
     def __str__(self):
         return self.email
+
+    def is_superadmin(self):
+        return self.role == 'superadmin'
+
+    def is_company_admin(self):
+        return self.role == 'company_admin'
+
+    def is_readonly(self):
+        return self.role == 'user'
 
 
 from django.db import models

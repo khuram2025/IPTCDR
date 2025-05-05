@@ -1,0 +1,53 @@
+{% extends "partials/base.html" %}
+{% load static %}
+{% block title %}Company Admin Dashboard{% endblock title %}
+{% block extra_css %}
+<link href="{% static 'libs/jsvectormap/dist/css/jsvectormap.min.css'%}" rel="stylesheet" type="text/css" />
+<link href="{% static 'libs/swiper/swiper-bundle.min.css'%}" rel="stylesheet" type="text/css" />
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.4/css/all.min.css" />
+{% endblock extra_css %}
+{% block content %}
+<div class="main-content">
+  <div class="page-content">
+    <div class="container-fluid">
+      <h4 class="fs-16 mb-1">Welcome, Company Admin!</h4>
+      <p class="text-muted mb-3">Manage users in your company.</p>
+      <div class="row mb-4">
+        <div class="col-12">
+          <div class="card">
+            <div class="card-header d-flex justify-content-between align-items-center">
+              <span class="fw-bold">Company Users</span>
+              <a href="{% url 'accounts:company_user_create' %}" class="btn btn-primary btn-sm">Add User</a>
+            </div>
+            <div class="card-body p-0">
+              <table class="table table-hover mb-0">
+                <thead>
+                  <tr>
+                    <th>Email</th>
+                    <th>Role</th>
+                    <th>Actions</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {% for user in users %}
+                  <tr>
+                    <td>{{ user.email }}</td>
+                    <td>{{ user.get_role_display }}</td>
+                    <td>
+                      <a href="{% url 'accounts:company_user_edit' user.id %}" class="btn btn-warning btn-sm"><i class="fas fa-edit"></i></a>
+                      <a href="{% url 'accounts:company_user_delete' user.id %}" class="btn btn-danger btn-sm" onclick="return confirm('Delete this user?');"><i class="fas fa-trash"></i></a>
+                    </td>
+                  </tr>
+                  {% empty %}
+                  <tr><td colspan="3" class="text-center">No users found.</td></tr>
+                  {% endfor %}
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock content %}

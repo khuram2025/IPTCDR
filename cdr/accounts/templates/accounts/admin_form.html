@@ -1,0 +1,106 @@
+{% extends "partials/base.html" %}
+{% block title %}Admin Form{% endblock title %}
+{% block content %}
+<style>
+  .admin-form-flat-card {
+    margin-top: 90px !important;
+    max-width: 480px;
+    border-radius: 12px !important;
+    box-shadow: 0 2px 8px rgba(50,88,168,0.10);
+    background: #fff;
+    overflow: hidden;
+  }
+  .admin-form-flat-header {
+    background: #3258a8;
+    color: #fff !important;
+    font-size: 1.15rem;
+    font-weight: 600;
+    padding: 1rem 1.5rem;
+    border-bottom: 1px solid #e5e7eb;
+    display: flex;
+    align-items: center;
+    gap: 0.7rem;
+    letter-spacing: 0.01em;
+  }
+  .admin-form-flat-card .card-body {
+    padding: 1.6rem 1.2rem 1.2rem 1.2rem;
+  }
+  .admin-form-flat-btn {
+    border-radius: 8px !important;
+    font-weight: 500;
+    font-size: 1.05rem;
+    padding-left: 1.7rem;
+    padding-right: 1.7rem;
+    transition: background 0.2s, color 0.2s, box-shadow 0.2s;
+    box-shadow: none;
+  }
+  .admin-form-flat-btn.btn-success {
+    background: #3258a8;
+    border-color: #3258a8;
+  }
+  .admin-form-flat-btn.btn-success:hover {
+    background: #24407a;
+    border-color: #24407a;
+  }
+  .admin-form-flat-cancel {
+    border-radius: 8px !important;
+    font-weight: 500;
+    font-size: 1.05rem;
+    padding-left: 1.7rem;
+    padding-right: 1.7rem;
+    border: 1.5px solid #cbd5e1;
+    color: #64748b;
+    background: #fff;
+    transition: border 0.2s, color 0.2s;
+  }
+  .admin-form-flat-cancel:hover {
+    border-color: #3258a8;
+    color: #3258a8;
+    background: #f1f5f9;
+  }
+  .fa-test-visible { color: #3258a8; font-size: 1.4rem; margin-bottom: 0.5rem; }
+</style>
+<div class="container d-flex justify-content-center align-items-start admin-form-flat-card">
+  <div class="w-100">
+    <div class="card admin-form-flat-card">
+      <div class="admin-form-flat-header">
+        <i class="fas fa-user-shield fa-test-visible"></i>
+        <span>{{ form.instance.pk|yesno:"Edit Company Admin,Add Company Admin" }}</span>
+      </div>
+      <div class="card-body">
+        {% if form.errors %}
+          <div class="alert alert-danger">
+            <strong>Error:</strong> Please correct the errors below.
+          </div>
+        {% endif %}
+        <form method="post" autocomplete="off" novalidate>
+          {% csrf_token %}
+          {% for field in form %}
+            <div class="mb-3">
+              <label for="id_{{ field.name }}" class="form-label">{{ field.label }}</label>
+              <div class="input-group">
+                {% if field.name == 'email' %}
+                  <span class="input-group-text"><i class="fas fa-envelope"></i></span>
+                {% elif field.name == 'company' %}
+                  <span class="input-group-text"><i class="fas fa-building"></i></span>
+                {% elif field.name == 'role' %}
+                  <span class="input-group-text"><i class="fas fa-user-tag"></i></span>
+                {% endif %}
+                {{ field }}
+              </div>
+              {% if field.help_text %}<small class="form-text text-muted">{{ field.help_text }}</small>{% endif %}
+              {% for error in field.errors %}
+                <div class="text-danger small">{{ error }}</div>
+              {% endfor %}
+            </div>
+          {% endfor %}
+          <div class="d-flex justify-content-between align-items-center mt-4">
+            <button type="submit" class="btn btn-success admin-form-flat-btn"><i class="fas fa-save me-2"></i>Save</button>
+            <a href="{% url 'accounts:superadmin_dashboard' %}" class="btn admin-form-flat-cancel">Cancel</a>
+          </div>
+        </form>
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock content %}

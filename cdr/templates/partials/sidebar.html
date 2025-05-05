@@ -35,6 +35,20 @@
 
                 {% if user.is_authenticated %}
                 <!-- Menu items for authenticated users -->
+                {% if user.role == 'superadmin' %}
+                <li class="nav-item">
+                    <a href="{% url 'accounts:superadmin_dashboard' %}" class="nav-link menu-link">
+                        <i class="ri-admin-line"></i> <span>Super Admin Dashboard</span>
+                    </a>
+                </li>
+                {% endif %}
+                {% if user.role == 'company_admin' %}
+                <li class="nav-item">
+                    <a href="{% url 'accounts:company_admin_dashboard' %}" class="nav-link menu-link">
+                        <i class="ri-building-line"></i> <span>Company Dashboard</span>
+                    </a>
+                </li>
+                {% endif %}
                 <li class="nav-item">
                     <a class="nav-link menu-link" href="#sidebarDashboards" data-bs-toggle="collapse" role="button" aria-expanded="false" aria-controls="sidebarDashboards">
                         <i class="ri-dashboard-2-line"></i> <span data-key="t-dashboards">Dashboards</span>

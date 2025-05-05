@@ -1,0 +1,3 @@
+source  ~/3CX/venv/bin/activate
+cd cdr
+python manage.py runserver 0.0.0.0:8003

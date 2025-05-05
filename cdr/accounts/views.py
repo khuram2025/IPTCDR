@@ -12,12 +12,173 @@ from django.contrib.auth.tokens import default_token_generator
 from django.conf import settings
 from django.contrib.auth import logout as auth_logout
 
-from .forms import CustomUserCreationForm, CustomAuthenticationForm, CustomPasswordResetForm, ForgotPasswordRequestForm, ForgotPasswordOTPForm, ForgotPasswordNewPasswordForm
-from .models import CustomUser, PasswordResetOTP
+from .forms import CustomUserCreationForm, CustomUserChangeForm, CustomAuthenticationForm, CustomPasswordResetForm, ForgotPasswordRequestForm, ForgotPasswordOTPForm, ForgotPasswordNewPasswordForm, CompanyForm
+from .models import CustomUser, PasswordResetOTP, Company
 from cdr.email_utils import SMTPClient
+from django.contrib.auth.decorators import login_required, user_passes_test
+from django.shortcuts import get_object_or_404
+from django.http import HttpResponse, HttpResponseForbidden
+from django import forms
 
 import datetime
 import random
+
+# --- Admin Dashboards and Management Views ---
+
+@login_required
+def test_login(request):
+    print('LOGIN DEBUG:', request.user, request.user.is_authenticated, getattr(request.user, 'role', None))
+    return HttpResponse(f"Authenticated: {request.user.is_authenticated}, Email: {request.user.email}, Role: {getattr(request.user, 'role', None)}")
+
+def is_superadmin(user):
+    return user.is_authenticated and user.role == 'superadmin'
+
+def is_company_admin(user):
+    return user.is_authenticated and user.role == 'company_admin'
+
+@login_required
+def dashboard_redirect(request):
+    if request.user.is_superadmin():
+        return redirect('accounts:superadmin_dashboard')
+    elif request.user.is_company_admin():
+        return redirect('accounts:company_admin_dashboard')
+    else:
+        return HttpResponseForbidden('Access denied.')
+
+# Super Admin Dashboard
+@user_passes_test(is_superadmin)
+def superadmin_dashboard(request):
+    print('DEBUG:', request.user, request.user.is_authenticated, getattr(request.user, 'role', None))
+    companies = Company.objects.all()
+    admins = CustomUser.objects.filter(role='company_admin')
+    return render(request, 'accounts/superadmin_dashboard.html', {'companies': companies, 'admins': admins})
+
+# Company CRUD for Super Admin
+@user_passes_test(is_superadmin)
+def company_create(request):
+    if request.method == 'POST':
+        form = CompanyForm(request.POST)
+        if form.is_valid():
+            form.save()
+            return redirect('accounts:superadmin_dashboard')
+    else:
+        form = CompanyForm()
+    return render(request, 'accounts/company_form.html', {'form': form})
+
+@user_passes_test(is_superadmin)
+def company_edit(request, company_id):
+    company = get_object_or_404(Company, pk=company_id)
+    if request.method == 'POST':
+        form = CompanyForm(request.POST, instance=company)
+        if form.is_valid():
+            form.save()
+            return redirect('accounts:superadmin_dashboard')
+    else:
+        form = CompanyForm(instance=company)
+    return render(request, 'accounts/company_form.html', {'form': form})
+
+@user_passes_test(is_superadmin)
+def company_delete(request, company_id):
+    company = get_object_or_404(Company, pk=company_id)
+    company.delete()
+    return redirect('accounts:superadmin_dashboard')
+
+# Company Admin CRUD for Super Admin
+@user_passes_test(is_superadmin)
+def admin_create(request):
+    if request.method == 'POST':
+        form = CustomUserCreationForm(request.POST)
+        if form.is_valid():
+            user = form.save(commit=False)
+            user.role = 'company_admin'
+            user.save()
+            return redirect('accounts:superadmin_dashboard')
+        else:
+            print("ADMIN CREATE FORM ERRORS:", form.errors)
+    else:
+        form = CustomUserCreationForm(initial={'role': 'company_admin'})
+    return render(request, 'accounts/admin_form.html', {'form': form})
+
+@user_passes_test(is_superadmin)
+def admin_edit(request, user_id):
+    user = get_object_or_404(CustomUser, pk=user_id, role='company_admin')
+    if request.method == 'POST':
+        form = CustomUserChangeForm(request.POST, instance=user)
+        if form.is_valid():
+            form.save()
+            return redirect('accounts:superadmin_dashboard')
+    else:
+        form = CustomUserChangeForm(instance=user)
+    return render(request, 'accounts/admin_form.html', {'form': form})
+
+@user_passes_test(is_superadmin)
+def admin_delete(request, user_id):
+    user = get_object_or_404(CustomUser, pk=user_id, role='company_admin')
+    user.delete()
+    return redirect('accounts:superadmin_dashboard')
+
+# Company Admin Dashboard
+@user_passes_test(is_company_admin)
+def company_admin_dashboard(request):
+    users = CustomUser.objects.filter(company=request.user.company).exclude(pk=request.user.pk).exclude(role='superadmin')
+    return render(request, 'accounts/company_admin_dashboard.html', {'users': users})
+
+# Company User CRUD for Company Admin
+@user_passes_test(is_company_admin)
+def company_user_create(request):
+    if request.method == 'POST':
+        form = CustomUserCreationForm(request.POST)
+        if form.is_valid():
+            user = form.save(commit=False)
+            user.company = request.user.company
+            user.role = form.cleaned_data['role'] if form.cleaned_data['role'] != 'superadmin' else 'user'
+            user.save()
+            # Auto-assign permissions and group if company_admin
+            if user.role == 'company_admin':
+                from django.contrib.auth.models import Group, Permission
+                group, created = Group.objects.get_or_create(name='Company Admin')
+                if created or group.permissions.count() == 0:
+                    perms = Permission.objects.filter(content_type__app_label='accounts', content_type__model='company')
+                    group.permissions.set(perms)
+                user.groups.add(group)
+                user.user_permissions.set(group.permissions.all())
+                user.save()
+            return redirect('accounts:company_admin_dashboard')
+    else:
+        form = CustomUserCreationForm(initial={'company': request.user.company, 'role': 'user'})
+        form.fields['company'].widget = forms.HiddenInput()
+        form.fields['role'].choices = [c for c in CustomUser.ROLE_CHOICES if c[0] != 'superadmin']
+    return render(request, 'accounts/company_user_form.html', {'form': form})
+
+@user_passes_test(is_company_admin)
+def company_user_edit(request, user_id):
+    user = get_object_or_404(CustomUser, pk=user_id, company=request.user.company)
+    if request.method == 'POST':
+        form = CustomUserChangeForm(request.POST, instance=user)
+        if form.is_valid():
+            user = form.save()
+            # Auto-assign permissions and group if company_admin
+            if user.role == 'company_admin':
+                from django.contrib.auth.models import Group, Permission
+                group, created = Group.objects.get_or_create(name='Company Admin')
+                if created or group.permissions.count() == 0:
+                    perms = Permission.objects.filter(content_type__app_label='accounts', content_type__model='company')
+                    group.permissions.set(perms)
+                user.groups.add(group)
+                user.user_permissions.set(group.permissions.all())
+                user.save()
+            return redirect('accounts:company_admin_dashboard')
+    else:
+        form = CustomUserChangeForm(instance=user)
+        form.fields['company'].widget = forms.HiddenInput()
+        form.fields['role'].choices = [c for c in CustomUser.ROLE_CHOICES if c[0] != 'superadmin']
+    return render(request, 'accounts/company_user_form.html', {'form': form})
+
+@user_passes_test(is_company_admin)
+def company_user_delete(request, user_id):
+    user = get_object_or_404(CustomUser, pk=user_id, company=request.user.company)
+    user.delete()
+    return redirect('accounts:company_admin_dashboard')
 
 # --- Modern OTP-based Password Reset Views ---
 def forgot_password_request(request):

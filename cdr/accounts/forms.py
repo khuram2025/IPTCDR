@@ -2,12 +2,18 @@ from django import forms
 from django.contrib.auth.forms import UserCreationForm, UserChangeForm, PasswordResetForm, AuthenticationForm
 from .models import Company, CustomUser
 
+class CompanyForm(forms.ModelForm):
+    class Meta:
+        model = Company
+        fields = ['name', 'address', 'phone', 'listening_port']
+
 class CustomUserCreationForm(UserCreationForm):
     company = forms.ModelChoiceField(queryset=Company.objects.all(), required=False)
+    role = forms.ChoiceField(choices=CustomUser.ROLE_CHOICES, required=True)
 
     class Meta:
         model = CustomUser
-        fields = ('email', 'company', 'password1', 'password2')
+        fields = ('email', 'company', 'role', 'password1', 'password2')
 
     def save(self, commit=True):
         user = super().save(commit=False)
@@ -16,15 +22,17 @@ class CustomUserCreationForm(UserCreationForm):
             user.company = Company.objects.get_or_create(name="Channab")[0]
         else:
             user.company, created = Company.objects.get_or_create(name=user.company.name)
+        user.role = self.cleaned_data['role']
         if commit:
             user.save()
         return user
 
 
 class CustomUserChangeForm(UserChangeForm):
+    role = forms.ChoiceField(choices=CustomUser.ROLE_CHOICES, required=True)
     class Meta:
         model = CustomUser
-        fields = ('email', 'company', 'password', 'is_active', 'is_staff', 'groups', 'user_permissions')
+        fields = ('email', 'company', 'role', 'password', 'is_active', 'is_staff', 'groups', 'user_permissions')
 
 class CustomAuthenticationForm(AuthenticationForm):
     username = forms.EmailField(widget=forms.EmailInput(attrs={'class': 'form-control'}), label="Email")

@@ -8,8 +8,9 @@ urlpatterns = [
     path('login/', login_view, name='login'),
     path('account_activation_sent/', account_activation_sent, name='account_activation_sent'),
     path('activate/<uidb64>/<token>/', activate, name='activate'),
-    path('reset_password/', reset_password, name='reset_password'),
-    path('verify_otp/<int:user_id>/', verify_otp, name='verify_otp'),
-    path('set_new_password/<int:user_id>/', set_new_password, name='set_new_password'),
-     path('logout/', views.logout_view, name='logout'), 
+    path('forgot-password/', views.forgot_password_request, name='forgot_password_request'),
+    path('forgot-password/otp/', views.forgot_password_otp, name='forgot_password_otp'),
+    path('forgot-password/new/', views.forgot_password_new_password, name='forgot_password_new_password'),
+    path('change-password/', views.change_password, name='change_password'),
+    path('logout/', views.logout_view, name='logout'),
 ]

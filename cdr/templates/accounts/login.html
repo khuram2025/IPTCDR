@@ -24,10 +24,14 @@
             </div>
             <div class="mb-3 position-relative">
                 <div class="float-end">
-                    <a href="#" class="text-muted">Forgot password?</a>
+                    <a href="{% url 'accounts:forgot_password_request' %}" class="text-muted">Forgot password?</a>
                 </div>
-                {{ form.password|as_crispy_field }}
-                <button class="btn btn-link position-absolute mt-4 end-0 top-0 text-decoration-none text-muted" type="button" id="password-addon"><i class="ri-eye-fill align-middle"></i></button>
+                <div class="input-group">
+  {{ form.password }}
+  <span class="input-group-text" style="cursor:pointer">
+    <i class="fa fa-eye toggle-password" data-target="id_password"></i>
+  </span>
+</div>
             </div>
             <div class="form-check">
                 {{ form.remember|as_crispy_field }}
@@ -46,4 +50,5 @@
 {% block extra_js %}
     <!-- password-addon init -->
     <script src="{% static 'js/pages/password-addon.init.js'%}"></script>
+    <script src="{% static 'js/password-visibility.js' %}"></script>
 {% endblock extra_js %}

@@ -3,6 +3,32 @@ from django.contrib.auth.models import AbstractUser, BaseUserManager, Group, Per
 from django.db.models.signals import post_save
 from django.dispatch import receiver
 
+class SMTPSettings(models.Model):
+    host = models.CharField(max_length=255)
+    port = models.PositiveIntegerField(default=587)
+    use_tls = models.BooleanField(default=True)
+    use_ssl = models.BooleanField(default=False)
+    username = models.CharField(max_length=255)
+    password = models.CharField(max_length=255)
+    from_email = models.EmailField(max_length=255)
+    is_active = models.BooleanField(default=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    def __str__(self):
+        return f"SMTP ({self.host}:{self.port}) - {self.from_email}"
+
+class PasswordResetOTP(models.Model):
+    user = models.ForeignKey('CustomUser', on_delete=models.CASCADE)
+    otp_code = models.CharField(max_length=6)
+    created_at = models.DateTimeField(auto_now_add=True)
+    is_used = models.BooleanField(default=False)
+
+    def is_expired(self):
+        from django.utils import timezone
+        return timezone.now() > self.created_at + timezone.timedelta(minutes=10)
+
+    def __str__(self):
+        return f"OTP for {self.user.email} ({self.otp_code})"
 class Company(models.Model):
     name = models.CharField(max_length=255)
     address = models.CharField(max_length=255, null=True, blank=True)

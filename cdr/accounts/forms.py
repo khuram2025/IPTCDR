@@ -33,3 +33,29 @@ class CustomAuthenticationForm(AuthenticationForm):
 
 class CustomPasswordResetForm(PasswordResetForm):
     email = forms.EmailField()
+
+class ForgotPasswordRequestForm(forms.Form):
+    email = forms.EmailField(label="Email", widget=forms.EmailInput(attrs={'class': 'form-control', 'placeholder': 'Enter your email'}))
+
+class ForgotPasswordOTPForm(forms.Form):
+    otp_code = forms.CharField(label="OTP Code", max_length=6, widget=forms.TextInput(attrs={'class': 'form-control', 'placeholder': 'Enter the OTP sent to your email'}))
+
+class ForgotPasswordNewPasswordForm(forms.Form):
+    new_password1 = forms.CharField(label="New Password", widget=forms.PasswordInput(attrs={'class': 'form-control', 'placeholder': 'New password'}))
+    new_password2 = forms.CharField(label="Confirm Password", widget=forms.PasswordInput(attrs={'class': 'form-control', 'placeholder': 'Confirm password'}))
+    def clean(self):
+        cleaned_data = super().clean()
+        if cleaned_data.get('new_password1') != cleaned_data.get('new_password2'):
+            raise forms.ValidationError('Passwords do not match')
+        return cleaned_data
+
+class ChangePasswordForm(forms.Form):
+    current_password = forms.CharField(label="Current Password", widget=forms.PasswordInput(attrs={'class': 'form-control', 'placeholder': 'Current password'}))
+    new_password1 = forms.CharField(label="New Password", widget=forms.PasswordInput(attrs={'class': 'form-control', 'placeholder': 'New password'}))
+    new_password2 = forms.CharField(label="Confirm New Password", widget=forms.PasswordInput(attrs={'class': 'form-control', 'placeholder': 'Confirm new password'}))
+    def clean(self):
+        cleaned_data = super().clean()
+        if cleaned_data.get('new_password1') != cleaned_data.get('new_password2'):
+            raise forms.ValidationError('New passwords do not match')
+        return cleaned_data
+

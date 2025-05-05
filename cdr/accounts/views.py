@@ -12,10 +12,123 @@ from django.contrib.auth.tokens import default_token_generator
 from django.conf import settings
 from django.contrib.auth import logout as auth_logout
 
-from .forms import CustomUserCreationForm, CustomAuthenticationForm, CustomPasswordResetForm
-from .models import CustomUser
+from .forms import CustomUserCreationForm, CustomAuthenticationForm, CustomPasswordResetForm, ForgotPasswordRequestForm, ForgotPasswordOTPForm, ForgotPasswordNewPasswordForm
+from .models import CustomUser, PasswordResetOTP
+from cdr.email_utils import SMTPClient
 
 import datetime
+import random
+
+# --- Modern OTP-based Password Reset Views ---
+def forgot_password_request(request):
+    from .forms import ForgotPasswordRequestForm
+    from .models import PasswordResetOTP, CustomUser
+    from cdr.email_utils import SMTPClient
+    if request.method == 'POST':
+        form = ForgotPasswordRequestForm(request.POST)
+        if form.is_valid():
+            email = form.cleaned_data['email']
+            try:
+                user = CustomUser.objects.get(email=email, is_active=True)
+            except CustomUser.DoesNotExist:
+                return render(request, 'accounts/forgot_password_request.html', {'form': form, 'error': 'No active user with that email.'})
+            # Generate OTP
+            otp_code = f"{random.randint(100000, 999999)}"
+            PasswordResetOTP.objects.filter(user=user, is_used=False).update(is_used=True)
+            otp = PasswordResetOTP.objects.create(user=user, otp_code=otp_code)
+            # Send OTP email using HTML template
+            from django.template.loader import render_to_string
+            import datetime
+            html_body = render_to_string(
+                'accounts/email_otp.html',
+                {
+                    'otp_code': otp_code,
+                    'year': datetime.datetime.now().year,
+                }
+            )
+            SMTPClient.send_email(
+                subject="Your Password Reset OTP",
+                body=html_body,
+                to=[user.email],
+            )
+            request.session['reset_user_id'] = user.id
+            return redirect('accounts:forgot_password_otp')
+    else:
+        form = ForgotPasswordRequestForm()
+    return render(request, 'accounts/forgot_password_request.html', {'form': form})
+
+def forgot_password_otp(request):
+    from .forms import ForgotPasswordOTPForm
+    from .models import PasswordResetOTP, CustomUser
+    user_id = request.session.get('reset_user_id')
+    if not user_id:
+        return redirect('accounts:forgot_password_request')
+    user = CustomUser.objects.get(id=user_id)
+    if request.method == 'POST':
+        form = ForgotPasswordOTPForm(request.POST)
+        if form.is_valid():
+            otp_code = form.cleaned_data['otp_code']
+            otp_obj = PasswordResetOTP.objects.filter(user=user, otp_code=otp_code, is_used=False).order_by('-created_at').first()
+            if otp_obj and not otp_obj.is_expired():
+                otp_obj.is_used = True
+                otp_obj.save()
+                request.session['otp_verified'] = True
+                return redirect('accounts:forgot_password_new_password')
+            else:
+                return render(request, 'accounts/forgot_password_otp.html', {'form': form, 'error': 'Invalid or expired OTP.', 'email': user.email})
+    else:
+        form = ForgotPasswordOTPForm()
+    return render(request, 'accounts/forgot_password_otp.html', {'form': form, 'email': user.email})
+
+def forgot_password_new_password(request):
+    from .forms import ForgotPasswordNewPasswordForm
+    from .models import CustomUser
+    user_id = request.session.get('reset_user_id')
+    otp_verified = request.session.get('otp_verified')
+    if not (user_id and otp_verified):
+        return redirect('accounts:forgot_password_request')
+    user = CustomUser.objects.get(id=user_id)
+    if request.method == 'POST':
+        form = ForgotPasswordNewPasswordForm(request.POST)
+        if form.is_valid():
+            user.set_password(form.cleaned_data['new_password1'])
+            user.save()
+            del request.session['reset_user_id']
+            del request.session['otp_verified']
+            # Render success page, then redirect to login after delay
+            response = render(request, 'accounts/forgot_password_success.html')
+            response['Refresh'] = '3; url=' + str(reverse_lazy('accounts:login'))
+            return response
+    else:
+        form = ForgotPasswordNewPasswordForm()
+    return render(request, 'accounts/forgot_password_new_password.html', {'form': form})
+
+# --- End Modern OTP-based Password Reset Views ---
+
+def change_password(request):
+    from .forms import ChangePasswordForm
+    from django.contrib.auth import update_session_auth_hash
+    if not request.user.is_authenticated:
+        return redirect('accounts:login')
+    success = False
+    error = None
+    if request.method == 'POST':
+        form = ChangePasswordForm(request.POST)
+        if form.is_valid():
+            current_password = form.cleaned_data['current_password']
+            new_password = form.cleaned_data['new_password1']
+            if not request.user.check_password(current_password):
+                error = 'Current password is incorrect.'
+            else:
+                request.user.set_password(new_password)
+                request.user.save()
+                update_session_auth_hash(request, request.user)
+                return redirect('accounts:login')
+        # No need to set error here; template will display form.non_field_errors and field errors
+    else:
+        form = ChangePasswordForm()
+    return render(request, 'accounts/change_password.html', {'form': form, 'success': success, 'error': error})
+
 
 def signup(request):
     if request.method == 'POST':

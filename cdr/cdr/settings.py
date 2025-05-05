@@ -56,13 +56,15 @@ INSTALLED_APPS = [
 # Site ID for allauth
 SITE_ID = 1
 
-EMAIL_BACKEND = 'django.core.mail.backends.smtp.EmailBackend'
-EMAIL_HOST = 'smtp.zoho.com'
-EMAIL_PORT = 587
-EMAIL_USE_TLS = True
-EMAIL_USE_SSL = False  # Make sure this is False
-EMAIL_HOST_USER = 'no-reply@channab.com'
-EMAIL_HOST_PASSWORD = '!yulfDj5'
+# SMTP/Email settings - use environment variables for sensitive data
+EMAIL_BACKEND = os.getenv('EMAIL_BACKEND', 'django.core.mail.backends.smtp.EmailBackend')
+EMAIL_HOST = os.getenv('EMAIL_HOST', 'smtp.zoho.com')
+EMAIL_PORT = int(os.getenv('EMAIL_PORT', 587))
+EMAIL_USE_TLS = os.getenv('EMAIL_USE_TLS', 'True').lower() == 'true'
+EMAIL_USE_SSL = os.getenv('EMAIL_USE_SSL', 'False').lower() == 'true'
+EMAIL_HOST_USER = os.getenv('EMAIL_HOST_USER', 'no-reply@channab.com')
+EMAIL_HOST_PASSWORD = os.getenv('EMAIL_HOST_PASSWORD', '')  # Set in environment for security
+
 DEFAULT_FROM_EMAIL = 'no-reply@channab.com'
 
 # Redirect URLs
@@ -204,9 +206,23 @@ DATABASES = {
         'PASSWORD': 'Read@123',
         'HOST': 'localhost',
         'PORT': '5432',
-        'CONN_MAX_AGE': 300,
+        'CONN_MAX_AGE': 0,  # Close connections immediately after use
+        'OPTIONS': {
+            'keepalives': 1,
+            'keepalives_idle': 30,
+            'keepalives_interval': 10,
+            'keepalives_count': 5
+        }
     }
 }
+
+DATABASE_CONNECTION_POOL_KWARGS = {
+    'max_overflow': 10,
+    'pool_size': 5,
+    'recycle': 300
+}
+
+DATABASE_CONNECTION_POOL = True
 
 # EMAIL_BACKEND = 'django.core.mail.backends.smtp.EmailBackend'
 # EMAIL_HOST = 'smtp.zoho.com'

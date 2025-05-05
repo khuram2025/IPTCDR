@@ -11,8 +11,8 @@ sudo systemctl restart socket_server.service
 sudo systemctl restart gunicorn && sudo systemctl restart nginx
 
 
-source  3CX/venv/bin/activate
-
+source  ~/3CX/venv/bin/activate
+python manage.py runserver 0.0.0.0:8003
 python manage.py makemigrations
 python manage.py migrate
 

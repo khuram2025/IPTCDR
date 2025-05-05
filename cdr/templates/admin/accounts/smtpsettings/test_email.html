@@ -1,0 +1,17 @@
+{% extends "admin/base_site.html" %}
+{% load static %}
+
+{% block content %}
+<div class="content">
+    <h1>{{ title }}</h1>
+    <p>Send a test email using the current SMTP settings for <strong>{{ smtp_obj.host }}:{{ smtp_obj.port }}</strong>.</p>
+    <form method="post" style="margin-top: 20px;">
+        {% csrf_token %}
+        {{ form.as_p }}
+        <button type="submit" class="default">Send Test Email</button>
+        <a href="../" class="button">Back</a>
+    </form>
+    <hr/>
+    <p><strong>Tip:</strong> You can customize the subject and body of the test email before sending.</p>
+</div>
+{% endblock %}

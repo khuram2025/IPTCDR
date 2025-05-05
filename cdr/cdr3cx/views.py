@@ -246,7 +246,7 @@ def dashboard(request):
         end_date = now
 
     # Filter call records by the selected time period
-    call_records = CallRecord.objects.filter(call_time__range=[start_date, end_date])
+    call_records = CallRecord.objects.filter(company=request.user.company, call_time__range=[start_date, end_date])
 
     
     total_calls = call_records.count()
@@ -408,7 +408,7 @@ def all_calls_view(request):
     except ValueError:
         per_page = 100
 
-    call_records = CallRecord.objects.all()
+    call_records = CallRecord.objects.filter(company=request.user.company)
 
     if search_query:
         call_records = call_records.filter(caller__icontains=search_query) | call_records.filter(callee__icontains=search_query)
@@ -431,7 +431,7 @@ def outgoingExtCalls(request):
     except ValueError:
         per_page = 100
 
-    call_records = CallRecord.objects.filter(Q(to_type="LineSet") | Q(to_type="Line"))
+    call_records = CallRecord.objects.filter(company=request.user.company).filter(Q(to_type="LineSet") | Q(to_type="Line"))
 
     if search_query:
         call_records = call_records.filter(caller__icontains=search_query) | call_records.filter(callee__icontains=search_query)
@@ -452,7 +452,7 @@ def incomingCalls(request):
     except ValueError:
         per_page = 100
 
-    call_records = CallRecord.objects.filter(from_type="Line")
+    call_records = CallRecord.objects.filter(company=request.user.company, from_type="Line")
 
     if search_query:
         call_records = call_records.filter(Q(caller__icontains=search_query) | Q(callee__icontains=search_query))
@@ -476,7 +476,7 @@ def outgoingInternationalCalls(request):
 
     start_date, end_date, time_period, custom_date_range = get_date_range(request)
 
-    call_records = CallRecord.objects.filter(
+    call_records = CallRecord.objects.filter(company=request.user.company).filter(
         Q(callee__regex=r'^\+[^9]') | 
         Q(callee__regex=r'^\+9[0-8]') | 
         Q(callee__regex=r'^00[^9]') | 
@@ -516,15 +516,15 @@ def outgoingInternationalCalls(request):
     return render(request, 'cdr/outgoingInternationalCalls.html', context)
 @login_required
 def local_calls_view(request):
-    call_records = CallRecord.objects.annotate(callee_length=Length('callee')).filter(callee_length=4)
+    call_records = CallRecord.objects.annotate(callee_length=Length('callee')).filter(company=request.user.company, callee_length=4)
     return render(request, 'cdr/local_calls.html', {'call_records': call_records})
 @login_required
 def national_calls_view(request):
-    call_records = CallRecord.objects.filter(callee__startswith='0').exclude(callee__startswith='00')
+    call_records = CallRecord.objects.filter(company=request.user.company, callee__startswith='0').exclude(callee__startswith='00')
     return render(request, 'cdr/national_calls.html', {'call_records': call_records})
 @login_required
 def international_calls_view(request):
-    call_records = CallRecord.objects.annotate(callee_length=Length('callee')).filter(callee__startswith='00', callee_length__gt=10)
+    call_records = CallRecord.objects.annotate(callee_length=Length('callee')).filter(company=request.user.company, callee__startswith='00', callee_length__gt=10)
     return render(request, 'cdr/international_calls.html', {'call_records': call_records})
 
 def home(request):
@@ -602,7 +602,7 @@ def country_specific_calls_view(request, country_slug):
     # Convert slug back to country name
     country = country_slug.replace('-', ' ').title()
 
-    call_records = CallRecord.objects.filter(country=country)
+    call_records = CallRecord.objects.filter(company=request.user.company, country=country)
 
     if search_query:
         call_records = call_records.filter(Q(caller__icontains=search_query) | Q(callee__icontains=search_query))
@@ -645,7 +645,7 @@ def caller_calls_view(request, caller_number):
     except ValueError:
         per_page = 100
 
-    call_records = CallRecord.objects.filter(caller=caller_number)
+    call_records = CallRecord.objects.filter(company=request.user.company, caller=caller_number)
     
 
     # Apply date filter
@@ -973,6 +973,7 @@ def get_top_extensions_data(request, sort_by):
     sort_field = valid_sort_options.get(sort_by, '-total_calls')
 
     top_extensions = CallRecord.objects.filter(
+        company=request.user.company,
         call_time__range=[start_date, end_date],
         to_type='Line'
     ).values('caller', 'from_dispname').annotate(
@@ -983,6 +984,7 @@ def get_top_extensions_data(request, sort_by):
 
     top_callers = [ext['caller'] for ext in top_extensions]
     call_records = CallRecord.objects.filter(
+        company=request.user.company,
         call_time__range=[start_date, end_date],
         caller__in=top_callers,
         to_type='Line'

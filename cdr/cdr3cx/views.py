@@ -414,7 +414,11 @@ def all_calls_view(request):
     except ValueError:
         per_page = 100
 
-    call_records = CallRecord.objects.filter(company=request.user.company)
+    # Check if user has a company assigned
+    if not request.user.company:
+        call_records = CallRecord.objects.none()
+    else:
+        call_records = CallRecord.objects.filter(company=request.user.company)
 
     if search_query:
         call_records = call_records.filter(caller__icontains=search_query) | call_records.filter(callee__icontains=search_query)
@@ -437,7 +441,18 @@ def outgoingExtCalls(request):
     except ValueError:
         per_page = 100
 
-    call_records = CallRecord.objects.filter(company=request.user.company).filter(Q(to_type="LineSet") | Q(to_type="Line"))
+    # Debug logging to identify the issue
+    import logging
+    logger = logging.getLogger(__name__)
+    logger.info(f"User: {request.user.email}, Company: {request.user.company.name if request.user.company else 'NO COMPANY'}")
+    
+    # Check if user has a company assigned
+    if not request.user.company:
+        logger.error(f"User {request.user.email} has no company assigned!")
+        # Return empty queryset if no company
+        call_records = CallRecord.objects.none()
+    else:
+        call_records = CallRecord.objects.filter(company=request.user.company).filter(Q(to_type="LineSet") | Q(to_type="Line"))
 
     if search_query:
         call_records = call_records.filter(caller__icontains=search_query) | call_records.filter(callee__icontains=search_query)
@@ -458,7 +473,11 @@ def incomingCalls(request):
     except ValueError:
         per_page = 100
 
-    call_records = CallRecord.objects.filter(company=request.user.company, from_type="Line")
+    # Check if user has a company assigned
+    if not request.user.company:
+        call_records = CallRecord.objects.none()
+    else:
+        call_records = CallRecord.objects.filter(company=request.user.company, from_type="Line")
 
     if search_query:
         call_records = call_records.filter(Q(caller__icontains=search_query) | Q(callee__icontains=search_query))

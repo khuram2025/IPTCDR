@@ -1,2 +1,4 @@
 cdr/debug.log.*
 cdr/cdr3cx/__pycache__
+/home/ubuntu/3CX/venv
+venv/*

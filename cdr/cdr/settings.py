@@ -85,6 +85,7 @@ MIDDLEWARE = [
     'django.contrib.messages.middleware.MessageMiddleware',
     'django.middleware.clickjacking.XFrameOptionsMiddleware',
     'cdr3cx.middleware.CDRRequestMiddleware',
+    'cdr3cx.company_middleware.CompanyValidationMiddleware',  # Add company validation
     # 'cdr3cx.middleware.DomainRoutingMiddleware', 
 ]
 

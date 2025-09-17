@@ -1,4 +1,4 @@
-{% load static %} {% block header %}
+{% load static %} {% load company_extras %} {% block header %}
 <header id="page-topbar">
   <div class="layout-width">
     <div class="navbar-header">
@@ -110,17 +110,17 @@
                 xmlns="http://www.w3.org/2000/svg">
                 <rect width="32" height="32" fill="#007bff" />
                 <text x="50%" y="50%" font-family="Arial, sans-serif" font-size="14" fill="white" text-anchor="middle"
-                  dy=".3em">SM</text>
+                  dy=".3em">{{ user.company.name|company_initials|default:"NA" }}</text>
               </svg>
               <span class="text-start ms-xl-2">
-                <span class="d-none d-xl-inline-block ms-1 fw-medium user-name-text">Smasco</span>
+                <span class="d-none d-xl-inline-block ms-1 fw-medium user-name-text">{{ user.company.name|default:"No Company" }}</span>
                 <span class="d-none d-xl-block ms-1 fs-12 user-name-sub-text">KSA</span>
               </span>
             </span>
           </button>
           <div class="dropdown-menu dropdown-menu-end">
             <!-- item-->
-            <h6 class="dropdown-header">Welcome SMASCO!</h6>
+            <h6 class="dropdown-header">Welcome {{ user.company.name|upper|default:"USER" }}!</h6>
             <a class="dropdown-item" href="#"><i class="mdi mdi-account-circle text-muted fs-16 align-middle me-1"></i>
               <span class="align-middle">Profile</span></a>
             <a class="dropdown-item" href="#"><i

@@ -24,7 +24,9 @@
           </a>
         </div>
 
-        <button type="button" class="btn btn-sm px-3 fs-16 header-item vertical-menu-btn topnav-hamburger material-shadow-none" id="topnav-hamburger-icon">
+        <button type="button"
+          class="btn btn-sm px-3 fs-16 header-item vertical-menu-btn topnav-hamburger material-shadow-none"
+          id="topnav-hamburger-icon">
           <span class="hamburger-icon">
             <span></span>
             <span></span>
@@ -33,11 +35,14 @@
         </button>
 
         <!-- App Search-->
-        <form class="app-search d-none d-md-block" id="extensionSearchForm" onsubmit="return handleExtensionSearch(event)">
+        <form class="app-search d-none d-md-block" id="extensionSearchForm"
+          onsubmit="return handleExtensionSearch(event)">
           <div class="position-relative">
-            <input type="text" class="form-control" placeholder="Search extension..." autocomplete="off" id="search-options" value="" />
+            <input type="text" class="form-control" placeholder="Search extension..." autocomplete="off"
+              id="search-options" value="" />
             <span class="mdi mdi-magnify search-widget-icon"></span>
-            <span class="mdi mdi-close-circle search-widget-icon search-widget-icon-close d-none" id="search-close-options"></span>
+            <span class="mdi mdi-close-circle search-widget-icon search-widget-icon-close d-none"
+              id="search-close-options"></span>
           </div>
           <!-- Remove or comment out the dropdown menu if not needed for extension search -->
         </form>
@@ -45,10 +50,12 @@
 
       <div class="d-flex align-items-center">
         <div class="dropdown d-md-none topbar-head-dropdown header-item">
-          <button type="button" class="btn btn-icon btn-topbar material-shadow-none btn-ghost-secondary rounded-circle" id="page-header-search-dropdown" data-bs-toggle="dropdown" aria-haspopup="true" aria-expanded="false">
+          <button type="button" class="btn btn-icon btn-topbar material-shadow-none btn-ghost-secondary rounded-circle"
+            id="page-header-search-dropdown" data-bs-toggle="dropdown" aria-haspopup="true" aria-expanded="false">
             <i class="bx bx-search fs-22"></i>
           </button>
-          <div class="dropdown-menu dropdown-menu-lg dropdown-menu-end p-0" aria-labelledby="page-header-search-dropdown">
+          <div class="dropdown-menu dropdown-menu-lg dropdown-menu-end p-0"
+            aria-labelledby="page-header-search-dropdown">
             <form class="p-3">
               <div class="form-group m-0">
                 <div class="input-group">
@@ -61,12 +68,15 @@
         </div>
 
         <div class="dropdown ms-1 topbar-head-dropdown header-item">
-          <button type="button" class="btn btn-icon btn-topbar material-shadow-none btn-ghost-secondary rounded-circle" data-bs-toggle="dropdown" aria-haspopup="true" aria-expanded="false">
-            <img id="header-lang-img" src="{% static 'images/flags/us.svg'%}" alt="Header Language" height="20" class="rounded" />
+          <button type="button" class="btn btn-icon btn-topbar material-shadow-none btn-ghost-secondary rounded-circle"
+            data-bs-toggle="dropdown" aria-haspopup="true" aria-expanded="false">
+            <img id="header-lang-img" src="{% static 'images/flags/us.svg'%}" alt="Header Language" height="20"
+              class="rounded" />
           </button>
           <div class="dropdown-menu dropdown-menu-end">
             <!-- item-->
-            <a href="javascript:void(0);" class="dropdown-item notify-item language py-2" data-lang="en" title="English">
+            <a href="javascript:void(0);" class="dropdown-item notify-item language py-2" data-lang="en"
+              title="English">
               <img src="{% static 'images/flags/us.svg'%}" alt="user-image" class="me-2 rounded" height="18" />
               <span class="align-middle">English</span>
             </a>
@@ -79,23 +89,28 @@
         </div>
 
         <div class="ms-1 header-item d-none d-sm-flex">
-          <button type="button" class="btn btn-icon btn-topbar material-shadow-none btn-ghost-secondary rounded-circle" data-toggle="fullscreen">
+          <button type="button" class="btn btn-icon btn-topbar material-shadow-none btn-ghost-secondary rounded-circle"
+            data-toggle="fullscreen">
             <i class="bx bx-fullscreen fs-22"></i>
           </button>
         </div>
 
         <div class="ms-1 header-item d-none d-sm-flex">
-          <button type="button" class="btn btn-icon btn-topbar material-shadow-none btn-ghost-secondary rounded-circle light-dark-mode">
+          <button type="button"
+            class="btn btn-icon btn-topbar material-shadow-none btn-ghost-secondary rounded-circle light-dark-mode">
             <i class="bx bx-moon fs-22"></i>
           </button>
         </div>
 
         <div class="dropdown ms-sm-3 header-item topbar-user">
-          <button type="button" class="btn material-shadow-none" id="page-header-user-dropdown" data-bs-toggle="dropdown" aria-haspopup="true" aria-expanded="false">
+          <button type="button" class="btn material-shadow-none" id="page-header-user-dropdown"
+            data-bs-toggle="dropdown" aria-haspopup="true" aria-expanded="false">
             <span class="d-flex align-items-center">
-              <svg class="rounded-circle header-profile-user" width="32" height="32" viewBox="0 0 32 32" xmlns="http://www.w3.org/2000/svg">
+              <svg class="rounded-circle header-profile-user" width="32" height="32" viewBox="0 0 32 32"
+                xmlns="http://www.w3.org/2000/svg">
                 <rect width="32" height="32" fill="#007bff" />
-                <text x="50%" y="50%" font-family="Arial, sans-serif" font-size="14" fill="white" text-anchor="middle" dy=".3em">SM</text>
+                <text x="50%" y="50%" font-family="Arial, sans-serif" font-size="14" fill="white" text-anchor="middle"
+                  dy=".3em">SM</text>
               </svg>
               <span class="text-start ms-xl-2">
                 <span class="d-none d-xl-inline-block ms-1 fw-medium user-name-text">Smasco</span>
@@ -106,15 +121,21 @@
           <div class="dropdown-menu dropdown-menu-end">
             <!-- item-->
             <h6 class="dropdown-header">Welcome SMASCO!</h6>
-            <a class="dropdown-item" href="#"><i class="mdi mdi-account-circle text-muted fs-16 align-middle me-1"></i> <span class="align-middle">Profile</span></a>
-            <a class="dropdown-item" href="#"><i class="mdi mdi-message-text-outline text-muted fs-16 align-middle me-1"></i> <span class="align-middle">Messages</span></a>
+            <a class="dropdown-item" href="#"><i class="mdi mdi-account-circle text-muted fs-16 align-middle me-1"></i>
+              <span class="align-middle">Profile</span></a>
+            <a class="dropdown-item" href="#"><i
+                class="mdi mdi-message-text-outline text-muted fs-16 align-middle me-1"></i> <span
+                class="align-middle">Messages</span></a>
 
-            <a class="dropdown-item" href="#"><i class="mdi mdi-lifebuoy text-muted fs-16 align-middle me-1"></i> <span class="align-middle">Help</span></a>
+            <a class="dropdown-item" href="#"><i class="mdi mdi-lifebuoy text-muted fs-16 align-middle me-1"></i> <span
+                class="align-middle">Help</span></a>
             <div class="dropdown-divider"></div>
-            <a class="dropdown-item" href="#"
-              ><i class="mdi mdi-wallet text-muted fs-16 align-middle me-1"></i> <span class="align-middle">Balance : <b>SAR 0</b></span></a
-            >
-            <a class="dropdown-item" href="#"><span class="badge bg-success-subtle text-success mt-1 float-end">New</span><i class="mdi mdi-cog-outline text-muted fs-16 align-middle me-1"></i> <span class="align-middle">Settings</span></a>
+            <a class="dropdown-item" href="#"><i class="mdi mdi-wallet text-muted fs-16 align-middle me-1"></i> <span
+                class="align-middle">Expiry : <b>19 August 2026</b></span></a>
+            <a class="dropdown-item" href="#"><span
+                class="badge bg-success-subtle text-success mt-1 float-end">New</span><i
+                class="mdi mdi-cog-outline text-muted fs-16 align-middle me-1"></i> <span
+                class="align-middle">Settings</span></a>
 
             {% if user.is_authenticated %} {% if user.has_usable_password %}
             <a class="dropdown-item" href="{% url 'accounts:change_password' %}">
@@ -140,10 +161,12 @@
 
         <button type="button" class="btn btn-primary" id="liveToastBtn" hidden></button>
         <div class="position-fixed top-0 end-0 p-3" style="z-index: 11">
-          <div class="toast align-items-right text-white bg-primary border-0" id="toast-message" role="alert" aria-live="assertive" aria-atomic="true">
+          <div class="toast align-items-right text-white bg-primary border-0" id="toast-message" role="alert"
+            aria-live="assertive" aria-atomic="true">
             <div class="d-flex">
               <div class="toast-body">{{message}}</div>
-              <button type="button" class="btn-close btn-close-white me-2 m-auto" data-bs-dismiss="toast" aria-label="Close"></button>
+              <button type="button" class="btn-close btn-close-white me-2 m-auto" data-bs-dismiss="toast"
+                aria-label="Close"></button>
             </div>
           </div>
         </div>
@@ -158,11 +181,13 @@
   <div class="modal-dialog modal-dialog-centered">
     <div class="modal-content">
       <div class="modal-header">
-        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close" id="NotificationModalbtn-close"></button>
+        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"
+          id="NotificationModalbtn-close"></button>
       </div>
       <div class="modal-body">
         <div class="mt-2 text-center">
-          <lord-icon src="https://cdn.lordicon.com/gsqxdxog.json" trigger="loop" colors="primary:#f7b84b,secondary:#f06548" style="width: 100px; height: 100px"></lord-icon>
+          <lord-icon src="https://cdn.lordicon.com/gsqxdxog.json" trigger="loop"
+            colors="primary:#f7b84b,secondary:#f06548" style="width: 100px; height: 100px"></lord-icon>
           <div class="mt-4 pt-2 fs-15 mx-4 mx-sm-5">
             <h4>Are you sure ?</h4>
             <p class="text-muted mx-4 mb-0">Are you sure you want to remove this Notification ?</p>

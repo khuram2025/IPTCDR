@@ -1,12 +1,13 @@
 from django.urls import path
 from .views import receive_cdr
-from . import views, views_api, quota_views, views_reports
+from . import views, views_api, quota_views, views_reports, callpattern_views
 from . import views as cdr_views
 
 
 app_name = 'cdr3cx' 
 
 urlpatterns = [
+    path('toggle-external-call/', quota_views.toggle_external_call, name='toggle_external_call'),
     path('cdr', receive_cdr, name='receive_cdr'),
     path('get-caller/', views.get_caller_record, name='get_caller_record'),
     # API Related start 
@@ -50,6 +51,12 @@ urlpatterns = [
     path('quotas/usage/', quota_views.quota_usage, name='quota_usage'),
     path('extension/<int:extension_id>/add-balance/', quota_views.add_balance, name='add_balance'),
     path('quotas/send_email/<int:extension_id>/', quota_views.send_quota_email, name='send_quota_email'),  # New URL pattern
+
+    # Call Pattern URLs for Company Admin
+    path('callpatterns/', callpattern_views.CallPatternListView.as_view(), name='callpattern-list'),
+    path('callpatterns/create/', callpattern_views.CallPatternCreateView.as_view(), name='callpattern-create'),
+    path('callpatterns/<int:pk>/edit/', callpattern_views.CallPatternUpdateView.as_view(), name='callpattern-edit'),
+    path('callpatterns/<int:pk>/delete/', callpattern_views.CallPatternDeleteView.as_view(), name='callpattern-delete'),
 
     path('top-extensions/', views.top_extensions, name='top_extensions'),
     path('top-extensions/excel-report/', views.generate_excel_report, name='top_extensions_excel_report'),

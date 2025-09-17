@@ -1,0 +1,86 @@
+{% extends "partials/base.html" %} {% load static %} {% block title %}Delete Calling Rule{% endblock title %} {% block extra_css %}
+<!-- Add any extra CSS here if needed -->
+{% endblock extra_css %} {% block content %}
+<div class="main-content">
+  <div class="page-content">
+    <div class="container-fluid">
+      {% block pagetitle %}
+      <div class="row">
+        <div class="col-12">
+          <div class="page-title-box d-sm-flex align-items-center justify-content-between">
+            <h4 class="mb-sm-0">Delete Calling Rule</h4>
+          </div>
+        </div>
+      </div>
+      {% endblock pagetitle %}
+
+      <div class="row justify-content-center">
+        <div class="col-lg-6">
+          <div class="card">
+            <div class="card-body">
+              <div class="alert alert-warning" role="alert">
+                <h4 class="alert-heading">Are you sure?</h4>
+                <p>You are about to delete the following calling rule:</p>
+                <hr>
+                <div class="table-responsive">
+                  <table class="table table-bordered mb-0">
+                    <tr>
+                      <th width="30%">Rule Name:</th>
+                      <td>{{ callpattern.name }}</td>
+                    </tr>
+                    <tr>
+                      <th>Pattern:</th>
+                      <td>{{ callpattern.pattern }}</td>
+                    </tr>
+                    <tr>
+                      <th>Call Type:</th>
+                      <td>
+                        <span class="badge 
+                          {% if callpattern.call_type == 'international' %}bg-danger
+                          {% elif callpattern.call_type == 'mobile' %}bg-warning
+                          {% elif callpattern.call_type == 'national' %}bg-info
+                          {% elif callpattern.call_type == 'local' %}bg-success
+                          {% else %}bg-secondary{% endif %}">
+                          {{ callpattern.get_call_type_display }}
+                        </span>
+                      </td>
+                    </tr>
+                    <tr>
+                      <th>Rate per Minute:</th>
+                      <td>{{ callpattern.rate_per_min }} SAR</td>
+                    </tr>
+                    {% if callpattern.description %}
+                    <tr>
+                      <th>Description:</th>
+                      <td>{{ callpattern.description }}</td>
+                    </tr>
+                    {% endif %}
+                  </table>
+                </div>
+                <hr>
+                <p class="mb-0">This action cannot be undone. All call records that were categorized using this pattern will be recalculated.</p>
+              </div>
+              
+              <form method="post">
+                {% csrf_token %}
+                <div class="d-flex justify-content-between">
+                  <a href="{% url 'cdr3cx:callpattern-list' %}" class="btn btn-secondary">
+                    <i class="fas fa-arrow-left"></i> Cancel
+                  </a>
+                  <button type="submit" class="btn btn-danger">
+                    <i class="fas fa-trash"></i> Delete Rule
+                  </button>
+                </div>
+              </form>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  {% block footer %} {% include "partials/footer.html" %} {% endblock footer %}
+</div>
+{% endblock content %} {% block extra_js %}
+<!-- Add any extra JS here if needed -->
+{% endblock extra_js %}

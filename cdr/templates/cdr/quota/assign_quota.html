@@ -19,6 +19,33 @@
   .search-box {
     margin-bottom: 1rem;
   }
+  .extension-list {
+    padding: 0.75rem;
+  }
+  .extension-list .extension-item:last-child {
+    margin-bottom: 0 !important;
+  }
+  .form-control-sm {
+      height: calc(1.5em + .5rem + 2px);
+      padding: .25rem .5rem;
+      font-size: .875rem;
+      border-radius: .2rem;
+  }
+  .search-wrapper {
+      position: relative;
+  }
+  .clear-search {
+      position: absolute;
+      right: 10px;
+      top: 50%;
+      transform: translateY(-50%);
+      cursor: pointer;
+      color: #6c757d;
+      display: none; /* Initially hidden */
+  }
+  .clear-search:hover {
+      color: #343a40;
+  }
 </style>
 {% endblock extra_css %} {% block content %}
 <div class="main-content">
@@ -37,7 +64,10 @@
       <div class="row">
         <div class="col-12">
           <div class="card">
-            <div class="card-body">
+            <div class="card-header">
+                <h5 class="card-title mb-0">Assign Quota to Extensions</h5>
+              </div>
+              <div class="card-body">
               <form method="post" id="assignQuotaForm">
                 {% csrf_token %}
                 <div class="mb-3">
@@ -47,17 +77,21 @@
                   {% endif %}
                 </div>
                 <div class="mb-3">
-                  <label for="extensionSearch" class="form-label">Search Extensions</label>
-                  <input type="text" id="extensionSearch" class="form-control search-box" placeholder="Search extensions..." />
-                </div>
-                <div class="mb-3">
-                  <div class="form-check">
-                    <input class="form-check-input" type="checkbox" id="selectAll" />
-                    <label class="form-check-label" for="selectAll"> Select All Extensions </label>
-                  </div>
-                </div>
-                <div class="mb-3">
                   <label for="{{ form.extensions.id_for_label }}" class="form-label">{{ form.extensions.label }}</label>
+                  <div class="p-2 border rounded mb-2">
+                    <div class="row g-2 mb-2">
+                        <div class="col-md-8 search-wrapper">
+                            <input type="text" id="extensionSearch" class="form-control form-control-sm" placeholder="Search extensions..." />
+                            <span class="clear-search" id="clearSearchBtn">&times;</span>
+                        </div>
+                        <div class="col-md-4 d-flex align-items-center">
+                            <div class="form-check ms-auto">
+                                <input class="form-check-input" type="checkbox" id="selectAll" />
+                                <label class="form-check-label" for="selectAll"> Select All </label>
+                            </div>
+                        </div>
+                    </div>
+                  </div>
                   <div class="extension-list">
                     {% for extension in form.extensions.field.queryset %}
                     <div class="extension-item">
@@ -100,6 +134,7 @@
     var $extensionList = $(".extension-list");
     var $selectAll = $("#selectAll");
     var $extensionSearch = $("#extensionSearch");
+    var $clearSearchBtn = $("#clearSearchBtn");
 
     console.log("Extensions count:", $extensionList.find(".extension-item").length);
 
@@ -136,9 +171,20 @@
     });
 
     // Search and sort functionality
-    $extensionSearch.on("keyup", function () {
-      console.log("Search keyup event triggered");
+    $extensionSearch.on("keyup input", function () { // Added 'input' event for better handling of paste/clear
+      console.log("Search keyup/input event triggered");
+      if ($(this).val().length > 0) {
+        $clearSearchBtn.show();
+      } else {
+        $clearSearchBtn.hide();
+      }
       sortAndFilterExtensions();
+    });
+
+    // Clear search button functionality
+    $clearSearchBtn.click(function() {
+      console.log("Clear search button clicked");
+      $extensionSearch.val("").trigger("keyup"); // Clear input and trigger keyup to re-filter and hide button
     });
 
     // Update Select All checkbox state

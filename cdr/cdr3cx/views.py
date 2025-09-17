@@ -14,6 +14,7 @@ from .models import CallRecord, UserQuota
 from django.shortcuts import render
 from django.db.models.functions import Length
 from django.db.models import Q,Sum, Count, Value, IntegerField, DecimalField
+from django.db.models.functions import Coalesce
 from django.shortcuts import redirect
 from django.core.paginator import Paginator, EmptyPage, PageNotAnInteger
 from django.http import JsonResponse
@@ -313,15 +314,20 @@ def dashboard(request):
     sort_by = request.GET.get('sort_by', 'amount')
 
     # New statistics for each caller
-    caller_stats = call_records.filter(from_type='Extension').values('caller', 'from_dispname').annotate(
+    # Remove the from_type filter to include all call records
+    # Use Coalesce to handle None values in duration (replace with 0)
+    # Handle both uppercase and lowercase to_type values
+    # Company calls include: Extension-to-Extension, IVR, Voicemail, Script, EndCall
+    # External calls include: Line, LineSet, external_line
+    caller_stats = call_records.values('caller', 'from_dispname').annotate(
         total_calls=Count('id'),
-        total_duration=Sum('duration'),
-        external_calls=Count('id', filter=Q(to_type__in=['LineSet', 'Line'])),
-        external_duration=Sum('duration', filter=Q(to_type__in=['LineSet', 'Line'])),
-        company_calls=Count('id', filter=Q(to_type='Extension')),
-        company_duration=Sum('duration', filter=Q(to_type='Extension')),
-        total_cost=Sum('total_cost')
-    )
+        total_duration=Coalesce(Sum('duration'), Value(0, output_field=IntegerField())),
+        external_calls=Count('id', filter=Q(to_type__in=['LineSet', 'Line', 'external_line'])),
+        external_duration=Coalesce(Sum('duration', filter=Q(to_type__in=['LineSet', 'Line', 'external_line'])), Value(0, output_field=IntegerField())),
+        company_calls=Count('id', filter=Q(to_type__in=['Extension', 'extension', 'Ivr', 'ivr', 'VMail', 'voicemail', 'script', 'Script', 'EndCall', 'endcall'])),
+        company_duration=Coalesce(Sum('duration', filter=Q(to_type__in=['Extension', 'extension', 'Ivr', 'ivr', 'VMail', 'voicemail', 'script', 'Script', 'EndCall', 'endcall'])), Value(0, output_field=IntegerField())),
+        total_cost=Coalesce(Sum('total_cost'), Value(0.00, output_field=DecimalField()))
+    ).exclude(caller__isnull=True).exclude(caller='')
 
     if sort_by == 'amount':
         caller_stats = caller_stats.order_by('-total_cost')

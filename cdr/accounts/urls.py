@@ -1,6 +1,6 @@
 from django.urls import path
 from .views import signup, login_view, account_activation_sent, activate, reset_password, verify_otp, set_new_password
-from . import views
+from . import views, role_views
 app_name = 'accounts' 
 
 urlpatterns = [
@@ -24,6 +24,14 @@ urlpatterns = [
     path('company-admin/user/create/', views.company_user_create, name='company_user_create'),
     path('company-admin/user/<int:user_id>/edit/', views.company_user_edit, name='company_user_edit'),
     path('company-admin/user/<int:user_id>/delete/', views.company_user_delete, name='company_user_delete'),
+
+    # Role Management
+    path('roles/', role_views.RoleListView.as_view(), name='role_list'),
+    path('roles/create/', role_views.RoleCreateView.as_view(), name='role_create'),
+    path('roles/<int:pk>/', role_views.role_detail, name='role_detail'),
+    path('roles/<int:pk>/edit/', role_views.RoleUpdateView.as_view(), name='role_edit'),
+    path('roles/<int:pk>/delete/', role_views.RoleDeleteView.as_view(), name='role_delete'),
+    path('roles/<int:pk>/assign-users/', role_views.assign_role_to_users, name='role_assign_users'),
 
     # Existing auth & password routes
     path('account_activation_sent/', account_activation_sent, name='account_activation_sent'),

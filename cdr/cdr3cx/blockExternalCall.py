@@ -24,30 +24,30 @@ def authenticate_user():
     }
 
     # Print the authentication request details
-    print("Authentication Request:")
-    print("URL:", url)
-    print("Headers:", headers)
-    print("Payload:", json.dumps(payload, indent=4))
+    # print("Authentication Request:")
+    # print("URL:", url)
+    # print("Headers:", headers)
+    # print("Payload:", json.dumps(payload, indent=4))
 
     response = requests.post(url, headers=headers, json=payload, verify=False)
 
     # Print the response details
-    print("Response Status Code:", response.status_code)
+    # print("Response Status Code:", response.status_code)
     # Truncate the response text for security
-    print("Response Text:", response.text[:100] + '...')
+    # print("Response Text:", response.text[:100] + '...')
 
     if response.status_code == 200:
         data = response.json()
         if data.get('Status') == 'AuthSuccess':
             access_token = data['Token']['access_token']
-            print("Authentication successful.")
+            # print("Authentication successful.")
             return access_token
         else:
-            print('Authentication failed:', data.get('Status'))
+            # print('Authentication failed:', data.get('Status'))
             return None
     else:
-        print('Authentication request failed with status code:', response.status_code)
-        print('Response:', response.text)
+        # print('Authentication request failed with status code:', response.status_code)
+        # print('Response:', response.text)
         return None
 
 def get_user_id(access_token, extension_number):
@@ -60,57 +60,67 @@ def get_user_id(access_token, extension_number):
     }
 
     # Print the user ID request details
-    print("\nGet User ID Request:")
-    print("URL:", url)
-    print("Headers:", headers)
-    print("Params:", params)
+    # print("\nGet User ID Request:")
+    # print("URL:", url)
+    # print("Headers:", headers)
+    # print("Params:", params)
 
     response = requests.get(url, headers=headers, params=params, verify=False)
 
     # Print the response details
-    print("Response Status Code:", response.status_code)
-    print("Response Text:", response.text)
+    # print("Response Status Code:", response.status_code)
+    # print("Response Text:", response.text)
 
     if response.status_code == 200:
         data = response.json()
         if data['value']:
             user_id = data['value'][0]['Id']
-            print(f"User ID for extension {extension_number}: {user_id}")
+            # print(f"User ID for extension {extension_number}: {user_id}")
             return user_id
         else:
-            print(f'Extension {extension_number} not found.')
+            # print(f'Extension {extension_number} not found.')
             return None
     else:
-        print('Failed to retrieve user ID. Status code:', response.status_code)
-        print('Response:', response.text)
+        # print('Failed to retrieve user ID. Status code:', response.status_code)
+        # print('Response:', response.text)
         return None
 
-def enable_record_calls(access_token, user_id):
+def set_external_call(extension_number, allow_external):
+    """
+    Set external call permission for an extension.
+    allow_external=True: Allow external calls (Internal=False)
+    allow_external=False: Block external calls (Internal=True)
+    """
+    access_token = authenticate_user()
+    if not access_token:
+        # print('Authentication failed.')
+        return False
+    user_id = get_user_id(access_token, extension_number)
+    if not user_id:
+        # print('User ID not found for extension:', extension_number)
+        return False
     url = f'https://{PBX_DOMAIN}/xapi/v1/Users({user_id})'
     headers = {
         'Authorization': f'Bearer {access_token}',
         'Content-Type': 'application/json'
     }
-
     payload = {
-        "Internal": False
+        "Internal": not allow_external
     }
-
-    print("\nEnable Record Calls Request:")
-    print("URL:", url)
-    print("Headers:", headers)
-    print("Payload:", json.dumps(payload, indent=4))
-
+    # print("\nSet External Call Request:")
+    # print("URL:", url)
+    # print("Headers:", headers)
+    # print("Payload:", json.dumps(payload, indent=4))
     response = requests.patch(url, headers=headers, json=payload, verify=False)
-
-    print("Response Status Code:", response.status_code)
-    print("Response Text:", response.text)
-
-    if response.status_code == 200:
-        print(f'Successfully enabled call recording for user ID: {user_id}')
+    # print("Response Status Code:", response.status_code)
+    # print("Response Text:", response.text)
+    if response.status_code in (200, 204):
+        # print(f'Successfully updated external call permission for extension {extension_number} (user ID: {user_id})')
+        return True
     else:
-        print('Failed to update user settings. Status code:', response.status_code)
-        print('Response:', response.text)
+        # print('Failed to update user settings. Status code:', response.status_code)
+        # print('Response:', response.text)
+        return False
 
 def main():
     # Step 1: Authenticate

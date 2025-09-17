@@ -1,0 +1,149 @@
+{% extends "partials/base.html" %} {% load static %} {% block title %}{{ action }} Calling Rule{% endblock title %} {% block extra_css %}
+<!-- Add any extra CSS here if needed -->
+{% endblock extra_css %} {% block content %}
+<div class="main-content">
+  <div class="page-content">
+    <div class="container-fluid">
+      {% block pagetitle %}
+      <div class="row">
+        <div class="col-12">
+          <div class="page-title-box d-sm-flex align-items-center justify-content-between">
+            <h4 class="mb-sm-0">{{ action }} Calling Rule</h4>
+          </div>
+        </div>
+      </div>
+      {% endblock pagetitle %}
+
+      <div class="row">
+        <div class="col-lg-8">
+          <div class="card">
+            <div class="card-body">
+              <form method="post" novalidate>
+                {% csrf_token %}
+                
+                {% if form.non_field_errors %}
+                <div class="alert alert-danger" role="alert">
+                  {{ form.non_field_errors }}
+                </div>
+                {% endif %}
+                
+                <div class="mb-3">
+                  <label for="{{ form.name.id_for_label }}" class="form-label">
+                    {{ form.name.label }} <span class="text-danger">*</span>
+                  </label>
+                  {{ form.name }}
+                  {% if form.name.help_text %}
+                  <small class="form-text text-muted">{{ form.name.help_text }}</small>
+                  {% endif %}
+                  {% if form.name.errors %}
+                  <div class="invalid-feedback d-block">
+                    {{ form.name.errors.0 }}
+                  </div>
+                  {% endif %}
+                </div>
+                
+                <div class="mb-3">
+                  <label for="{{ form.pattern.id_for_label }}" class="form-label">
+                    {{ form.pattern.label }} <span class="text-danger">*</span>
+                  </label>
+                  {{ form.pattern }}
+                  {% if form.pattern.help_text %}
+                  <small class="form-text text-muted">{{ form.pattern.help_text }}</small>
+                  {% endif %}
+                  {% if form.pattern.errors %}
+                  <div class="invalid-feedback d-block">
+                    {{ form.pattern.errors.0 }}
+                  </div>
+                  {% endif %}
+                </div>
+                
+                <div class="mb-3">
+                  <label for="{{ form.call_type.id_for_label }}" class="form-label">
+                    {{ form.call_type.label }} <span class="text-danger">*</span>
+                  </label>
+                  {{ form.call_type }}
+                  {% if form.call_type.errors %}
+                  <div class="invalid-feedback d-block">
+                    {{ form.call_type.errors.0 }}
+                  </div>
+                  {% endif %}
+                </div>
+                
+                <div class="mb-3">
+                  <label for="{{ form.rate_per_min.id_for_label }}" class="form-label">
+                    {{ form.rate_per_min.label }} <span class="text-danger">*</span>
+                  </label>
+                  {{ form.rate_per_min }}
+                  {% if form.rate_per_min.help_text %}
+                  <small class="form-text text-muted">{{ form.rate_per_min.help_text }}</small>
+                  {% endif %}
+                  {% if form.rate_per_min.errors %}
+                  <div class="invalid-feedback d-block">
+                    {{ form.rate_per_min.errors.0 }}
+                  </div>
+                  {% endif %}
+                </div>
+                
+                <div class="mb-3">
+                  <label for="{{ form.description.id_for_label }}" class="form-label">
+                    {{ form.description.label }}
+                  </label>
+                  {{ form.description }}
+                  {% if form.description.errors %}
+                  <div class="invalid-feedback d-block">
+                    {{ form.description.errors.0 }}
+                  </div>
+                  {% endif %}
+                </div>
+                
+                <div class="d-flex justify-content-between">
+                  <a href="{% url 'cdr3cx:callpattern-list' %}" class="btn btn-secondary">
+                    <i class="fas fa-arrow-left"></i> Back to List
+                  </a>
+                  <button type="submit" class="btn btn-primary">
+                    <i class="fas fa-save"></i> {{ action }} Rule
+                  </button>
+                </div>
+              </form>
+            </div>
+          </div>
+          
+          {% if callpattern %}
+          <div class="card mt-3">
+            <div class="card-body">
+              <h5 class="card-title">Pattern Information</h5>
+              <p class="text-muted">
+                This pattern will match phone numbers starting with "{{ callpattern.pattern }}" and will be categorized as {{ callpattern.get_call_type_display }} calls.
+              </p>
+              <p class="text-muted">
+                The rate of {{ callpattern.rate_per_min }} SAR per minute will be applied to matching calls.
+              </p>
+            </div>
+          </div>
+          {% endif %}
+        </div>
+        
+        <div class="col-lg-4">
+          <div class="card">
+            <div class="card-body">
+              <h5 class="card-title">Pattern Examples</h5>
+              <ul class="list-unstyled">
+                <li><strong>+1</strong> - Matches all US/Canada numbers</li>
+                <li><strong>+44</strong> - Matches all UK numbers</li>
+                <li><strong>+966</strong> - Matches all Saudi Arabia numbers</li>
+                <li><strong>059</strong> - Matches Saudi mobile numbers starting with 059</li>
+                <li><strong>055</strong> - Matches Saudi mobile numbers starting with 055</li>
+                <li><strong>011</strong> - Matches Riyadh landline numbers</li>
+              </ul>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  {% block footer %} {% include "partials/footer.html" %} {% endblock footer %}
+</div>
+{% endblock content %} {% block extra_js %}
+<!-- Add any extra JS here if needed -->
+{% endblock extra_js %}

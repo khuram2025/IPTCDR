@@ -7,8 +7,8 @@ from .models import CallPattern, CallRecord
 
 @admin.register(CallPattern)
 class CallPatternAdmin(admin.ModelAdmin):
-    list_display = ('company', 'pattern', 'call_type', 'description')
-    search_fields = ('company__name', 'pattern', 'call_type')
+    list_display = ('company', 'name', 'pattern', 'call_type', 'rate_per_min', 'description')
+    search_fields = ('company__name', 'name', 'pattern', 'call_type')
     list_filter = ('company', 'call_type')
 
 @admin.register(CallRecord)

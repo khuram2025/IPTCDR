@@ -75,21 +75,52 @@
         <form method="post" autocomplete="off" novalidate>
           {% csrf_token %}
           {% for field in form %}
-            <div class="mb-3">
-              <label for="id_{{ field.name }}" class="form-label">{{ field.label }}</label>
-              <div class="input-group">
-                {% if field.name == 'email' %}
-                  <span class="input-group-text"><i class="fas fa-envelope"></i></span>
-                {% elif field.name == 'password1' or field.name == 'password2' %}
-                  <span class="input-group-text"><i class="fas fa-lock"></i></span>
+            {% if field.name == 'custom_roles' %}
+              <div class="mb-4">
+                <label class="form-label">{{ field.label }}</label>
+                {% if field.queryset %}
+                  <div class="border rounded p-3 bg-light">
+                    <div class="row">
+                      {% for choice in field %}
+                        <div class="col-md-6 mb-2">
+                          <div class="form-check">
+                            {{ choice.tag }}
+                            <label class="form-check-label" for="{{ choice.id_for_label }}">
+                              {{ choice.choice_label }}
+                            </label>
+                          </div>
+                        </div>
+                      {% endfor %}
+                    </div>
+                  </div>
+                {% else %}
+                  <div class="alert alert-info">
+                    <i class="fas fa-info-circle"></i>
+                    No custom roles available. <a href="{% url 'accounts:role_create' %}">Create a role first</a>.
+                  </div>
                 {% endif %}
-                {{ field }}
+                {% if field.help_text %}<small class="form-text text-muted">{{ field.help_text }}</small>{% endif %}
+                {% for error in field.errors %}
+                  <div class="text-danger small">{{ error }}</div>
+                {% endfor %}
               </div>
-              {% if field.help_text %}<small class="form-text text-muted">{{ field.help_text }}</small>{% endif %}
-              {% for error in field.errors %}
-                <div class="text-danger small">{{ error }}</div>
-              {% endfor %}
-            </div>
+            {% else %}
+              <div class="mb-3">
+                <label for="id_{{ field.name }}" class="form-label">{{ field.label }}</label>
+                <div class="input-group">
+                  {% if field.name == 'email' %}
+                    <span class="input-group-text"><i class="fas fa-envelope"></i></span>
+                  {% elif field.name == 'password1' or field.name == 'password2' %}
+                    <span class="input-group-text"><i class="fas fa-lock"></i></span>
+                  {% endif %}
+                  {{ field }}
+                </div>
+                {% if field.help_text %}<small class="form-text text-muted">{{ field.help_text }}</small>{% endif %}
+                {% for error in field.errors %}
+                  <div class="text-danger small">{{ error }}</div>
+                {% endfor %}
+              </div>
+            {% endif %}
           {% endfor %}
           <div class="d-flex justify-content-between align-items-center mt-4">
             <button type="submit" class="btn btn-success company-user-flat-btn"><i class="fas fa-save me-2"></i>Save</button>

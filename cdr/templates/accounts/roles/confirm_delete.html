@@ -1,0 +1,142 @@
+{% extends "partials/base.html" %} {% load static %} {% block title %}Delete Role{% endblock title %} {% block extra_css %}
+<!-- Add any extra CSS here if needed -->
+{% endblock extra_css %} {% block content %}
+<div class="main-content">
+  <div class="page-content">
+    <div class="container-fluid">
+      {% block pagetitle %}
+      <div class="row">
+        <div class="col-12">
+          <div class="page-title-box d-sm-flex align-items-center justify-content-between">
+            <h4 class="mb-sm-0">Delete Role</h4>
+            <div class="page-title-right">
+              <ol class="breadcrumb m-0">
+                <li class="breadcrumb-item"><a href="{% url 'cdr3cx:dashboard' %}">Dashboard</a></li>
+                <li class="breadcrumb-item"><a href="{% url 'accounts:role_list' %}">Roles</a></li>
+                <li class="breadcrumb-item active">Delete</li>
+              </ol>
+            </div>
+          </div>
+        </div>
+      </div>
+      {% endblock pagetitle %}
+
+      <div class="row justify-content-center">
+        <div class="col-lg-8">
+          <div class="card">
+            <div class="card-body">
+              <div class="alert alert-danger" role="alert">
+                <h4 class="alert-heading">
+                  <i class="fas fa-exclamation-triangle"></i> Confirm Role Deletion
+                </h4>
+                <p>You are about to delete the following role:</p>
+                <hr>
+                
+                <div class="row">
+                  <div class="col-md-6">
+                    <table class="table table-bordered mb-0">
+                      <tr>
+                        <th width="40%">Role Name:</th>
+                        <td><strong>{{ object.name }}</strong></td>
+                      </tr>
+                      <tr>
+                        <th>Description:</th>
+                        <td>{{ object.description|default:"No description" }}</td>
+                      </tr>
+                      <tr>
+                        <th>Permissions:</th>
+                        <td>
+                          <span class="badge bg-info">{{ object.permission_count }} permissions</span>
+                        </td>
+                      </tr>
+                      <tr>
+                        <th>Assigned Users:</th>
+                        <td>
+                          <span class="badge bg-secondary">{{ object.users.count }} users</span>
+                        </td>
+                      </tr>
+                      <tr>
+                        <th>Status:</th>
+                        <td>
+                          {% if object.is_active %}
+                          <span class="badge bg-success">Active</span>
+                          {% else %}
+                          <span class="badge bg-danger">Inactive</span>
+                          {% endif %}
+                        </td>
+                      </tr>
+                      <tr>
+                        <th>Created:</th>
+                        <td>{{ object.created_at|date:"M d, Y" }}</td>
+                      </tr>
+                    </table>
+                  </div>
+                  
+                  <div class="col-md-6">
+                    {% if object.users.count > 0 %}
+                    <div class="alert alert-warning">
+                      <h6><i class="fas fa-users"></i> Assigned Users</h6>
+                      <p class="mb-2">This role is currently assigned to:</p>
+                      <ul class="list-unstyled mb-0">
+                        {% for user_role in object.users.all %}
+                        <li>
+                          <i class="fas fa-user"></i> {{ user_role.user.email }}
+                          <small class="text-muted">({{ user_role.user.get_role_display }})</small>
+                        </li>
+                        {% endfor %}
+                      </ul>
+                    </div>
+                    {% endif %}
+                    
+                    {% if object.permission_count > 0 %}
+                    <div class="alert alert-info">
+                      <h6><i class="fas fa-shield-alt"></i> Permissions</h6>
+                      <p class="mb-2">This role has the following permissions:</p>
+                      <div class="permission-preview" style="max-height: 200px; overflow-y: auto;">
+                        {% for permission in object.permissions.all %}
+                        <small class="badge bg-light text-dark me-1 mb-1">{{ permission.name }}</small>
+                        {% endfor %}
+                      </div>
+                    </div>
+                    {% endif %}
+                  </div>
+                </div>
+                
+                <hr>
+                
+                <div class="alert alert-warning mb-0">
+                  <h6><i class="fas fa-exclamation-circle"></i> Important Notes:</h6>
+                  <ul class="mb-0">
+                    <li><strong>This action cannot be undone.</strong></li>
+                    {% if object.users.count > 0 %}
+                    <li>All users currently assigned to this role will lose these permissions.</li>
+                    <li>Users will retain their base role permissions (Company Admin, User, etc.).</li>
+                    {% endif %}
+                    <li>Any custom workflows depending on this role may be affected.</li>
+                  </ul>
+                </div>
+              </div>
+              
+              <form method="post">
+                {% csrf_token %}
+                <div class="d-flex justify-content-between">
+                  <a href="{% url 'accounts:role_list' %}" class="btn btn-secondary">
+                    <i class="fas fa-arrow-left"></i> Cancel
+                  </a>
+                  <button type="submit" class="btn btn-danger">
+                    <i class="fas fa-trash"></i> Delete Role
+                  </button>
+                </div>
+              </form>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  {% block footer %} {% include "partials/footer.html" %} {% endblock footer %}
+</div>
+{% endblock content %} {% block extra_js %}
+<!-- Add any extra JS here if needed -->
+{% endblock extra_js %}

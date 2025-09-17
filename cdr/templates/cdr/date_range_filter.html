@@ -1,0 +1,13 @@
+<form id="filterForm" action="{{ request.path }}" method="GET" class="d-flex align-items-center">
+  <div class="me-2">
+    <button type="button" class="btn btn-soft-secondary btn-sm" onclick="submitForm('today')">Today</button>
+    <button type="button" class="btn btn-soft-secondary btn-sm" onclick="submitForm('7d')">7D</button>
+    <button type="button" class="btn btn-soft-secondary btn-sm" onclick="submitForm('1m')">1M</button>
+    <button type="button" class="btn btn-soft-secondary btn-sm" onclick="submitForm('6m')">6M</button>
+    <button type="button" class="btn btn-soft-secondary btn-sm" onclick="submitForm('1y')">1Y</button>
+  </div>
+  <input type="hidden" name="time_period" id="timePeriodInput" value="{{ time_period }}" />
+  <input type="text" class="form-control form-control-sm me-2" style="width: 200px" id="customDateInput" name="custom_date" placeholder="Custom Date Range" value="{{ custom_date_range }}" />
+  <input type="number" class="form-control form-control-sm me-2" style="width: 100px" id="limitInput" name="limit" placeholder="Limit" value="{{ limit }}" min="1" />
+  <button type="submit" class="btn btn-primary btn-sm">Apply</button>
+</form>

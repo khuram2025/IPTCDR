@@ -12,7 +12,44 @@
   .clickable-row:hover td {
     color: white;
   }
+  .clickable-row:hover a {
+    color: white !important;
+  }
 </style>
+<script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+<script>
+$(function(){
+  $('.block-phone-btn').click(function(e){
+    e.preventDefault();
+    var btn = $(this);
+    var extId = btn.data('extension-id');
+    var action = btn.data('action');
+    btn.prop('disabled', true).text('Processing...');
+    $.post("{% url 'cdr3cx:toggle_external_call' %}", {
+      extension_id: extId,
+      action: action,
+      csrfmiddlewaretoken: '{{ csrf_token }}'
+    }, function(data){
+      if(data.success){
+        // Swap button text and action
+        if(data.new_status){
+          btn.text('Allow External Calls');
+          btn.data('action', 'allow');
+        } else {
+          btn.text('Block External Calls');
+          btn.data('action', 'block');
+        }
+      } else {
+        alert('Failed: ' + data.error);
+      }
+      btn.prop('disabled', false);
+    }).fail(function(){
+      alert('Request failed.');
+      btn.prop('disabled', false);
+    });
+  });
+});
+</script>
 <div class="main-content">
   <div class="page-content">
     <div class="container-fluid">
@@ -59,6 +96,7 @@
                     <th>
                       <a href="?sort={% if sort_by == 'remaining_balance' %}-{% endif %}remaining_balance{% if search_query %}&search={{ search_query }}{% endif %}"> Remaining Balance {% if sort_by == 'remaining_balance' %}↑{% elif sort_by == '-remaining_balance' %}↓{% endif %} </a>
                     </th>
+                    <th>Last Quota Added Date</th>
                     <th>Actions</th>
                   </tr>
                 </thead>
@@ -70,11 +108,17 @@
                     <td>{{ user_quota.total_amount }} SAR</td>
                     <td>{{ user_quota.used_amount }} SAR</td>
                     <td>{{ user_quota.remaining_balance }} SAR</td>
+                    <td>{{ user_quota.last_reset|date:"Y-m-d H:i" }}</td>
                     <td>
                       {% if user_quota.extension.email %}
                       <a href="{% url 'cdr3cx:send_quota_email' user_quota.extension.pk %}">Send Email</a>
                       {% else %} No Email {% endif %} |
-                      <a href="{% url 'cdr3cx:add_balance' extension_id=user_quota.extension.pk %}">Add Balance</a>
+                      <a href="{% url 'cdr3cx:add_balance' extension_id=user_quota.extension.pk %}">Add Balance</a> |
+                      {% if user_quota.extension.disable_external_call %}
+                        <a href="#" class="block-phone-btn" data-extension-id="{{ user_quota.extension.pk }}" data-action="allow">Allow External Calls</a>
+                      {% else %}
+                        <a href="#" class="block-phone-btn" data-extension-id="{{ user_quota.extension.pk }}" data-action="block">Block External Calls</a>
+                      {% endif %}
                     </td>
                   </tr>
                   {% endfor %}

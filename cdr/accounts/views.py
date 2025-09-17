@@ -31,7 +31,11 @@ def test_login(request):
     return HttpResponse(f"Authenticated: {request.user.is_authenticated}, Email: {request.user.email}, Role: {getattr(request.user, 'role', None)}")
 
 def is_superadmin(user):
-    return user.is_authenticated and user.role == 'superadmin'
+    result = user.is_authenticated and user.role == 'superadmin'
+    print(f"[is_superadmin] user: {user}, is_authenticated: {user.is_authenticated}, role: {getattr(user, 'role', None)}, result: {result}")
+    if not result:
+        print(f"[is_superadmin] Access denied for user: {user}")
+    return result
 
 def is_company_admin(user):
     return user.is_authenticated and user.role == 'company_admin'
@@ -48,7 +52,9 @@ def dashboard_redirect(request):
 # Super Admin Dashboard
 @user_passes_test(is_superadmin)
 def superadmin_dashboard(request):
-    print('DEBUG:', request.user, request.user.is_authenticated, getattr(request.user, 'role', None))
+    print('[superadmin_dashboard] user:', request.user)
+    print('[superadmin_dashboard] is_authenticated:', request.user.is_authenticated)
+    print('[superadmin_dashboard] role:', getattr(request.user, 'role', None))
     companies = Company.objects.all()
     admins = CustomUser.objects.filter(role='company_admin')
     return render(request, 'accounts/superadmin_dashboard.html', {'companies': companies, 'admins': admins})
@@ -120,19 +126,21 @@ def admin_delete(request, user_id):
 # Company Admin Dashboard
 @user_passes_test(is_company_admin)
 def company_admin_dashboard(request):
-    users = CustomUser.objects.filter(company=request.user.company).exclude(pk=request.user.pk).exclude(role='superadmin')
+    users = CustomUser.objects.filter(company=request.user.company).exclude(role='superadmin')
     return render(request, 'accounts/company_admin_dashboard.html', {'users': users})
 
 # Company User CRUD for Company Admin
 @user_passes_test(is_company_admin)
 def company_user_create(request):
     if request.method == 'POST':
-        form = CustomUserCreationForm(request.POST)
+        form = CustomUserCreationForm(request.POST, company=request.user.company)
         if form.is_valid():
             user = form.save(commit=False)
             user.company = request.user.company
             user.role = form.cleaned_data['role'] if form.cleaned_data['role'] != 'superadmin' else 'user'
             user.save()
+            # Handle custom roles after saving user
+            form.save_custom_roles(user)
             # Auto-assign permissions and group if company_admin
             if user.role == 'company_admin':
                 from django.contrib.auth.models import Group, Permission
@@ -145,7 +153,10 @@ def company_user_create(request):
                 user.save()
             return redirect('accounts:company_admin_dashboard')
     else:
-        form = CustomUserCreationForm(initial={'company': request.user.company, 'role': 'user'})
+        form = CustomUserCreationForm(
+            initial={'company': request.user.company, 'role': 'user'},
+            company=request.user.company
+        )
         form.fields['company'].widget = forms.HiddenInput()
         form.fields['role'].choices = [c for c in CustomUser.ROLE_CHOICES if c[0] != 'superadmin']
     return render(request, 'accounts/company_user_form.html', {'form': form})
@@ -154,7 +165,7 @@ def company_user_create(request):
 def company_user_edit(request, user_id):
     user = get_object_or_404(CustomUser, pk=user_id, company=request.user.company)
     if request.method == 'POST':
-        form = CustomUserChangeForm(request.POST, instance=user)
+        form = CustomUserChangeForm(request.POST, instance=user, company=request.user.company)
         if form.is_valid():
             user = form.save()
             # Auto-assign permissions and group if company_admin
@@ -169,7 +180,7 @@ def company_user_edit(request, user_id):
                 user.save()
             return redirect('accounts:company_admin_dashboard')
     else:
-        form = CustomUserChangeForm(instance=user)
+        form = CustomUserChangeForm(instance=user, company=request.user.company)
         form.fields['company'].widget = forms.HiddenInput()
         form.fields['role'].choices = [c for c in CustomUser.ROLE_CHOICES if c[0] != 'superadmin']
     return render(request, 'accounts/company_user_form.html', {'form': form})

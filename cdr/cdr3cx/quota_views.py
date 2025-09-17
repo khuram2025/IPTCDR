@@ -2,21 +2,31 @@ from decimal import Decimal
 from django.views.generic import ListView, CreateView, UpdateView, DeleteView
 from django.urls import reverse_lazy
 from django.shortcuts import render, redirect
-from django.contrib.auth.mixins import LoginRequiredMixin
-from django.contrib.auth.decorators import login_required
+from django.contrib.auth.mixins import LoginRequiredMixin, UserPassesTestMixin
+from django.contrib.auth.decorators import login_required, user_passes_test
 from .models import Quota, UserQuota, Extension
 from .forms import QuotaForm, AssignQuotaForm
 from django.contrib import messages
+from django.http import JsonResponse
+from django.views.decorators.http import require_POST
+from .blockExternalCall import set_external_call
+from accounts.views import is_company_admin
 
-class QuotaListView(LoginRequiredMixin, ListView):
+
+class CompanyAdminMixin(LoginRequiredMixin, UserPassesTestMixin):
+    def test_func(self):
+        return is_company_admin(self.request.user)
+    
+    def get_queryset(self):
+        return self.model.objects.filter(company=self.request.user.company)
+
+
+class QuotaListView(CompanyAdminMixin, ListView):
     model = Quota
     template_name = 'cdr/quota/quota_list.html'
     context_object_name = 'quotas'
 
-    def get_queryset(self):
-        return Quota.objects.filter(company=self.request.user.company)
-
-class QuotaCreateView(LoginRequiredMixin, CreateView):
+class QuotaCreateView(CompanyAdminMixin, CreateView):
     model = Quota
     form_class = QuotaForm
     template_name = 'cdr/quota/quota_form.html'
@@ -26,18 +36,19 @@ class QuotaCreateView(LoginRequiredMixin, CreateView):
         form.instance.company = self.request.user.company
         return super().form_valid(form)
 
-class QuotaUpdateView(LoginRequiredMixin, UpdateView):
+class QuotaUpdateView(CompanyAdminMixin, UpdateView):
     model = Quota
     form_class = QuotaForm
     template_name = 'cdr/quota/quota_form.html'
     success_url = reverse_lazy('cdr3cx:quota_list')
 
-class QuotaDeleteView(LoginRequiredMixin, DeleteView):
+class QuotaDeleteView(CompanyAdminMixin, DeleteView):
     model = Quota
     template_name = 'cdr/quota/quota_confirm_delete.html'
     success_url = reverse_lazy('cdr3cx:quota_list')
 
 @login_required
+@user_passes_test(is_company_admin)
 def assign_quota(request):
     print(f"User: {request.user}, Company: {request.user.company}")
     print(f"Number of extensions for company: {Extension.objects.filter(company=request.user.company).count()}")
@@ -73,7 +84,28 @@ from django.db.models import F
 from django.db.models import F, ExpressionWrapper, DecimalField
 from django.db.models.functions import Coalesce
 
+@require_POST
 @login_required
+@user_passes_test(is_company_admin)
+def toggle_external_call(request):
+    extension_id = request.POST.get('extension_id')
+    action = request.POST.get('action')  # 'block' or 'allow'
+    try:
+        extension = Extension.objects.get(pk=extension_id)
+        allow_external = action == 'allow'
+        # Call PBX logic
+        pbx_success = set_external_call(extension.extension, allow_external)
+        if pbx_success:
+            extension.disable_external_call = not allow_external
+            extension.save()
+            return JsonResponse({'success': True, 'new_status': not allow_external})
+        else:
+            return JsonResponse({'success': False, 'error': 'PBX API call failed'})
+    except Exception as e:
+        return JsonResponse({'success': False, 'error': str(e)})
+
+@login_required
+@user_passes_test(is_company_admin)
 def quota_usage(request):
     user_quotas = UserQuota.objects.select_related('extension', 'quota')
 
@@ -127,6 +159,7 @@ from django.conf import settings
 from decimal import Decimal
 
 @login_required
+@user_passes_test(is_company_admin)
 def send_quota_email(request, extension_id):
     extension = get_object_or_404(Extension, pk=extension_id)
 
@@ -181,6 +214,7 @@ from .models import UserQuota, Extension
 from decimal import Decimal, InvalidOperation
 
 @login_required
+@user_passes_test(is_company_admin)
 def add_balance(request, extension_id):
     extension = get_object_or_404(Extension, id=extension_id)
     user_quota = get_object_or_404(UserQuota, extension=extension)

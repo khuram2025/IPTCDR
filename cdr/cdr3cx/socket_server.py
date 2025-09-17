@@ -30,6 +30,10 @@ def handle_client_connection(client_socket, port):
     try:
         request = client_socket.recv(1024).decode('utf-8').strip()
         logger.info(f"Received data on port {port}: {request}")
+        
+        # Log raw message to debug.log file
+        with open('/home/ubuntu/3CX/cdr/debug.log', 'a') as debug_file:
+            debug_file.write(f"[{timezone.now()}] Raw message on port {port}: {request}\n")
 
         # Remove 'Call ' prefix if present
         if request.startswith('Call '):

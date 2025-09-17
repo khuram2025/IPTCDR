@@ -1,0 +1,11 @@
+
+http://52.7.101.147:8003/
+
+Company Admin 
+
+username hmohammed@smasco.com
+password Read@123
+
+why the call Statics not showing data in the table 
+
+use puptter for navigation once required and fix this issue 

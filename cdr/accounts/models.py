@@ -107,6 +107,7 @@ class Extension(models.Model):
     full_name = models.CharField(max_length=100, blank=True, null=True)
     email = models.EmailField(blank=True, null=True)
     company = models.ForeignKey('Company', on_delete=models.SET_NULL, null=True, blank=True, related_name='extensions')
+    disable_external_call = models.BooleanField(default=False, help_text="If checked, external calls are disabled for this extension.")
 
     class Meta:
         unique_together = ('extension', 'company')
@@ -121,10 +122,48 @@ class Extension(models.Model):
         super().save(*args, **kwargs)
 
         # Ensure a UserQuota is created for this extension
-        from billing.models import UserQuota
+        from cdr3cx.models import UserQuota
         if not UserQuota.objects.filter(extension=self).exists():
             UserQuota.objects.create(extension=self)
-        
 
 
+class Role(models.Model):
+    """Custom roles with specific permissions for company-based access control"""
+    company = models.ForeignKey(Company, on_delete=models.CASCADE, related_name='custom_roles')
+    name = models.CharField(max_length=100, help_text="Role name (e.g., 'Sales Manager', 'Call Center Agent')")
+    description = models.TextField(blank=True, help_text="Description of what this role can do")
+    permissions = models.ManyToManyField(Permission, blank=True, help_text="Specific permissions for this role")
+    is_active = models.BooleanField(default=True, help_text="Whether this role is currently active")
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        unique_together = ('company', 'name')
+        ordering = ['company', 'name']
+
+    def __str__(self):
+        return f"{self.company.name} - {self.name}"
+
+    def get_permission_names(self):
+        """Get a list of permission names for display"""
+        return [perm.name for perm in self.permissions.all()]
+
+    @property
+    def permission_count(self):
+        """Get the number of permissions assigned to this role"""
+        return self.permissions.count()
+
+
+# Update CustomUser to include custom role
+class UserRole(models.Model):
+    """Junction table for users and their custom roles"""
+    user = models.ForeignKey(CustomUser, on_delete=models.CASCADE, related_name='custom_roles')
+    role = models.ForeignKey(Role, on_delete=models.CASCADE, related_name='users')
+    assigned_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        unique_together = ('user', 'role')
+
+    def __str__(self):
+        return f"{self.user.email} - {self.role.name}"
 

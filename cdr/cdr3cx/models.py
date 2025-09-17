@@ -27,6 +27,7 @@ class CallPattern(models.Model):
     ]
 
     company = models.ForeignKey(Company, on_delete=models.CASCADE, related_name='call_patterns')
+    name = models.CharField(max_length=100, default="", help_text="Name of the calling rule")
     pattern = models.CharField(max_length=20, help_text="Pattern for matching callee numbers, e.g., +1, 059")
     call_type = models.CharField(max_length=20, choices=CALL_TYPE_CHOICES)
     rate_per_min = models.DecimalField(max_digits=5, decimal_places=2, default=0.00, help_text="Rate per minute in SAR")
@@ -34,7 +35,7 @@ class CallPattern(models.Model):
     description = models.CharField(max_length=100, null=True, blank=True, help_text="Optional description of the pattern")
 
     def __str__(self):
-        return f"{self.company.name} - {self.call_type} ({self.pattern})"
+        return f"{self.company.name} - {self.name} ({self.pattern})"
 
     def get_regex_pattern(self):
         if self.pattern == '+':

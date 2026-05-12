@@ -1,0 +1,78 @@
+{% extends "partials/base.html" %}
+{% load static %}
+{% block title %}Audit Log{% endblock title %}
+
+{% block content %}
+{% include "partials/topbar.html" %}
+{% include "partials/sidebar.html" %}
+
+<div class="main-content"><div class="page-content"><div class="container-fluid">
+
+    <div class="page-title-box d-sm-flex align-items-center justify-content-between">
+        <h4 class="mb-sm-0">Audit Log</h4>
+    </div>
+
+    <!-- Filters -->
+    <div class="card mb-3"><div class="card-body py-2">
+        <form method="get" class="d-flex gap-2 align-items-center mb-0 flex-wrap">
+            <input name="user" value="{{ filters.user }}" placeholder="user email" class="form-control form-control-sm" style="width:200px">
+            <select name="method" class="form-select form-select-sm" style="width:auto">
+                <option value="">Any method</option>
+                <option value="POST" {% if filters.method == "POST" %}selected{% endif %}>POST</option>
+                <option value="PUT" {% if filters.method == "PUT" %}selected{% endif %}>PUT</option>
+                <option value="PATCH" {% if filters.method == "PATCH" %}selected{% endif %}>PATCH</option>
+                <option value="DELETE" {% if filters.method == "DELETE" %}selected{% endif %}>DELETE</option>
+                <option value="LOGIN" {% if filters.method == "LOGIN" %}selected{% endif %}>LOGIN</option>
+            </select>
+            <input name="q" value="{{ filters.q }}" placeholder="path contains…" class="form-control form-control-sm" style="width:240px">
+            <input name="status" value="{{ filters.status }}" placeholder="HTTP status" class="form-control form-control-sm" style="width:120px">
+            <button type="submit" class="btn btn-sm btn-primary">Filter</button>
+            <a href="{% url 'security:audit_log' %}" class="btn btn-sm btn-soft-secondary">Reset</a>
+        </form>
+    </div></div>
+
+    <div class="card"><div class="card-body p-0">
+        <div class="table-responsive">
+            <table class="table table-sm table-hover mb-0">
+                <thead class="table-light">
+                    <tr>
+                        <th>When</th>
+                        <th>User</th>
+                        <th>Method</th>
+                        <th>Path</th>
+                        <th>Status</th>
+                        <th>IP</th>
+                        <th>Object</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for e in entries %}
+                    <tr>
+                        <td><small class="text-muted">{{ e.created_at|date:"Y-m-d H:i:s" }}</small></td>
+                        <td><small>{{ e.user_email|default:"—" }}</small></td>
+                        <td>
+                            {% if e.method == "DELETE" %}<span class="badge bg-danger">{{ e.method }}</span>
+                            {% elif e.method == "LOGIN" %}<span class="badge bg-success">{{ e.method }}</span>
+                            {% else %}<span class="badge bg-info">{{ e.method }}</span>
+                            {% endif %}
+                        </td>
+                        <td><code>{{ e.path|truncatechars:64 }}</code></td>
+                        <td>
+                            {% if e.status_code >= 500 %}<span class="badge bg-danger">{{ e.status_code }}</span>
+                            {% elif e.status_code >= 400 %}<span class="badge bg-warning">{{ e.status_code }}</span>
+                            {% elif e.status_code %}<span class="badge bg-success">{{ e.status_code }}</span>
+                            {% else %}—{% endif %}
+                        </td>
+                        <td><small>{{ e.ip|default:"—" }}</small></td>
+                        <td><small>{{ e.object_repr|default:"" }}</small></td>
+                    </tr>
+                    {% empty %}
+                    <tr><td colspan="7" class="text-center text-muted py-5">No audit entries yet.</td></tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div></div>
+
+</div></div></div>
+{% endblock content %}

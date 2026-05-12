@@ -1,0 +1,99 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="en" data-bs-theme="dark">
+<head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Wallboard — Projection</title>
+    <link rel="stylesheet" href="{% static 'libs/bootstrap/css/bootstrap.min.css' %}" />
+    <style>
+        body { background: #0f172a; color: #f1f5f9; font-family: -apple-system, sans-serif; padding: 24px; }
+        .kpi { background: #1e293b; border-radius: 12px; padding: 24px; text-align: center; }
+        .kpi h3 { font-size: 14px; color: #94a3b8; text-transform: uppercase; letter-spacing: 0.05em; margin: 0 0 8px; }
+        .kpi .v { font-size: 64px; font-weight: 700; line-height: 1; margin: 0; }
+        .kpi.success .v { color: #4ade80; }
+        .kpi.warning .v { color: #fbbf24; }
+        .kpi.danger  .v { color: #f87171; }
+        .kpi.info    .v { color: #60a5fa; }
+        .recent { background: #1e293b; border-radius: 12px; padding: 16px; max-height: 400px; overflow: auto; }
+        .recent .row-call { display: flex; padding: 8px; border-bottom: 1px solid #334155; align-items: center; }
+        .recent .row-call:last-child { border-bottom: none; }
+        .ws-pill { position: fixed; top: 16px; right: 16px; padding: 6px 12px; border-radius: 999px; font-size: 12px; }
+        .pill-live { background: #16a34a; }
+        .pill-down { background: #dc2626; }
+    </style>
+</head>
+<body>
+    <div class="ws-pill pill-down" id="ws-status">connecting…</div>
+
+    <div class="row g-3 mb-3">
+        <div class="col-md-3"><div class="kpi info">
+            <h3>Calls (24h)</h3><p class="v" data-kpi="total">—</p></div></div>
+        <div class="col-md-3"><div class="kpi success">
+            <h3>Answer rate</h3><p class="v" data-kpi="answer_rate">—</p></div></div>
+        <div class="col-md-3"><div class="kpi warning">
+            <h3>Missed</h3><p class="v" data-kpi="missed">—</p></div></div>
+        <div class="col-md-3"><div class="kpi danger">
+            <h3>In progress</h3><p class="v" data-kpi="in_progress">—</p></div></div>
+    </div>
+
+    <div class="row g-3 mb-3">
+        <div class="col-md-4"><div class="kpi"><h3>Avg duration</h3><p class="v" data-kpi="avg_duration" style="font-size:48px">—</p></div></div>
+        <div class="col-md-4"><div class="kpi"><h3>Total talk time</h3><p class="v" data-kpi="total_duration" style="font-size:48px">—</p></div></div>
+        <div class="col-md-4"><div class="kpi"><h3>Cost (24h)</h3><p class="v" data-kpi="total_cost" style="font-size:48px">—</p></div></div>
+    </div>
+
+    <div class="recent">
+        <h3 style="font-size:14px;color:#94a3b8;text-transform:uppercase;margin-bottom:12px">Recent calls</h3>
+        <div id="recent-calls"></div>
+    </div>
+
+<script>
+const initial = {{ snapshot_json|safe|default:"{}" }};
+const wsScheme = window.location.protocol === 'https:' ? 'wss' : 'ws';
+const wsUrl = `${wsScheme}://${window.location.host}/ws/wallboard/`;
+const status = document.getElementById('ws-status');
+
+function fmt(s) {
+    if (!s) return '0s';
+    const h = Math.floor(s / 3600), m = Math.floor((s % 3600) / 60);
+    if (h) return `${h}h ${m}m`;
+    if (m) return `${m}m`;
+    return `${s}s`;
+}
+
+function applySnap(snap) {
+    if (!snap) return;
+    const c = snap.counters || {};
+    document.querySelectorAll('[data-kpi]').forEach(el => {
+        const k = el.dataset.kpi;
+        if (k === 'answer_rate') el.textContent = (c.answer_rate ?? 0) + '%';
+        else if (k === 'total_duration') el.textContent = fmt(c.total_duration ?? 0);
+        else if (k === 'avg_duration')  el.textContent = (c.avg_duration ?? 0) + 's';
+        else if (k === 'total_cost')    el.textContent = c.total_cost ?? '0';
+        else el.textContent = (c[k] ?? 0).toLocaleString();
+    });
+    const html = (snap.recent || []).map(r => `
+        <div class="row-call">
+            <div style="flex:0 0 80px;color:#94a3b8;font-size:12px">${(r.call_time || '').substr(11,5)}</div>
+            <div style="flex:1"><b>${r.caller || '?'}</b> → ${r.callee || '?'}</div>
+            <div style="flex:0 0 80px;text-align:right">${r.duration || 0}s</div>
+        </div>`).join('');
+    document.getElementById('recent-calls').innerHTML = html || '<div class="text-muted py-3">No calls yet.</div>';
+}
+
+function connect() {
+    const ws = new WebSocket(wsUrl);
+    ws.onopen = () => { status.textContent = 'LIVE'; status.className = 'ws-pill pill-live'; };
+    ws.onmessage = (ev) => {
+        const msg = JSON.parse(ev.data);
+        if (msg.type === 'snapshot') applySnap(msg.data);
+        else if (msg.type === 'call.completed') ws.send(JSON.stringify({action: 'refresh'}));
+    };
+    ws.onclose = () => { status.textContent = 'reconnecting'; status.className = 'ws-pill pill-down'; setTimeout(connect, 3000); };
+}
+applySnap(initial);
+connect();
+</script>
+</body>
+</html>

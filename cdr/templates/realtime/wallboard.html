@@ -1,0 +1,228 @@
+{% extends "partials/base.html" %}
+{% load static %}
+
+{% block title %}Live Wallboard{% endblock title %}
+
+{% block content %}
+{% include "partials/topbar.html" %}
+{% include "partials/sidebar.html" %}
+
+<div class="main-content">
+    <div class="page-content">
+        <div class="container-fluid">
+
+            <div class="row">
+                <div class="col-12">
+                    <div class="page-title-box d-sm-flex align-items-center justify-content-between">
+                        <h4 class="mb-sm-0">Live Wallboard
+                            <span id="ws-status" class="badge bg-secondary ms-2">connecting…</span>
+                        </h4>
+                        <div class="page-title-right">
+                            <a href="{% url 'realtime:wallboard_projection' %}" class="btn btn-soft-dark btn-sm">
+                                <i class="ri-tv-2-line"></i>  Open projection mode
+                            </a>
+                            <a href="{% url 'realtime:heatmap' %}" class="btn btn-soft-info btn-sm">
+                                <i class="ri-grid-line"></i>  Heatmap
+                            </a>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- KPI tiles -->
+            <div class="row" id="kpi-row">
+                <div class="col-md-3">
+                    <div class="card text-center"><div class="card-body">
+                        <h6 class="text-muted">Calls (24h)</h6>
+                        <h2 class="mb-0" data-kpi="total">—</h2>
+                    </div></div>
+                </div>
+                <div class="col-md-3">
+                    <div class="card text-center bg-soft-success border-0"><div class="card-body">
+                        <h6 class="text-muted">Answer rate</h6>
+                        <h2 class="mb-0 text-success" data-kpi="answer_rate">—</h2>
+                    </div></div>
+                </div>
+                <div class="col-md-3">
+                    <div class="card text-center bg-soft-warning border-0"><div class="card-body">
+                        <h6 class="text-muted">Missed</h6>
+                        <h2 class="mb-0 text-warning" data-kpi="missed">—</h2>
+                    </div></div>
+                </div>
+                <div class="col-md-3">
+                    <div class="card text-center bg-soft-info border-0"><div class="card-body">
+                        <h6 class="text-muted">In progress</h6>
+                        <h2 class="mb-0 text-info" data-kpi="in_progress">—</h2>
+                    </div></div>
+                </div>
+            </div>
+
+            <div class="row">
+                <div class="col-md-3">
+                    <div class="card text-center"><div class="card-body">
+                        <h6 class="text-muted">Avg duration (s)</h6>
+                        <h3 class="mb-0" data-kpi="avg_duration">—</h3>
+                    </div></div>
+                </div>
+                <div class="col-md-3">
+                    <div class="card text-center"><div class="card-body">
+                        <h6 class="text-muted">Total talk time (s)</h6>
+                        <h3 class="mb-0" data-kpi="total_duration">—</h3>
+                    </div></div>
+                </div>
+                <div class="col-md-6">
+                    <div class="card text-center"><div class="card-body">
+                        <h6 class="text-muted">Cost today</h6>
+                        <h3 class="mb-0" data-kpi="total_cost">—</h3>
+                    </div></div>
+                </div>
+            </div>
+
+            <!-- Hourly bar + recent calls -->
+            <div class="row">
+                <div class="col-lg-7">
+                    <div class="card">
+                        <div class="card-header"><b>Hourly volume (24h)</b></div>
+                        <div class="card-body" style="height:300px">
+                            <canvas id="hourly-chart"></canvas>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-lg-5">
+                    <div class="card">
+                        <div class="card-header"><b>Recent calls</b></div>
+                        <div class="card-body p-0" style="max-height:340px;overflow:auto">
+                            <table class="table table-sm mb-0">
+                                <tbody id="recent-calls">
+                                    <tr><td colspan="3" class="text-center text-muted py-4">No data yet…</td></tr>
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Toast container for live fraud alerts -->
+            <div class="toast-container position-fixed bottom-0 end-0 p-3" id="alert-toasts" style="z-index:1080"></div>
+
+        </div>
+    </div>
+</div>
+{% endblock content %}
+
+{% block extra_js %}
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+<script>
+(function () {
+    const initial = {{ snapshot_json|safe|default:"{}" }};
+    const wsScheme = window.location.protocol === 'https:' ? 'wss' : 'ws';
+    const wsUrl = `${wsScheme}://${window.location.host}/ws/wallboard/`;
+    const status = document.getElementById('ws-status');
+    let chart;
+
+    function fmtDuration(seconds) {
+        if (!seconds) return '0s';
+        const h = Math.floor(seconds / 3600), m = Math.floor((seconds % 3600) / 60), s = seconds % 60;
+        if (h) return `${h}h ${m}m`;
+        if (m) return `${m}m ${s}s`;
+        return `${s}s`;
+    }
+
+    function applySnapshot(snap) {
+        if (!snap) return;
+        const c = snap.counters || {};
+        document.querySelectorAll('[data-kpi]').forEach(el => {
+            const key = el.dataset.kpi;
+            if (key === 'answer_rate') el.textContent = (c.answer_rate ?? 0) + '%';
+            else if (key === 'avg_duration') el.textContent = (c.avg_duration ?? 0) + 's';
+            else if (key === 'total_duration') el.textContent = fmtDuration(c.total_duration ?? 0);
+            else if (key === 'total_cost') el.textContent = (c.total_cost ?? '0');
+            else el.textContent = (c[key] ?? 0).toLocaleString();
+        });
+
+        // Recent calls table
+        const tbody = document.getElementById('recent-calls');
+        if (snap.recent && snap.recent.length) {
+            tbody.innerHTML = snap.recent.map(r => `
+                <tr>
+                    <td><small class="text-muted">${(r.call_time || '').substr(11, 5)}</small></td>
+                    <td><code>${r.caller || '?'}</code> → <code>${r.callee || '?'}</code><br>
+                        <small class="text-muted">${r.from_dispname || ''} ${r.to_dispname ? '→ ' + r.to_dispname : ''}</small></td>
+                    <td class="text-end"><span class="badge bg-light text-dark">${r.duration || 0}s</span></td>
+                </tr>`).join('');
+        }
+
+        // Hourly chart
+        if (chart) {
+            chart.data.datasets[0].data = snap.hourly || [];
+            chart.update('none');
+        } else {
+            const ctx = document.getElementById('hourly-chart').getContext('2d');
+            chart = new Chart(ctx, {
+                type: 'bar',
+                data: {
+                    labels: Array.from({length: 24}, (_, i) => i + ':00'),
+                    datasets: [{label: 'Calls', data: snap.hourly || [],
+                                backgroundColor: '#3577f1aa', borderRadius: 4}],
+                },
+                options: {responsive: true, maintainAspectRatio: false,
+                          plugins: {legend: {display: false}}},
+            });
+        }
+    }
+
+    function showToast(severity, summary) {
+        const cls = ({critical:'bg-danger', high:'bg-warning', medium:'bg-info', low:'bg-secondary'})[severity] || 'bg-secondary';
+        const el = document.createElement('div');
+        el.className = `toast text-white ${cls}`;
+        el.setAttribute('role', 'alert');
+        el.innerHTML = `<div class="toast-body">
+            <b>[${severity.toUpperCase()}]</b> ${summary}
+        </div>`;
+        document.getElementById('alert-toasts').appendChild(el);
+        const t = new bootstrap.Toast(el, {delay: 8000});
+        t.show();
+        el.addEventListener('hidden.bs.toast', () => el.remove());
+    }
+
+    function flashKpi() {
+        document.querySelectorAll('[data-kpi="total"], [data-kpi="in_progress"]').forEach(el => {
+            el.parentElement.parentElement.classList.add('border-info');
+            setTimeout(() => el.parentElement.parentElement.classList.remove('border-info'), 700);
+        });
+    }
+
+    function connect() {
+        status.textContent = 'connecting…';
+        status.className = 'badge bg-secondary ms-2';
+        const ws = new WebSocket(wsUrl);
+
+        ws.onopen = () => {
+            status.textContent = 'live';
+            status.className = 'badge bg-success ms-2';
+        };
+
+        ws.onmessage = (ev) => {
+            const msg = JSON.parse(ev.data);
+            if (msg.type === 'snapshot') applySnapshot(msg.data);
+            else if (msg.type === 'call.completed') {
+                ws.send(JSON.stringify({action: 'refresh'}));
+                flashKpi();
+            }
+            else if (msg.type === 'fraud.detected') {
+                showToast(msg.data.severity, msg.data.summary);
+            }
+        };
+
+        ws.onclose = () => {
+            status.textContent = 'reconnecting…';
+            status.className = 'badge bg-warning ms-2';
+            setTimeout(connect, 3000);
+        };
+    }
+
+    applySnapshot(initial);
+    connect();
+})();
+</script>
+{% endblock extra_js %}

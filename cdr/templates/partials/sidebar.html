@@ -52,6 +52,12 @@
                                 <a href="{% url 'cdr3cx:dashboard'%}" class="nav-link" data-key="t-analytics"> Analytics </a>
                             </li>
                             <li class="nav-item">
+                                <a href="{% url 'realtime:wallboard'%}" class="nav-link" data-key="t-wallboard"> Live Wallboard </a>
+                            </li>
+                            <li class="nav-item">
+                                <a href="{% url 'realtime:heatmap'%}" class="nav-link" data-key="t-heatmap"> Volume Heatmap </a>
+                            </li>
+                            <li class="nav-item">
                                 <a href="{% url 'cdr3cx:top_extensions'%}" class="nav-link" data-key="t-extensions"> Reports </a>
                             </li>
                             <li class="nav-item">
@@ -86,6 +92,12 @@
                             </li>
                             <li class="nav-item">
                                 <a href="{% url 'cdr3cx:callpattern-list' %}" class="nav-link" data-key="t-calling-rules"> Calling Rules </a>
+                            </li>
+                            <li class="nav-item">
+                                <a href="{% url 'billing:fraud_incidents' %}" class="nav-link" data-key="t-fraud-incidents"> Fraud Incidents </a>
+                            </li>
+                            <li class="nav-item">
+                                <a href="{% url 'security:audit_log' %}" class="nav-link" data-key="t-audit-log"> Audit Log </a>
                             </li>
                         </ul>
                     </div>

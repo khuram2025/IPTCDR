@@ -1,0 +1,68 @@
+{% extends "partials/base.html" %}
+{% load static %}
+
+{% block title %}Call Volume Heatmap{% endblock title %}
+
+{% block content %}
+{% include "partials/topbar.html" %}
+{% include "partials/sidebar.html" %}
+
+<div class="main-content"><div class="page-content"><div class="container-fluid">
+
+    <div class="page-title-box d-sm-flex align-items-center justify-content-between">
+        <h4 class="mb-sm-0">Call Volume Heatmap</h4>
+    </div>
+
+    <div class="card"><div class="card-body">
+        <p class="text-muted">Calls per hour over the last <b>{{ heatmap.days }} days</b>. Darker = more calls.</p>
+        <div id="heatmap-grid" style="display:grid;grid-template-columns:60px repeat(24,1fr);gap:2px;font-size:11px">
+            <!-- header row -->
+            <div></div>
+            {% for h in "012345678901234567890123" %}
+                <div class="text-center text-muted">{{ forloop.counter0 }}</div>
+            {% endfor %}
+            {% for row in heatmap.grid %}
+                <div class="text-end text-muted pe-2" style="line-height:24px">
+                    {% with day_names="Mon,Tue,Wed,Thu,Fri,Sat,Sun" %}
+                        {{ day_names|cut:" "|slice:forloop.counter0|default:"Mon" }}
+                    {% endwith %}
+                </div>
+                {% for v in row %}
+                    <div class="hm-cell" data-v="{{ v }}"
+                         title="{{ v }} calls"
+                         style="height:24px;border-radius:2px"></div>
+                {% endfor %}
+            {% endfor %}
+        </div>
+    </div></div>
+
+</div></div></div>
+
+<script>
+(function () {
+    const cells = document.querySelectorAll('.hm-cell');
+    let max = 1;
+    cells.forEach(c => { max = Math.max(max, parseInt(c.dataset.v || '0', 10)); });
+    cells.forEach(c => {
+        const v = parseInt(c.dataset.v || '0', 10);
+        if (v === 0) {
+            c.style.background = '#f1f5f9';
+        } else {
+            const intensity = Math.min(1, v / max);
+            // Tailwind blue-500 base: rgb(59,130,246)
+            const alpha = 0.15 + 0.85 * intensity;
+            c.style.background = `rgba(59,130,246,${alpha.toFixed(2)})`;
+            c.style.color = intensity > 0.6 ? 'white' : '#1e293b';
+            c.textContent = v;
+            c.style.textAlign = 'center';
+            c.style.fontWeight = '600';
+            c.style.fontSize = '10px';
+            c.style.lineHeight = '24px';
+        }
+    });
+    // Day labels are tricky in pure template; fix via JS
+    const days = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
+    document.querySelectorAll('#heatmap-grid > div.text-end').forEach((el, i) => { el.textContent = days[i]; });
+})();
+</script>
+{% endblock content %}

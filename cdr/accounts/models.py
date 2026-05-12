@@ -29,11 +29,37 @@ class PasswordResetOTP(models.Model):
 
     def __str__(self):
         return f"OTP for {self.user.email} ({self.otp_code})"
+class Currency(models.Model):
+    code = models.CharField(max_length=3, unique=True, help_text="ISO 4217 code (SAR, AED, USD)")
+    name = models.CharField(max_length=64)
+    symbol = models.CharField(max_length=8, help_text="Display symbol (ر.س, د.إ, $)")
+    decimals = models.PositiveSmallIntegerField(default=2)
+    is_active = models.BooleanField(default=True)
+
+    class Meta:
+        ordering = ["code"]
+        verbose_name_plural = "Currencies"
+
+    def __str__(self):
+        return f"{self.code} ({self.symbol})"
+
+
 class Company(models.Model):
     name = models.CharField(max_length=255)
     address = models.CharField(max_length=255, null=True, blank=True)
     phone = models.CharField(max_length=20, null=True, blank=True)  # Ensure this field is defined
     listening_port = models.IntegerField(null=True, blank=True)
+    country_code = models.CharField(
+        max_length=2, default='SA',
+        help_text="ISO 3166-1 alpha-2 (SA, AE, EG, QA, KW, BH, OM, JO, US, GB, PK, IN)",
+    )
+    currency = models.ForeignKey(
+        'Currency', on_delete=models.PROTECT, null=True, blank=True,
+        related_name='companies',
+        help_text="Tenant billing currency. Defaults to SAR via data migration.",
+    )
+    vat_number = models.CharField(max_length=32, null=True, blank=True,
+                                  help_text="VAT/Tax registration number for invoices")
 
     def __str__(self):
         return self.name

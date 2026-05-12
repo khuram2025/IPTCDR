@@ -39,6 +39,8 @@ CSRF_TRUSTED_ORIGINS = [
 # Application definition
 
 INSTALLED_APPS = [
+    # daphne must precede django.contrib.staticfiles to override runserver
+    'daphne',
     'django.contrib.admin',
     'django.contrib.auth',
     'django.contrib.contenttypes',
@@ -52,7 +54,65 @@ INSTALLED_APPS = [
     'notifications',
     'import_export',
     'mathfilters',
+    'billing',
+    'rest_framework',
+    'drf_spectacular',
+    'api',
+    'channels',
+    'realtime',
+    'security',
 ]
+
+# ---------------------------------------------------------------------------
+# Django Channels — real-time wallboard via WebSocket
+# ---------------------------------------------------------------------------
+ASGI_APPLICATION = 'cdr.asgi.application'
+
+# In-memory channel layer for dev/test. Swap to channels_redis in production:
+#   CHANNEL_LAYERS = {'default': {'BACKEND': 'channels_redis.core.RedisChannelLayer',
+#                                 'CONFIG': {'hosts': [(REDIS_HOST, 6379)]}}}
+CHANNEL_LAYERS = {
+    'default': {'BACKEND': 'channels.layers.InMemoryChannelLayer'},
+}
+
+# ---------------------------------------------------------------------------
+# Django REST Framework — public API for partners and integrations
+# ---------------------------------------------------------------------------
+REST_FRAMEWORK = {
+    'DEFAULT_AUTHENTICATION_CLASSES': [
+        'api.auth.ApiKeyAuthentication',
+        'rest_framework.authentication.SessionAuthentication',
+    ],
+    'DEFAULT_PERMISSION_CLASSES': [
+        'rest_framework.permissions.IsAuthenticated',
+        'api.auth.HasApiKeyScope',
+    ],
+    'DEFAULT_THROTTLE_CLASSES': [
+        'api.throttling.ApiKeyScopedThrottle',
+        'rest_framework.throttling.AnonRateThrottle',
+    ],
+    'DEFAULT_THROTTLE_RATES': {
+        'anon':         '20/min',
+        'api_key.free': '60/min',
+        'api_key.paid': '600/min',
+        'api_key.pro':  '6000/min',
+    },
+    'DEFAULT_PAGINATION_CLASS': 'rest_framework.pagination.PageNumberPagination',
+    'PAGE_SIZE': 50,
+    'DEFAULT_SCHEMA_CLASS': 'drf_spectacular.openapi.AutoSchema',
+    'DEFAULT_FILTER_BACKENDS': [
+        'rest_framework.filters.OrderingFilter',
+        'rest_framework.filters.SearchFilter',
+    ],
+}
+
+SPECTACULAR_SETTINGS = {
+    'TITLE': 'IPT Portal API',
+    'DESCRIPTION': 'Multi-PBX call accounting, billing & analytics API',
+    'VERSION': '1.0.0',
+    'SERVE_INCLUDE_SCHEMA': False,
+    'COMPONENT_SPLIT_REQUEST': True,
+}
 
 # Site ID for allauth
 SITE_ID = 1
@@ -87,7 +147,12 @@ MIDDLEWARE = [
     'django.middleware.clickjacking.XFrameOptionsMiddleware',
     'cdr3cx.middleware.CDRRequestMiddleware',
     'cdr3cx.company_middleware.CompanyValidationMiddleware',  # Add company validation
-    # 'cdr3cx.middleware.DomainRoutingMiddleware', 
+    # 'cdr3cx.middleware.DomainRoutingMiddleware',
+
+    # Security middleware (must run after AuthenticationMiddleware)
+    'security.middleware.IpWhitelistMiddleware',
+    'security.middleware.DynamicSessionTimeoutMiddleware',
+    'security.middleware.AuditLogMiddleware',
 ]
 
 ROOT_URLCONF = 'cdr.urls'
@@ -238,19 +303,18 @@ DATABASE_CONNECTION_POOL = True
 # https://docs.djangoproject.com/en/5.0/ref/settings/#auth-password-validators
 
 AUTH_PASSWORD_VALIDATORS = [
-    {
-        'NAME': 'django.contrib.auth.password_validation.UserAttributeSimilarityValidator',
-    },
-    {
-        'NAME': 'django.contrib.auth.password_validation.MinimumLengthValidator',
-    },
-    {
-        'NAME': 'django.contrib.auth.password_validation.CommonPasswordValidator',
-    },
-    {
-        'NAME': 'django.contrib.auth.password_validation.NumericPasswordValidator',
-    },
+    {'NAME': 'django.contrib.auth.password_validation.UserAttributeSimilarityValidator'},
+    {'NAME': 'django.contrib.auth.password_validation.CommonPasswordValidator'},
+    {'NAME': 'django.contrib.auth.password_validation.NumericPasswordValidator'},
+    {'NAME': 'security.validators.StrongPasswordValidator'},
+    {'NAME': 'security.validators.PasswordHistoryValidator',
+     'OPTIONS': {'history_size': 5}},
 ]
+
+# Default session settings (per-tenant overrides applied by middleware)
+SESSION_COOKIE_AGE = 8 * 60 * 60  # 8 hours
+SESSION_SAVE_EVERY_REQUEST = True  # extend on activity
+SESSION_EXPIRE_AT_BROWSER_CLOSE = False
 
 AUTH_USER_MODEL = 'accounts.CustomUser'
 

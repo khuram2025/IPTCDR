@@ -82,7 +82,38 @@ import logging
 logger = logging.getLogger(__name__)
 
 class CallRecord(models.Model):
+    SOURCE_PBX_CHOICES = [
+        ('3cx', '3CX'),
+        ('cisco_cucm', 'Cisco CUCM'),
+        ('ms_teams', 'Microsoft Teams'),
+        ('webex_calling', 'Webex Calling'),
+        ('zoom_phone', 'Zoom Phone'),
+        ('asterisk', 'Asterisk / FreePBX'),
+        ('yeastar', 'Yeastar'),
+        ('grandstream', 'Grandstream'),
+        ('generic_sip', 'Generic SIP'),
+        ('avaya', 'Avaya'),
+        ('mitel', 'Mitel'),
+    ]
+
     company = models.ForeignKey(Company, on_delete=models.SET_NULL, null=True, blank=True, related_name='call_records')
+    source_pbx = models.CharField(max_length=20, choices=SOURCE_PBX_CHOICES, default='3cx', db_index=True,
+                                  help_text="Originating PBX platform — set by ingestion adapter")
+    external_id = models.CharField(max_length=128, null=True, blank=True, db_index=True,
+                                   help_text="PBX-side unique ID (CUCM pkid, Teams callRecord.id, Zoom call_id, etc.)")
+    correlation_id = models.CharField(max_length=128, null=True, blank=True, db_index=True,
+                                      help_text="Multi-leg correlation (Webex Correlation ID, Zoom call_uuid)")
+    raw_data = models.JSONField(null=True, blank=True,
+                                help_text="Original vendor payload preserved for re-processing")
+
+    # Quality of Service (where adapter provides)
+    mos = models.DecimalField(max_digits=4, decimal_places=2, null=True, blank=True,
+                              help_text="Mean Opinion Score 1.0-5.0")
+    jitter_ms = models.IntegerField(null=True, blank=True)
+    packet_loss_pct = models.DecimalField(max_digits=5, decimal_places=2, null=True, blank=True)
+    latency_ms = models.IntegerField(null=True, blank=True)
+    codec = models.CharField(max_length=32, null=True, blank=True)
+
     caller = models.CharField(max_length=20, null=True, blank=True)
     callee = models.CharField(max_length=20)
     call_time = models.DateTimeField(null=True)

@@ -1,0 +1,78 @@
+{% extends "partials/base.html" %}
+{% load static %}
+
+{% block title %}Free Toll-Fraud Audit{% endblock title %}
+
+{% block content %}
+<div class="auth-page-content">
+    <div class="container py-5">
+        <div class="row justify-content-center">
+            <div class="col-lg-8">
+
+                <div class="text-center mb-4">
+                    <h1 class="display-6 mb-2">Free Toll-Fraud Audit</h1>
+                    <p class="text-muted">
+                        Upload a CSV of your last 7–30 days of CDRs. We'll run them through our
+                        fraud rule engine and email you a branded PDF report with findings,
+                        risk level, and recommended controls. <strong>Takes ~30 seconds.</strong>
+                    </p>
+                </div>
+
+                {% if error %}
+                <div class="alert alert-danger">{{ error }}</div>
+                {% endif %}
+
+                <div class="card shadow-sm">
+                    <div class="card-body p-4">
+                        <form method="post" enctype="multipart/form-data">
+                            {% csrf_token %}
+
+                            <div class="row g-3">
+                                <div class="col-md-6">
+                                    <label class="form-label">Your name</label>
+                                    <input type="text" name="contact_name" class="form-control"
+                                           placeholder="Khalid Al-Saud" required>
+                                </div>
+                                <div class="col-md-6">
+                                    <label class="form-label">Company</label>
+                                    <input type="text" name="contact_company" class="form-control"
+                                           placeholder="Acme Bank" required>
+                                </div>
+                                <div class="col-md-12">
+                                    <label class="form-label">Work email</label>
+                                    <input type="email" name="contact_email" class="form-control"
+                                           placeholder="khalid@acmebank.sa" required>
+                                </div>
+                                <div class="col-md-12">
+                                    <label class="form-label">CDR CSV file</label>
+                                    <input type="file" name="cdr_csv" class="form-control"
+                                           accept=".csv" required>
+                                    <div class="form-text">
+                                        Required column: <code>callee</code>. Recommended:
+                                        <code>call_time</code>, <code>caller</code>,
+                                        <code>duration</code>, <code>total_cost</code>.
+                                        Max 5 MB. Data is processed in memory and never stored.
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div class="d-grid mt-4">
+                                <button type="submit" class="btn btn-primary btn-lg">
+                                    <i class="ri-shield-check-line"></i>  Generate my audit PDF
+                                </button>
+                            </div>
+                        </form>
+                    </div>
+                </div>
+
+                <div class="text-center mt-4 text-muted small">
+                    <i class="ri-lock-line"></i>  Your CDR data is parsed in memory and
+                    discarded immediately after the report is generated. Only your contact
+                    details are kept so we can follow up.
+                </div>
+
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock content %}

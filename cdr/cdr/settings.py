@@ -51,6 +51,7 @@ INSTALLED_APPS = [
     'crispy_bootstrap4',
     'notifications',
     'import_export',
+    'mathfilters',
 ]
 
 # Site ID for allauth

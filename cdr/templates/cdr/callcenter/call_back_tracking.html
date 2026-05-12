@@ -1,0 +1,448 @@
+{% extends 'partials/base.html' %}
+{% load static %}
+
+{% block title %}Call Back Tracking{% endblock %}
+
+{% block content %}
+<!-- ============================================================== -->
+<!-- Start right Content here -->
+<!-- ============================================================== -->
+<div class="main-content">
+    <div class="page-content">
+        <div class="container-fluid">
+        <!-- start page title -->
+        <div class="row">
+            <div class="col-12">
+                <div class="page-title-box d-sm-flex align-items-center justify-content-between">
+                    <h4 class="mb-sm-0">Call Back Tracking</h4>
+                    <div class="page-title-right">
+                        <ol class="breadcrumb m-0">
+                            <li class="breadcrumb-item"><a href="{% url 'cdr3cx:dashboard' %}">Dashboard</a></li>
+                            <li class="breadcrumb-item"><a href="{% url 'cdr3cx:call_center_dashboard' %}">Call Center</a></li>
+                            <li class="breadcrumb-item active">Call Back Tracking</li>
+                        </ol>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <!-- end page title -->
+
+        {% if error %}
+        <div class="row">
+            <div class="col-12">
+                <div class="alert alert-danger" role="alert">
+                    <strong>Error:</strong> {{ error }}
+                </div>
+            </div>
+        </div>
+        {% else %}
+
+        <!-- Date Range Filter -->
+        <div class="row mb-3">
+            <div class="col-12">
+                <div class="d-flex align-items-center justify-content-between flex-wrap bg-light p-3 rounded">
+                    <div class="d-flex align-items-center flex-wrap gap-3">
+                        <h5 class="mb-0 text-muted">Filter by Date Range:</h5>
+                        <form method="get" class="d-flex align-items-center gap-3 flex-wrap">
+                            <div class="d-flex align-items-center gap-2">
+                                <label for="start_date" class="form-label mb-0 text-nowrap">From:</label>
+                                <input type="date" class="form-control form-control-sm" id="start_date" name="start_date" value="{{ start_date }}" style="width: 150px;">
+                            </div>
+                            <div class="d-flex align-items-center gap-2">
+                                <label for="end_date" class="form-label mb-0 text-nowrap">To:</label>
+                                <input type="date" class="form-control form-control-sm" id="end_date" name="end_date" value="{{ end_date }}" style="width: 150px;">
+                            </div>
+                            <div class="d-flex gap-2">
+                                <button type="submit" class="btn btn-primary btn-sm">
+                                    <i class="ri-filter-line me-1"></i>Apply Filter
+                                </button>
+                                <a href="{% url 'cdr3cx:call_back_tracking' %}" class="btn btn-outline-secondary btn-sm">
+                                    <i class="ri-refresh-line me-1"></i>Reset
+                                </a>
+                            </div>
+                        </form>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Summary Cards -->
+        <div class="row mb-4">
+            <div class="col-xl-4 col-md-6">
+                <div class="card card-height-100">
+                    <div class="card-body">
+                        <div class="d-flex align-items-center">
+                            <div class="avatar-sm flex-shrink-0">
+                                <span class="avatar-title bg-primary-subtle text-primary rounded-circle fs-3">
+                                    <i class="ri-phone-back-line"></i>
+                                </span>
+                            </div>
+                            <div class="flex-grow-1 ms-3">
+                                <p class="text-uppercase fw-semibold fs-12 text-muted mb-1">Callbacks Made</p>
+                                <h4 class="mb-0">{{ total_missed_with_callbacks|floatformat:0 }}</h4>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="col-xl-4 col-md-6">
+                <div class="card card-height-100">
+                    <div class="card-body">
+                        <div class="d-flex align-items-center">
+                            <div class="avatar-sm flex-shrink-0">
+                                <span class="avatar-title bg-success-subtle text-success rounded-circle fs-3">
+                                    <i class="ri-check-double-line"></i>
+                                </span>
+                            </div>
+                            <div class="flex-grow-1 ms-3">
+                                <p class="text-uppercase fw-semibold fs-12 text-muted mb-1">Successful Callbacks</p>
+                                <h4 class="mb-0">{{ successful_callbacks|floatformat:0 }}</h4>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="col-xl-4 col-md-6">
+                <div class="card card-height-100">
+                    <div class="card-body">
+                        <div class="d-flex align-items-center">
+                            <div class="avatar-sm flex-shrink-0">
+                                <span class="avatar-title bg-info-subtle text-info rounded-circle fs-3">
+                                    <i class="ri-percent-line"></i>
+                                </span>
+                            </div>
+                            <div class="flex-grow-1 ms-3">
+                                <p class="text-uppercase fw-semibold fs-12 text-muted mb-1">Success Rate</p>
+                                <h4 class="mb-0">{{ callback_success_rate }}%</h4>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Agent Performance and Callback Details -->
+        <div class="row">
+            <div class="col-xl-4">
+                <div class="card">
+                    <div class="card-header d-flex justify-content-between align-items-center">
+                        <h4 class="card-title mb-0">Agent Callback Performance</h4>
+                        {% if selected_agent %}
+                        <a href="?start_date={{ start_date }}&end_date={{ end_date }}" class="btn btn-sm btn-outline-secondary">
+                            <i class="ri-close-line"></i> Clear Filter
+                        </a>
+                        {% endif %}
+                    </div>
+                    <div class="card-body">
+                        <div class="table-responsive">
+                            <table class="table table-hover table-nowrap align-middle mb-0">
+                                <thead class="table-light">
+                                    <tr>
+                                        <th scope="col">Agent</th>
+                                        <th scope="col">Attempts</th>
+                                        <th scope="col">Success Rate</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    {% for agent in agent_performance %}
+                                    <tr class="agent-row {% if selected_agent == agent.extension %}table-active{% endif %}"
+                                        style="cursor: pointer;"
+                                        onclick="filterByAgent('{{ agent.extension }}')">
+                                        <td>
+                                            <div class="d-flex align-items-center">
+                                                <div class="avatar-xs me-2">
+                                                    <div class="avatar-title bg-primary-subtle text-primary rounded-circle fs-6">
+                                                        {{ agent.name|first|upper }}
+                                                    </div>
+                                                </div>
+                                                <div>
+                                                    <h6 class="mb-0">{{ agent.name }}</h6>
+                                                    <small class="text-muted">Ext. {{ agent.extension }}</small>
+                                                </div>
+                                            </div>
+                                        </td>
+                                        <td><span class="badge bg-primary">{{ agent.total_attempts }}</span></td>
+                                        <td>
+                                            <span class="badge {% if agent.success_rate >= 70 %}bg-success{% elif agent.success_rate >= 40 %}bg-warning{% else %}bg-danger{% endif %}">
+                                                {{ agent.success_rate }}%
+                                            </span>
+                                        </td>
+                                    </tr>
+                                    {% empty %}
+                                    <tr>
+                                        <td colspan="3" class="text-center">No callback data available</td>
+                                    </tr>
+                                    {% endfor %}
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="col-xl-8">
+                <div class="card">
+                    <div class="card-header">
+                        <h4 class="card-title mb-0">
+                            Call Back Tracking Details
+                            {% if selected_agent %}
+                            <span class="badge bg-info ms-2">Filtered by Agent</span>
+                            {% endif %}
+                        </h4>
+                    </div>
+                    <div class="card-body">
+                        <div class="table-responsive">
+                            <table class="table table-hover table-nowrap align-middle mb-0">
+                                <thead class="table-light">
+                                    <tr>
+                                        <th scope="col" style="width: 30px;"></th>
+                                        <th scope="col">Missed Call</th>
+                                        <th scope="col">IVR</th>
+                                        <th scope="col">Callback Agent</th>
+                                        <th scope="col">Attempts</th>
+                                        <th scope="col">Response Time</th>
+                                        <th scope="col">Last Callback</th>
+                                        <th scope="col">Status</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    {% for tracking in callback_tracking %}
+                                    <!-- Main Row -->
+                                    <tr class="callback-main-row" style="cursor: pointer;" onclick="toggleCallbackDetails('callback-{{ forloop.counter }}')">
+                                        <td>
+                                            <i class="ri-arrow-right-s-line expand-icon" id="icon-callback-{{ forloop.counter }}"></i>
+                                        </td>
+                                        <td>
+                                            <div>
+                                                <h6 class="mb-1">{{ tracking.missed_number }}</h6>
+                                                <small class="text-muted">{{ tracking.missed_time|date:"M d, H:i" }}</small>
+                                            </div>
+                                        </td>
+                                        <td>
+                                            <span class="badge bg-info">IVR {{ tracking.missed_ivr }}</span>
+                                        </td>
+                                        <td>
+                                            <div>
+                                                <h6 class="mb-0">{{ tracking.agent_name }}</h6>
+                                                <small class="text-muted">Ext. {{ tracking.agent_extension }}</small>
+                                            </div>
+                                        </td>
+                                        <td>
+                                            <span class="badge bg-secondary">{{ tracking.total_attempts }}</span>
+                                        </td>
+                                        <td>
+                                            {% if tracking.time_to_callback %}
+                                                {% if tracking.time_to_callback < 60 %}
+                                                    <span class="badge bg-success">{{ tracking.formatted_response_time }}</span>
+                                                {% elif tracking.time_to_callback < 240 %}
+                                                    <span class="badge bg-warning">{{ tracking.formatted_response_time }}</span>
+                                                {% else %}
+                                                    <span class="badge bg-danger">{{ tracking.formatted_response_time }}</span>
+                                                {% endif %}
+                                            {% else %}
+                                                <span class="text-muted">-</span>
+                                            {% endif %}
+                                        </td>
+                                        <td>
+                                            {% if tracking.latest_callback_time %}
+                                                {{ tracking.latest_callback_time|date:"M d, H:i" }}
+                                            {% else %}
+                                                <span class="text-muted">-</span>
+                                            {% endif %}
+                                        </td>
+                                        <td>
+                                            {% if tracking.successful_callback %}
+                                                <span class="badge bg-success">
+                                                    <i class="ri-check-line me-1"></i>Connected
+                                                </span>
+                                            {% else %}
+                                                <span class="badge bg-warning">
+                                                    <i class="ri-time-line me-1"></i>Attempted
+                                                </span>
+                                            {% endif %}
+                                        </td>
+                                    </tr>
+                                    <!-- Expandable Details Row -->
+                                    <tr id="callback-{{ forloop.counter }}" class="callback-details-row" style="display: none;">
+                                        <td colspan="8" style="background-color: #f8f9fa; padding: 20px;">
+                                            <div class="ps-4">
+                                                <h6 class="mb-3"><i class="ri-list-check me-2"></i>Callback Attempt Details</h6>
+                                                <div class="table-responsive">
+                                                    <table class="table table-sm table-bordered mb-0">
+                                                        <thead class="table-light">
+                                                            <tr>
+                                                                <th>#</th>
+                                                                <th>Attempt Time</th>
+                                                                <th>Response Time</th>
+                                                                <th>Status</th>
+                                                                <th>Duration</th>
+                                                                <th>Termination Reason</th>
+                                                            </tr>
+                                                        </thead>
+                                                        <tbody>
+                                                            {% for callback in tracking.callbacks %}
+                                                            <tr>
+                                                                <td><strong>{{ forloop.counter }}</strong></td>
+                                                                <td>{{ callback.call_time|date:"M d, Y H:i:s" }}</td>
+                                                                <td>
+                                                                    {% if callback.minutes_after_missed < 60 %}
+                                                                        <span class="badge bg-success">{{ callback.formatted_time_diff }}</span>
+                                                                    {% elif callback.minutes_after_missed < 240 %}
+                                                                        <span class="badge bg-warning">{{ callback.formatted_time_diff }}</span>
+                                                                    {% else %}
+                                                                        <span class="badge bg-danger">{{ callback.formatted_time_diff }}</span>
+                                                                    {% endif %}
+                                                                </td>
+                                                                <td>
+                                                                    {% if callback.time_answered %}
+                                                                        <span class="badge bg-success"><i class="ri-check-line"></i> Answered</span>
+                                                                    {% else %}
+                                                                        <span class="badge bg-danger"><i class="ri-close-line"></i> Not Answered</span>
+                                                                    {% endif %}
+                                                                </td>
+                                                                <td>
+                                                                    {% if callback.duration %}
+                                                                        <strong>{{ callback.duration }}s</strong>
+                                                                    {% else %}
+                                                                        <span class="text-muted">0s</span>
+                                                                    {% endif %}
+                                                                </td>
+                                                                <td>
+                                                                    <small class="text-muted">{{ callback.reason_terminated|default:"-" }}</small>
+                                                                </td>
+                                                            </tr>
+                                                            {% endfor %}
+                                                        </tbody>
+                                                    </table>
+                                                </div>
+                                            </div>
+                                        </td>
+                                    </tr>
+                                    {% empty %}
+                                    <tr>
+                                        <td colspan="8" class="text-center py-4">
+                                            <div class="text-muted">
+                                                <i class="ri-phone-back-line fs-1 text-muted"></i>
+                                                <h5 class="mt-2">No callback data found</h5>
+                                                <p>No callback attempts found for missed calls in the selected date range.</p>
+                                            </div>
+                                        </td>
+                                    </tr>
+                                    {% endfor %}
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Information Card -->
+        <div class="row mt-4">
+            <div class="col-12">
+                <div class="card bg-light border-0">
+                    <div class="card-body">
+                        <div class="d-flex">
+                            <div class="flex-shrink-0">
+                                <i class="ri-information-line text-info fs-2"></i>
+                            </div>
+                            <div class="flex-grow-1 ms-3">
+                                <h5 class="card-title">How Call Back Tracking Works</h5>
+                                <p class="card-text mb-2">
+                                    This dashboard tracks when agents call back customers who previously missed IVR calls:
+                                </p>
+                                <ul class="mb-0">
+                                    <li><strong>Missed Call Detection:</strong> Identifies calls that reached IVR but weren't answered by agents</li>
+                                    <li><strong>Callback Matching:</strong> Finds outgoing calls from extensions to numbers that previously missed calls</li>
+                                    <li><strong>Success Tracking:</strong> Monitors whether callbacks were answered and connected</li>
+                                    <li><strong>Response Time:</strong> Measures how quickly agents respond to missed calls</li>
+                                </ul>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        {% endif %}
+        </div>
+    </div>
+</div>
+
+<style>
+.expand-icon {
+    transition: transform 0.3s ease;
+    font-size: 18px;
+}
+
+.expand-icon.expanded {
+    transform: rotate(90deg);
+}
+
+.callback-main-row:hover {
+    background-color: #f0f8ff;
+}
+
+.callback-details-row {
+    background-color: #f8f9fa;
+}
+</style>
+
+<script>
+function filterByAgent(agentExtension) {
+    const urlParams = new URLSearchParams(window.location.search);
+    const currentAgent = urlParams.get('agent');
+
+    // If clicking on the same agent, clear the filter
+    if (currentAgent === agentExtension) {
+        urlParams.delete('agent');
+    } else {
+        urlParams.set('agent', agentExtension);
+    }
+
+    // Preserve date filters
+    const startDate = urlParams.get('start_date') || '{{ start_date }}';
+    const endDate = urlParams.get('end_date') || '{{ end_date }}';
+
+    if (startDate && !urlParams.has('start_date')) {
+        urlParams.set('start_date', startDate);
+    }
+    if (endDate && !urlParams.has('end_date')) {
+        urlParams.set('end_date', endDate);
+    }
+
+    // Redirect with new parameters
+    window.location.search = urlParams.toString();
+}
+
+function toggleCallbackDetails(rowId) {
+    const detailsRow = document.getElementById(rowId);
+    const icon = document.getElementById('icon-' + rowId);
+
+    if (detailsRow.style.display === 'none') {
+        detailsRow.style.display = 'table-row';
+        icon.classList.add('expanded');
+    } else {
+        detailsRow.style.display = 'none';
+        icon.classList.remove('expanded');
+    }
+}
+
+// Add hover effect to agent rows
+document.addEventListener('DOMContentLoaded', function() {
+    const agentRows = document.querySelectorAll('.agent-row');
+    agentRows.forEach(row => {
+        row.addEventListener('mouseenter', function() {
+            this.style.backgroundColor = '#f0f8ff';
+        });
+        row.addEventListener('mouseleave', function() {
+            if (!this.classList.contains('table-active')) {
+                this.style.backgroundColor = '';
+            }
+        });
+    });
+});
+</script>
+{% endblock %}

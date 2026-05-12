@@ -1,0 +1,171 @@
+{% extends 'partials/base.html' %}
+{% load static %}
+
+{% block title %}Missed Calls Details{% endblock %}
+
+{% block content %}
+<!-- ============================================================== -->
+<!-- Start right Content here -->
+<!-- ============================================================== -->
+<div class="main-content">
+    <div class="page-content">
+        <div class="container-fluid">
+        <!-- start page title -->
+        <div class="row">
+            <div class="col-12">
+                <div class="page-title-box d-sm-flex align-items-center justify-content-between">
+                    <h4 class="mb-sm-0">Missed Call Center Calls</h4>
+                    <div class="page-title-right">
+                        <ol class="breadcrumb m-0">
+                            <li class="breadcrumb-item"><a href="{% url 'cdr3cx:dashboard' %}">Dashboard</a></li>
+                            <li class="breadcrumb-item"><a href="{% url 'cdr3cx:call_center_dashboard' %}">Call Center</a></li>
+                            <li class="breadcrumb-item active">Missed Calls</li>
+                        </ol>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <!-- end page title -->
+
+        {% if error %}
+        <div class="row">
+            <div class="col-12">
+                <div class="alert alert-danger" role="alert">
+                    <strong>Error:</strong> {{ error }}
+                </div>
+            </div>
+        </div>
+        {% else %}
+
+        <!-- Date Range Filter -->
+        <div class="row mb-3">
+            <div class="col-12">
+                <div class="d-flex align-items-center justify-content-between flex-wrap bg-light p-3 rounded">
+                    <div class="d-flex align-items-center flex-wrap gap-3">
+                        <h5 class="mb-0 text-muted">Filter by Date Range:</h5>
+                        <form method="get" class="d-flex align-items-center gap-3 flex-wrap">
+                            <div class="d-flex align-items-center gap-2">
+                                <label for="start_date" class="form-label mb-0 text-nowrap">From:</label>
+                                <input type="date" class="form-control form-control-sm" id="start_date" name="start_date" value="{{ start_date }}" style="width: 150px;">
+                            </div>
+                            <div class="d-flex align-items-center gap-2">
+                                <label for="end_date" class="form-label mb-0 text-nowrap">To:</label>
+                                <input type="date" class="form-control form-control-sm" id="end_date" name="end_date" value="{{ end_date }}" style="width: 150px;">
+                            </div>
+                            <div class="d-flex gap-2">
+                                <button type="submit" class="btn btn-primary btn-sm">
+                                    <i class="ri-filter-line me-1"></i>Apply Filter
+                                </button>
+                                <a href="{% url 'cdr3cx:missed_calls_details' %}" class="btn btn-outline-secondary btn-sm">
+                                    <i class="ri-refresh-line me-1"></i>Reset
+                                </a>
+                            </div>
+                        </form>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Summary Card -->
+        <div class="row mb-3">
+            <div class="col-12">
+                <div class="card">
+                    <div class="card-body">
+                        <div class="d-flex align-items-center">
+                            <div class="avatar-sm flex-shrink-0">
+                                <span class="avatar-title bg-danger-subtle text-danger rounded-circle fs-3">
+                                    <i class="ri-phone-off-line"></i>
+                                </span>
+                            </div>
+                            <div class="flex-grow-1 ms-3">
+                                <h5 class="mb-1">Total Missed Calls</h5>
+                                <p class="text-muted mb-0">{{ total_missed }} missed calls from {{ start_date }} to {{ end_date }}</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Missed Calls Table -->
+        <div class="row">
+            <div class="col-12">
+                <div class="card">
+                    <div class="card-header d-flex align-items-center">
+                        <h4 class="card-title mb-0 flex-grow-1">Missed Call Details</h4>
+                        <div class="flex-shrink-0">
+                            <a href="{% url 'cdr3cx:call_back_tracking' %}" class="btn btn-sm btn-outline-primary">
+                                <i class="ri-phone-back-line me-1"></i>View Call Backs
+                            </a>
+                        </div>
+                    </div>
+                    <div class="card-body">
+                        <div class="table-responsive">
+                            <table class="table table-hover table-nowrap align-middle mb-0">
+                                <thead class="table-light">
+                                    <tr>
+                                        <th scope="col">Date & Time</th>
+                                        <th scope="col">Caller Number</th>
+                                        <th scope="col">IVR Destination</th>
+                                        <th scope="col">Duration (Rang)</th>
+                                        <th scope="col">Reason</th>
+                                        <th scope="col">From Type</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    {% for call in missed_calls %}
+                                    <tr>
+                                        <td>{{ call.call_time|date:"M d, Y H:i:s" }}</td>
+                                        <td>
+                                            <div class="d-flex align-items-center">
+                                                <div class="avatar-xs me-2">
+                                                    <div class="avatar-title bg-primary-subtle text-primary rounded-circle fs-6">
+                                                        <i class="ri-phone-line"></i>
+                                                    </div>
+                                                </div>
+                                                {{ call.from_no }}
+                                            </div>
+                                        </td>
+                                        <td>IVR {{ call.to_dn|default:"8004" }} <small class="text-muted">({{ call.to_dispname|default:"Call Center Welcome Message" }})</small></td>
+                                        <td>
+                                            {% if call.duration %}
+                                                {{ call.duration|floatformat:0 }}s
+                                            {% else %}
+                                                <span class="text-muted">No ring time</span>
+                                            {% endif %}
+                                        </td>
+                                        <td>
+                                            {% if call.reason_terminated %}
+                                                <span class="badge bg-warning">{{ call.reason_terminated }}</span>
+                                            {% else %}
+                                                <span class="badge bg-secondary">Unknown</span>
+                                            {% endif %}
+                                        </td>
+                                        <td>
+                                            <span class="badge bg-info">{{ call.from_type|default:"External" }}</span>
+                                        </td>
+                                    </tr>
+                                    {% empty %}
+                                    <tr>
+                                        <td colspan="6" class="text-center py-4">
+                                            <div class="text-muted">
+                                                <i class="ri-phone-off-line fs-1 text-muted"></i>
+                                                <h5 class="mt-2">No missed calls found</h5>
+                                                <p>No missed calls found for the selected date range.</p>
+                                            </div>
+                                        </td>
+                                    </tr>
+                                    {% endfor %}
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        {% endif %}
+        </div>
+    </div>
+</div>
+{% endblock %}

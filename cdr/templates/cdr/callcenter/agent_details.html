@@ -1,0 +1,204 @@
+{% extends 'partials/base.html' %}
+{% load static %}
+
+{% block title %}Agent Details - {{ agent_name }}{% endblock %}
+
+{% block content %}
+<!-- ============================================================== -->
+<!-- Start right Content here -->
+<!-- ============================================================== -->
+<div class="main-content">
+    <div class="page-content">
+        <div class="container-fluid">
+        <!-- start page title -->
+        <div class="row">
+            <div class="col-12">
+                <div class="page-title-box d-sm-flex align-items-center justify-content-between">
+                    <h4 class="mb-sm-0">Agent Details</h4>
+                    <div class="page-title-right">
+                        <ol class="breadcrumb m-0">
+                            <li class="breadcrumb-item"><a href="{% url 'cdr3cx:dashboard' %}">Dashboard</a></li>
+                            <li class="breadcrumb-item"><a href="{% url 'cdr3cx:call_center_dashboard' %}">Call Center</a></li>
+                            <li class="breadcrumb-item active">{{ agent_name }}</li>
+                        </ol>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <!-- end page title -->
+
+        {% if error %}
+        <div class="row">
+            <div class="col-12">
+                <div class="alert alert-danger" role="alert">
+                    <strong>Error:</strong> {{ error }}
+                </div>
+            </div>
+        </div>
+        {% else %}
+
+        <!-- Agent Info -->
+        <div class="row">
+            <div class="col-12">
+                <div class="card">
+                    <div class="card-body">
+                        <div class="d-flex align-items-center">
+                            <div class="avatar-lg me-3">
+                                <div class="avatar-title bg-primary-subtle text-primary rounded-circle fs-2">
+                                    {{ agent_name|first|upper }}
+                                </div>
+                            </div>
+                            <div>
+                                <h4 class="mb-1">{{ agent_name }}</h4>
+                                <p class="text-muted mb-0">Extension: {{ agent_extension }}</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Date Range Filter -->
+        <div class="row mb-3">
+            <div class="col-12">
+                <div class="d-flex align-items-center justify-content-between flex-wrap bg-light p-3 rounded">
+                    <div class="d-flex align-items-center flex-wrap gap-3">
+                        <h5 class="mb-0 text-muted">Filter by Date Range:</h5>
+                        <form method="get" class="d-flex align-items-center gap-3 flex-wrap">
+                            <div class="d-flex align-items-center gap-2">
+                                <label for="start_date" class="form-label mb-0 text-nowrap">From:</label>
+                                <input type="date" class="form-control form-control-sm" id="start_date" name="start_date" value="{{ start_date }}" style="width: 150px;">
+                            </div>
+                            <div class="d-flex align-items-center gap-2">
+                                <label for="end_date" class="form-label mb-0 text-nowrap">To:</label>
+                                <input type="date" class="form-control form-control-sm" id="end_date" name="end_date" value="{{ end_date }}" style="width: 150px;">
+                            </div>
+                            <div class="d-flex gap-2">
+                                <button type="submit" class="btn btn-primary btn-sm">
+                                    <i class="ri-filter-line me-1"></i>Apply Filter
+                                </button>
+                                <a href="{% url 'cdr3cx:agent_details' agent_extension %}" class="btn btn-outline-secondary btn-sm">
+                                    <i class="ri-refresh-line me-1"></i>Reset
+                                </a>
+                            </div>
+                        </form>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Stats Cards -->
+        <div class="row">
+            <div class="col-xl-4 col-md-6">
+                <div class="card card-height-100">
+                    <div class="card-body">
+                        <div class="d-flex align-items-center">
+                            <div class="avatar-sm flex-shrink-0">
+                                <span class="avatar-title bg-primary-subtle text-primary rounded-circle fs-3">
+                                    <i class="ri-phone-line"></i>
+                                </span>
+                            </div>
+                            <div class="flex-grow-1 ms-3">
+                                <p class="text-uppercase fw-semibold fs-12 text-muted mb-1">Total Calls Handled</p>
+                                <h4 class="mb-0">{{ total_calls|floatformat:0 }}</h4>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="col-xl-4 col-md-6">
+                <div class="card card-height-100">
+                    <div class="card-body">
+                        <div class="d-flex align-items-center">
+                            <div class="avatar-sm flex-shrink-0">
+                                <span class="avatar-title bg-success-subtle text-success rounded-circle fs-3">
+                                    <i class="ri-time-line"></i>
+                                </span>
+                            </div>
+                            <div class="flex-grow-1 ms-3">
+                                <p class="text-uppercase fw-semibold fs-12 text-muted mb-1">Total Talk Time</p>
+                                <h4 class="mb-0">{{ total_duration_formatted }}</h4>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="col-xl-4 col-md-6">
+                <div class="card card-height-100">
+                    <div class="card-body">
+                        <div class="d-flex align-items-center">
+                            <div class="avatar-sm flex-shrink-0">
+                                <span class="avatar-title bg-info-subtle text-info rounded-circle fs-3">
+                                    <i class="ri-timer-line"></i>
+                                </span>
+                            </div>
+                            <div class="flex-grow-1 ms-3">
+                                <p class="text-uppercase fw-semibold fs-12 text-muted mb-1">Average Call Duration</p>
+                                <h4 class="mb-0">{{ avg_duration_formatted }}</h4>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Recent Calls -->
+        <div class="row">
+            <div class="col-12">
+                <div class="card">
+                    <div class="card-header">
+                        <h4 class="card-title mb-0">Recent Call Center Calls</h4>
+                    </div>
+                    <div class="card-body">
+                        <div class="table-responsive">
+                            <table class="table table-hover table-nowrap align-middle mb-0">
+                                <thead class="table-light">
+                                    <tr>
+                                        <th scope="col">Date & Time</th>
+                                        <th scope="col">Caller Number</th>
+                                        <th scope="col">IVR Source</th>
+                                        <th scope="col">Duration</th>
+                                        <th scope="col">Status</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    {% for call in recent_calls %}
+                                    <tr>
+                                        <td>{{ call.call_time|date:"M d, Y H:i:s" }}</td>
+                                        <td>{{ call.from_no }}</td>
+                                        <td>IVR {{ call.to_dn|default:"8004" }} <small class="text-muted">({{ call.to_dispname|default:"Call Center" }})</small></td>
+                                        <td>
+                                            {% if call.duration %}
+                                                {{ call.duration|floatformat:0 }}s
+                                            {% else %}
+                                                0s
+                                            {% endif %}
+                                        </td>
+                                        <td>
+                                            {% if call.time_answered %}
+                                                <span class="badge bg-success">Answered</span>
+                                            {% else %}
+                                                <span class="badge bg-warning">No Answer</span>
+                                            {% endif %}
+                                        </td>
+                                    </tr>
+                                    {% empty %}
+                                    <tr>
+                                        <td colspan="5" class="text-center">No call records found</td>
+                                    </tr>
+                                    {% endfor %}
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        {% endif %}
+        </div>
+    </div>
+</div>
+{% endblock %}

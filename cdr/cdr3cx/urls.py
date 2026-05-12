@@ -1,6 +1,6 @@
 from django.urls import path
 from .views import receive_cdr
-from . import views, views_api, quota_views, views_reports, callpattern_views
+from . import views, views_api, quota_views, views_reports, callpattern_views, callcenter_views
 from . import views as cdr_views
 
 
@@ -21,7 +21,8 @@ urlpatterns = [
     path('ipt_landing/', views.ipt_landing, name='ipt_landing'),
     path('aboutus/', views.aboutus, name='aboutus'),
 
-    path('', views.dashboard, name='dashboard'),
+    path('', views.landing_page, name='landing_page'),
+    path('dashboard/', views.dashboard, name='dashboard'),
     path('update_country/<int:record_id>/', views.update_country, name='update_country'),
     path('all_calls/', views.all_calls_view, name='all_calls'),
 
@@ -66,4 +67,10 @@ urlpatterns = [
 
     path('outgoing_international/excel/', views_reports.export_international_calls_excel, name='export_international_calls_excel'),
     path('outgoing_international/pdf/', views_reports.export_international_calls_pdf, name='export_international_calls_pdf'),
+    
+    # Call Center URLs
+    path('call-center/', callcenter_views.call_center_dashboard, name='call_center_dashboard'),
+    path('call-center/agent/<str:agent_extension>/', callcenter_views.agent_details, name='agent_details'),
+    path('call-center/missed-calls/', callcenter_views.missed_calls_details, name='missed_calls_details'),
+    path('call-center/call-back-tracking/', callcenter_views.call_back_tracking, name='call_back_tracking'),
 ]

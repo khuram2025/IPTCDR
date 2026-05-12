@@ -1,0 +1,495 @@
+{% extends 'partials/base.html' %}
+{% load static %}
+{% load company_extras %}
+
+{% block title %}Call Center Dashboard{% endblock %}
+
+{% block content %}
+<!-- ============================================================== -->
+<!-- Start right Content here -->
+<!-- ============================================================== -->
+<div class="main-content">
+    <div class="page-content">
+        <div class="container-fluid">
+        <!-- start page title -->
+        <div class="row">
+            <div class="col-12">
+                <div class="page-title-box d-sm-flex align-items-center justify-content-between">
+                    <h4 class="mb-sm-0">Call Center Dashboard</h4>
+                    <div class="page-title-right">
+                        <ol class="breadcrumb m-0">
+                            <li class="breadcrumb-item"><a href="{% url 'cdr3cx:dashboard' %}">Dashboard</a></li>
+                            <li class="breadcrumb-item active">Call Center</li>
+                        </ol>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <!-- end page title -->
+
+        {% if error %}
+        <div class="row">
+            <div class="col-12">
+                <div class="alert alert-danger" role="alert">
+                    <strong>Error:</strong> {{ error }}
+                </div>
+            </div>
+        </div>
+        {% else %}
+
+        <!-- Date Range Filter -->
+        <div class="row mb-3">
+            <div class="col-12">
+                <div class="d-flex align-items-center justify-content-between flex-wrap bg-light p-3 rounded">
+                    <div class="d-flex align-items-center flex-wrap gap-3">
+                        <h5 class="mb-0 text-muted">Filter by Date Range:</h5>
+                        <form method="get" class="d-flex align-items-center gap-3 flex-wrap">
+                            <div class="d-flex align-items-center gap-2">
+                                <label for="start_date" class="form-label mb-0 text-nowrap">From:</label>
+                                <input type="date" class="form-control form-control-sm" id="start_date" name="start_date" value="{{ start_date }}" style="width: 150px;">
+                            </div>
+                            <div class="d-flex align-items-center gap-2">
+                                <label for="end_date" class="form-label mb-0 text-nowrap">To:</label>
+                                <input type="date" class="form-control form-control-sm" id="end_date" name="end_date" value="{{ end_date }}" style="width: 150px;">
+                            </div>
+                            <div class="d-flex gap-2">
+                                <button type="submit" class="btn btn-primary btn-sm">
+                                    <i class="ri-filter-line me-1"></i>Apply Filter
+                                </button>
+                                <a href="{% url 'cdr3cx:call_center_dashboard' %}" class="btn btn-outline-secondary btn-sm">
+                                    <i class="ri-refresh-line me-1"></i>Reset
+                                </a>
+                            </div>
+                        </form>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Stats Cards -->
+        <div class="row">
+            <div class="col-xl-3 col-md-6">
+                <div class="card card-height-100">
+                    <div class="card-body">
+                        <div class="d-flex align-items-center">
+                            <div class="avatar-sm flex-shrink-0">
+                                <span class="avatar-title bg-primary-subtle text-primary rounded-circle fs-3">
+                                    <i class="ri-phone-line"></i>
+                                </span>
+                            </div>
+                            <div class="flex-grow-1 ms-3">
+                                <p class="text-uppercase fw-semibold fs-12 text-muted mb-1">Total IVR Calls</p>
+                                <h4 class="mb-0">{{ total_ivr_calls|floatformat:0 }}</h4>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="col-xl-3 col-md-6">
+                <div class="card card-height-100">
+                    <div class="card-body">
+                        <div class="d-flex align-items-center">
+                            <div class="avatar-sm flex-shrink-0">
+                                <span class="avatar-title bg-success-subtle text-success rounded-circle fs-3">
+                                    <i class="ri-check-line"></i>
+                                </span>
+                            </div>
+                            <div class="flex-grow-1 ms-3">
+                                <p class="text-uppercase fw-semibold fs-12 text-muted mb-1">Answered Calls</p>
+                                <h4 class="mb-0">{{ answered_calls|floatformat:0 }} <small class="text-success">({{ answer_rate }}%)</small></h4>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="col-xl-3 col-md-6">
+                <div class="card card-height-100">
+                    <div class="card-body">
+                        <div class="d-flex align-items-center">
+                            <div class="avatar-sm flex-shrink-0">
+                                <span class="avatar-title bg-danger-subtle text-danger rounded-circle fs-3">
+                                    <i class="ri-close-line"></i>
+                                </span>
+                            </div>
+                            <div class="flex-grow-1 ms-3">
+                                <p class="text-uppercase fw-semibold fs-12 text-muted mb-1">Missed Calls</p>
+                                <h4 class="mb-0">{{ missed_calls|floatformat:0 }} <small class="text-danger">({{ missed_call_rate }}%)</small></h4>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="col-xl-3 col-md-6">
+                <div class="card card-height-100">
+                    <div class="card-body">
+                        <div class="d-flex align-items-center">
+                            <div class="avatar-sm flex-shrink-0">
+                                <span class="avatar-title bg-info-subtle text-info rounded-circle fs-3">
+                                    <i class="ri-time-line"></i>
+                                </span>
+                            </div>
+                            <div class="flex-grow-1 ms-3">
+                                <p class="text-uppercase fw-semibold fs-12 text-muted mb-1">Avg Call Duration</p>
+                                <h4 class="mb-0">{{ average_call_duration }}</h4>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Charts Row -->
+        <div class="row">
+            <div class="col-xl-8">
+                <div class="card">
+                    <div class="card-header">
+                        <h4 class="card-title mb-0">Daily Trends (Last 7 Days)</h4>
+                    </div>
+                    <div class="card-body">
+                        <canvas id="dailyTrendsChart" height="400"></canvas>
+                    </div>
+                </div>
+            </div>
+            <div class="col-xl-4">
+                <div class="card">
+                    <div class="card-header">
+                        <h4 class="card-title mb-0">Hourly Distribution</h4>
+                    </div>
+                    <div class="card-body">
+                        <canvas id="hourlyChart" height="400"></canvas>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Top IVR Performance -->
+        <div class="row mb-4">
+            <div class="col-12">
+                <div class="card">
+                    <div class="card-header d-flex align-items-center">
+                        <h4 class="card-title mb-0 flex-grow-1">Top IVR Performance</h4>
+                        <div class="flex-shrink-0">
+                            <div class="dropdown">
+                                <a class="dropdown-toggle text-reset" href="#" data-bs-toggle="dropdown" aria-haspopup="true" aria-expanded="false">
+                                    <span class="fw-semibold">Sort By:</span> <span class="text-muted">Total Calls <i class="mdi mdi-chevron-down ms-1"></i></span>
+                                </a>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="card-body">
+                        <div class="table-responsive">
+                            <table class="table table-hover table-nowrap align-middle mb-0">
+                                <thead class="table-light">
+                                    <tr>
+                                        <th scope="col">IVR Extension</th>
+                                        <th scope="col">IVR Name</th>
+                                        <th scope="col">Total Calls</th>
+                                        <th scope="col">Answered</th>
+                                        <th scope="col">Missed</th>
+                                        <th scope="col">Answer Rate</th>
+                                        <th scope="col">Total Talk Time</th>
+                                        <th scope="col">Avg Talk Time</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    {% for ivr in top_ivr_stats %}
+                                    <tr>
+                                        <td>
+                                            <div class="d-flex align-items-center">
+                                                <div class="avatar-sm me-3">
+                                                    <div class="avatar-title bg-info-subtle text-info rounded-circle">
+                                                        <i class="ri-customer-service-line"></i>
+                                                    </div>
+                                                </div>
+                                                <div>
+                                                    <h6 class="mb-0">IVR {{ ivr.to_dn|default:"Unknown" }}</h6>
+                                                </div>
+                                            </div>
+                                        </td>
+                                        <td>{{ ivr.to_dispname|default:"Unknown IVR"|truncatechars:25 }}</td>
+                                        <td><span class="badge bg-primary">{{ ivr.total_calls }}</span></td>
+                                        <td><span class="badge bg-success">{{ ivr.answered_calls }}</span></td>
+                                        <td><span class="badge bg-danger">{{ ivr.missed_calls }}</span></td>
+                                        <td>
+                                            <div class="d-flex align-items-center">
+                                                <div class="flex-shrink-0 me-2">
+                                                    <span class="badge {% if ivr.answer_rate >= 80 %}bg-success{% elif ivr.answer_rate >= 60 %}bg-warning{% else %}bg-danger{% endif %}">
+                                                        {{ ivr.answer_rate }}%
+                                                    </span>
+                                                </div>
+                                                <div class="flex-grow-1">
+                                                    <div class="progress progress-sm">
+                                                        <div class="progress-bar {% if ivr.answer_rate >= 80 %}bg-success{% elif ivr.answer_rate >= 60 %}bg-warning{% else %}bg-danger{% endif %}" style="width: {{ ivr.answer_rate }}%"></div>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        </td>
+                                        <td>{{ ivr.total_talk_time_formatted }}</td>
+                                        <td>{{ ivr.avg_talk_time_formatted }}</td>
+                                    </tr>
+                                    {% empty %}
+                                    <tr>
+                                        <td colspan="8" class="text-center">No IVR performance data available</td>
+                                    </tr>
+                                    {% endfor %}
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Top Agents and Missed Calls -->
+        <div class="row">
+            <div class="col-xl-6">
+                <div class="card">
+                    <div class="card-header d-flex align-items-center">
+                        <h4 class="card-title mb-0 flex-grow-1">Top Agents (Most Calls Received)</h4>
+                        <div class="flex-shrink-0">
+                            <div class="dropdown">
+                                <a class="dropdown-toggle text-reset" href="#" data-bs-toggle="dropdown" aria-haspopup="true" aria-expanded="false">
+                                    <span class="fw-semibold">Sort By:</span> <span class="text-muted">Calls Received <i class="mdi mdi-chevron-down ms-1"></i></span>
+                                </a>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="card-body">
+                        <div class="table-responsive">
+                            <table class="table table-hover table-nowrap align-middle mb-0">
+                                <thead class="table-light">
+                                    <tr>
+                                        <th scope="col">Agent</th>
+                                        <th scope="col">Extension</th>
+                                        <th scope="col">Calls</th>
+                                        <th scope="col">Total Duration</th>
+                                        <th scope="col">Avg Duration</th>
+                                        <th scope="col">Action</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    {% for agent in top_agents %}
+                                    <tr>
+                                        <td>
+                                            <div class="d-flex align-items-center">
+                                                <div class="avatar-sm me-3">
+                                                    <div class="avatar-title bg-primary-subtle text-primary rounded-circle">
+                                                        {{ agent.final_dispname|first|upper }}
+                                                    </div>
+                                                </div>
+                                                <div>
+                                                    <h6 class="mb-0">{{ agent.final_dispname|default:"Unknown Agent" }}</h6>
+                                                </div>
+                                            </div>
+                                        </td>
+                                        <td>{{ agent.final_dn }}</td>
+                                        <td><span class="badge bg-success">{{ agent.calls_received }}</span></td>
+                                        <td>{{ agent.total_duration|floatformat:0 }}s</td>
+                                        <td>{{ agent.avg_duration|floatformat:0 }}s</td>
+                                        <td>
+                                            <a href="{% url 'cdr3cx:agent_details' agent.final_dn %}" class="btn btn-sm btn-outline-primary">
+                                                <i class="ri-eye-line"></i>
+                                            </a>
+                                        </td>
+                                    </tr>
+                                    {% empty %}
+                                    <tr>
+                                        <td colspan="6" class="text-center">No agent data available</td>
+                                    </tr>
+                                    {% endfor %}
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="col-xl-6">
+                <div class="card">
+                    <div class="card-header d-flex align-items-center">
+                        <h4 class="card-title mb-0 flex-grow-1">Top IVR Missed Calls</h4>
+                        <div class="flex-shrink-0">
+                            <a href="{% url 'cdr3cx:missed_calls_details' %}" class="btn btn-sm btn-outline-secondary">
+                                View All <i class="ri-arrow-right-line"></i>
+                            </a>
+                        </div>
+                    </div>
+                    <div class="card-body">
+                        <div class="table-responsive">
+                            <table class="table table-hover table-nowrap align-middle mb-0">
+                                <thead class="table-light">
+                                    <tr>
+                                        <th scope="col">Phone Number</th>
+                                        <th scope="col">IVR Destination</th>
+                                        <th scope="col">Missed Count</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    {% for missed in top_ivr_missed_calls %}
+                                    <tr>
+                                        <td>{{ missed.from_no }}</td>
+                                        <td>IVR {{ missed.to_dn|default:"8004" }} <small class="text-muted">({{ missed.to_dispname|default:"Call Center" }})</small></td>
+                                        <td><span class="badge bg-danger">{{ missed.missed_count }}</span></td>
+                                    </tr>
+                                    {% empty %}
+                                    <tr>
+                                        <td colspan="3" class="text-center">No missed calls data available</td>
+                                    </tr>
+                                    {% endfor %}
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Recent Call Center Activity -->
+        <div class="row">
+            <div class="col-12">
+                <div class="card">
+                    <div class="card-header">
+                        <h4 class="card-title mb-0">Recent Call Center Activity</h4>
+                    </div>
+                    <div class="card-body">
+                        <div class="table-responsive">
+                            <table class="table table-hover table-nowrap align-middle mb-0">
+                                <thead class="table-light">
+                                    <tr>
+                                        <th scope="col">Time</th>
+                                        <th scope="col">Caller</th>
+                                        <th scope="col">IVR</th>
+                                        <th scope="col">Final Destination</th>
+                                        <th scope="col">Duration</th>
+                                        <th scope="col">Status</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    {% for call in recent_calls %}
+                                    <tr>
+                                        <td>{{ call.call_time|date:"M d, Y H:i" }}</td>
+                                        <td>{{ call.from_no }}</td>
+                                        <td>IVR {{ call.to_dn|default:"8004" }} <small class="text-muted">({{ call.to_dispname|default:"Call Center" }})</small></td>
+                                        <td>
+                                            {% if call.final_dispname %}
+                                                <span class="text-success">{{ call.final_dispname }} ({{ call.final_dn }})</span>
+                                            {% else %}
+                                                <span class="text-muted">No Answer</span>
+                                            {% endif %}
+                                        </td>
+                                        <td>
+                                            {% if call.duration %}
+                                                {{ call.duration|floatformat:0 }}s
+                                            {% else %}
+                                                0s
+                                            {% endif %}
+                                        </td>
+                                        <td>
+                                            {% if call.final_dispname %}
+                                                <span class="badge bg-success">Answered</span>
+                                            {% else %}
+                                                <span class="badge bg-danger">Missed</span>
+                                            {% endif %}
+                                        </td>
+                                    </tr>
+                                    {% empty %}
+                                    <tr>
+                                        <td colspan="6" class="text-center">No recent call activity</td>
+                                    </tr>
+                                    {% endfor %}
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        {% endif %}
+        </div>
+    </div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<script>
+// Daily Trends Chart
+const dailyTrendsCtx = document.getElementById('dailyTrendsChart').getContext('2d');
+const dailyTrendsChart = new Chart(dailyTrendsCtx, {
+    type: 'line',
+    data: {
+        labels: [{% for trend in daily_trends %}'{{ trend.date }}'{% if not forloop.last %},{% endif %}{% endfor %}],
+        datasets: [{
+            label: 'Total Calls',
+            data: [{% for trend in daily_trends %}{{ trend.total_calls }}{% if not forloop.last %},{% endif %}{% endfor %}],
+            borderColor: 'rgb(75, 192, 192)',
+            backgroundColor: 'rgba(75, 192, 192, 0.2)',
+            tension: 0.1
+        }, {
+            label: 'Answered',
+            data: [{% for trend in daily_trends %}{{ trend.answered_calls }}{% if not forloop.last %},{% endif %}{% endfor %}],
+            borderColor: 'rgb(54, 162, 235)',
+            backgroundColor: 'rgba(54, 162, 235, 0.2)',
+            tension: 0.1
+        }, {
+            label: 'Missed',
+            data: [{% for trend in daily_trends %}{{ trend.missed_calls }}{% if not forloop.last %},{% endif %}{% endfor %}],
+            borderColor: 'rgb(255, 99, 132)',
+            backgroundColor: 'rgba(255, 99, 132, 0.2)',
+            tension: 0.1
+        }]
+    },
+    options: {
+        responsive: true,
+        maintainAspectRatio: false,
+        plugins: {
+            title: {
+                display: true,
+                text: 'Call Center Daily Trends'
+            }
+        },
+        scales: {
+            y: {
+                beginAtZero: true
+            }
+        }
+    }
+});
+
+// Hourly Distribution Chart
+const hourlyCtx = document.getElementById('hourlyChart').getContext('2d');
+const hourlyChart = new Chart(hourlyCtx, {
+    type: 'bar',
+    data: {
+        labels: [{% for hour in hourly_calls %}'{{ hour.hour }}'{% if not forloop.last %},{% endif %}{% endfor %}],
+        datasets: [{
+            label: 'Calls',
+            data: [{% for hour in hourly_calls %}{{ hour.calls }}{% if not forloop.last %},{% endif %}{% endfor %}],
+            backgroundColor: 'rgba(153, 102, 255, 0.2)',
+            borderColor: 'rgba(153, 102, 255, 1)',
+            borderWidth: 1
+        }]
+    },
+    options: {
+        responsive: true,
+        maintainAspectRatio: false,
+        plugins: {
+            title: {
+                display: true,
+                text: 'Hourly Call Distribution'
+            },
+            legend: {
+                display: false
+            }
+        },
+        scales: {
+            y: {
+                beginAtZero: true
+            }
+        }
+    }
+});
+</script>
+{% endblock %}

@@ -93,6 +93,26 @@
                 {% endif %}
                 {% endif %}
 
+                <!-- Call Center Menu (visible to all users) -->
+                <li class="nav-item">
+                    <a class="nav-link menu-link" href="#sidebarCallCenter" data-bs-toggle="collapse" role="button" aria-expanded="false" aria-controls="sidebarCallCenter">
+                        <i class="ri-customer-service-line"></i> <span data-key="t-call-center">Call Center</span>
+                    </a>
+                    <div class="collapse menu-dropdown" id="sidebarCallCenter">
+                        <ul class="nav nav-sm flex-column">
+                            <li class="nav-item">
+                                <a href="{% url 'cdr3cx:call_center_dashboard' %}" class="nav-link" data-key="t-call-center-dashboard"> Dashboard </a>
+                            </li>
+                            <li class="nav-item">
+                                <a href="{% url 'cdr3cx:missed_calls_details' %}" class="nav-link" data-key="t-missed-calls"> Missed Calls </a>
+                            </li>
+                            <li class="nav-item">
+                                <a href="{% url 'cdr3cx:call_back_tracking' %}" class="nav-link" data-key="t-call-back-tracking"> Call Back Tracking </a>
+                            </li>
+                        </ul>
+                    </div>
+                </li>
+
                 <!-- Sales Calls Menu (visible to all users) -->
                 <li class="nav-item">
                     <a class="nav-link menu-link" href="#sidebarSalesCalls" data-bs-toggle="collapse" role="button" aria-expanded="false" aria-controls="sidebarSalesCalls">

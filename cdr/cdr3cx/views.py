@@ -552,6 +552,51 @@ def international_calls_view(request):
     call_records = CallRecord.objects.annotate(callee_length=Length('callee')).filter(company=request.user.company, callee__startswith='00', callee_length__gt=10)
     return render(request, 'cdr/international_calls.html', {'call_records': call_records})
 
+def landing_page(request):
+    """
+    Public landing page for 3CX Billing and Call Control Software
+    No authentication required - SEO optimized
+    """
+    context = {
+        'meta_title': '3CX Billing Software | Advanced Call Control & Analytics | Channab',
+        'meta_description': 'Professional 3CX billing software with real-time call analytics, quota management, and comprehensive reporting. Streamline your telecommunications billing today.',
+        'meta_keywords': '3CX billing, call control software, telecommunications billing, call analytics, VoIP billing, PBX billing system',
+        'page_title': '3CX Billing & Call Control Software',
+        'features': [
+            {
+                'icon': 'fa-chart-line',
+                'title': 'Real-time Analytics',
+                'description': 'Monitor call patterns, costs, and usage with live dashboards and detailed reporting.'
+            },
+            {
+                'icon': 'fa-shield-alt',
+                'title': 'Advanced Security',
+                'description': 'Enterprise-grade security with role-based access control and audit trails.'
+            },
+            {
+                'icon': 'fa-dollar-sign',
+                'title': 'Cost Management',
+                'description': 'Automated billing, quota management, and cost allocation for departments.'
+            },
+            {
+                'icon': 'fa-mobile-alt',
+                'title': 'Mobile Ready',
+                'description': 'Fully responsive design works perfectly on all devices and screen sizes.'
+            },
+            {
+                'icon': 'fa-cogs',
+                'title': 'Easy Integration',
+                'description': 'Seamless integration with 3CX systems and existing infrastructure.'
+            },
+            {
+                'icon': 'fa-headset',
+                'title': '24/7 Support',
+                'description': 'Professional support team available around the clock for assistance.'
+            }
+        ]
+    }
+    return render(request, 'landing/index.html', context)
+
 def home(request):
     return render(request, 'home/home.html')
 def aboutus(request):

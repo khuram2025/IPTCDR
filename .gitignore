@@ -1,0 +1,77 @@
+# Byte-compiled / cache
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+
+# Virtual environments
+venv/
+env/
+ENV/
+.venv/
+.env
+
+# Django
+*.log
+*.log.*
+local_settings.py
+db.sqlite3
+db.sqlite3-journal
+media/
+staticfiles/
+staticadmin/
+
+# Migrations cache
+*.pyc
+
+# IDE / editor
+.idea/
+.vscode/
+*.swp
+*.swo
+.DS_Store
+Thumbs.db
+
+# Test / coverage
+.pytest_cache/
+.coverage
+.coverage.*
+htmlcov/
+.tox/
+.nox/
+
+# Build artifacts
+*.egg
+*.egg-info/
+dist/
+build/
+.eggs/
+
+# Type checkers
+.mypy_cache/
+.dmypy.json
+.pytype/
+
+# Secrets / config
+*.pem
+*.key
+.env.*
+!.env.example
+secrets/
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Backups
+*.bak
+*.backup
+*.old
+
+# Project-specific
+records.txt
+home/
+test2.py
+check_permissions.py
+templates.html
+aws.tx

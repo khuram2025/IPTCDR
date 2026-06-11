@@ -1,0 +1,53 @@
+{% extends 'partials/base.html' %}
+{% load static %}
+{% block title %}Survey Responses{% endblock %}
+{% block content %}
+<div class="main-content">
+  <div class="page-content">
+    <div class="container-fluid">
+      {% include 'cdr/callcenter/_filter_toolbar.html' with filter_action=filter_base_url %}
+      <div class="d-flex justify-content-between align-items-center mb-3">
+        <h4 class="mb-0">Survey Responses</h4>
+        <a href="{% url 'surveys:dashboard' %}?start={{ start_date }}&end={{ end_date }}" class="btn btn-sm btn-outline-secondary">Dashboard</a>
+      </div>
+      <div class="card border-0 shadow-sm">
+        <div class="table-responsive">
+          <table class="table table-hover align-middle mb-0">
+            <thead>
+              <tr>
+                <th>Completed</th><th>Caller</th><th>Campaign</th><th>Rating</th><th>Solved</th>
+                <th>Agent</th><th>Queue</th><th>Match</th><th></th>
+              </tr>
+            </thead>
+            <tbody>
+              {% for r in responses %}
+              <tr>
+                <td>{{ r.completed_at|date:"Y-m-d H:i" }}</td>
+                <td>{{ r.caller }}</td>
+                <td>{{ r.campaign.name }}</td>
+                <td>
+                  {% for a in r.answers.all %}
+                    {% if a.tag == 'rating' or a.tag == 'csat' %}{{ a.value_numeric|default:a.value_text }}{% endif %}
+                  {% endfor %}
+                </td>
+                <td>
+                  {% for a in r.answers.all %}
+                    {% if a.tag == 'solved' %}{{ a.value_text }}{% endif %}
+                  {% endfor %}
+                </td>
+                <td>{% if r.agent %}{{ r.agent.display_name }}{% else %}—{% endif %}</td>
+                <td>{% if r.queue %}{{ r.queue.name }}{% else %}—{% endif %}</td>
+                <td><span class="badge bg-secondary-subtle">{{ r.match_confidence }}</span></td>
+                <td><a href="{% url 'surveys:response_detail' r.pk %}" class="btn btn-sm btn-light">Detail</a></td>
+              </tr>
+              {% empty %}
+              <tr><td colspan="9" class="text-center text-muted py-4">No responses found.</td></tr>
+              {% endfor %}
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}

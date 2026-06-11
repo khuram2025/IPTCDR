@@ -1,5 +1,6 @@
 from django.shortcuts import render, redirect
 from django.contrib.auth import login, authenticate
+from django.contrib import messages
 from django.contrib.auth.forms import AuthenticationForm
 from django.core.mail import send_mail
 from django.utils import timezone
@@ -12,12 +13,12 @@ from django.contrib.auth.tokens import default_token_generator
 from django.conf import settings
 from django.contrib.auth import logout as auth_logout
 
-from .forms import CustomUserCreationForm, CustomUserChangeForm, CustomAuthenticationForm, CustomPasswordResetForm, ForgotPasswordRequestForm, ForgotPasswordOTPForm, ForgotPasswordNewPasswordForm, CompanyForm
+from .forms import CustomUserCreationForm, CustomUserChangeForm, CustomAuthenticationForm, CustomPasswordResetForm, ForgotPasswordRequestForm, ForgotPasswordOTPForm, ForgotPasswordNewPasswordForm, CompanyForm, CompanyBrandingForm
 from .models import CustomUser, PasswordResetOTP, Company
 from cdr.email_utils import SMTPClient
 from django.contrib.auth.decorators import login_required, user_passes_test
 from django.shortcuts import get_object_or_404
-from django.http import HttpResponse, HttpResponseForbidden
+from django.http import HttpResponse, HttpResponseForbidden, JsonResponse
 from django import forms
 
 import datetime
@@ -89,6 +90,83 @@ def company_delete(request, company_id):
     company.delete()
     return redirect('accounts:superadmin_dashboard')
 
+@user_passes_test(is_superadmin)
+def company_test_connection(request, company_id=None):
+    """AJAX endpoint: test a tenant's 3CX XAPI credentials and report status.
+
+    Tests the credentials currently entered in the form (so the admin can verify
+    BEFORE saving). The password field falls back to the stored value when left
+    blank on an edit. Authenticates against the 3CX XAPI and, on success, also
+    reads SystemStatus (version) and the queue list so the message confirms the
+    creds can actually see data — not merely that the host answered.
+    """
+    if request.method != 'POST':
+        return JsonResponse({'ok': False, 'message': 'POST required.'}, status=405)
+
+    company = get_object_or_404(Company, pk=company_id) if company_id else None
+
+    api_url = (request.POST.get('pbx_api_url') or (company.pbx_api_url if company else '') or '').strip()
+    api_user = (request.POST.get('pbx_api_user') or (company.pbx_api_user if company else '') or '').strip()
+    api_password = request.POST.get('pbx_api_password')
+    if not api_password and company:
+        api_password = company.pbx_api_password
+    api_password = api_password or ''
+
+    if not (api_url and api_user and api_password):
+        return JsonResponse({'ok': False,
+                             'message': 'Enter the API URL, username and password first.'})
+
+    import requests as _requests
+    from acd.sources.threecx_xapi import ThreeCXXapiClient, ThreeCXXapiError
+
+    def _probe(verify):
+        client = ThreeCXXapiClient(api_url, api_user, api_password,
+                                   verify_tls=verify, timeout=15)
+        client.authenticate()
+        version = None
+        try:
+            version = (client.system_status() or {}).get('Version')
+        except Exception:
+            version = None
+        try:
+            queues = client.list_queues()
+        except Exception:
+            queues = []
+        return version, queues
+
+    tls_warning = False
+    try:
+        try:
+            version, queues = _probe(True)
+        except _requests.exceptions.SSLError:
+            # Self-signed / mismatched cert — retry insecurely but flag it.
+            tls_warning = True
+            version, queues = _probe(False)
+    except ThreeCXXapiError as e:
+        return JsonResponse({'ok': False, 'message': f'Authentication failed: {e}'})
+    except _requests.exceptions.ConnectTimeout:
+        return JsonResponse({'ok': False,
+                             'message': 'Connection timed out — check the API URL/port is correct and reachable.'})
+    except _requests.exceptions.ConnectionError as e:
+        return JsonResponse({'ok': False,
+                             'message': f'Cannot reach host — check the API URL/port. ({str(e)[:120]})'})
+    except Exception as e:
+        return JsonResponse({'ok': False, 'message': f'Connection failed: {str(e)[:160]}'})
+
+    parts = ['Connection successful.']
+    if version:
+        parts.append(f'3CX version {version}.')
+    parts.append(f'{len(queues)} queue(s) visible.')
+    if tls_warning:
+        parts.append('⚠ TLS certificate not verified.')
+    return JsonResponse({
+        'ok': True,
+        'message': ' '.join(parts),
+        'version': version,
+        'queues': len(queues),
+        'tls_warning': tls_warning,
+    })
+
 # Company Admin CRUD for Super Admin
 @user_passes_test(is_superadmin)
 def admin_create(request):
@@ -126,8 +204,19 @@ def admin_delete(request, user_id):
 # Company Admin Dashboard
 @user_passes_test(is_company_admin)
 def company_admin_dashboard(request):
+    company = request.user.company
+    if request.method == 'POST' and 'save_branding' in request.POST:
+        branding_form = CompanyBrandingForm(request.POST, request.FILES, instance=company)
+        if branding_form.is_valid():
+            branding_form.save()
+            messages.success(request, 'Company branding updated — it now shows in the sidebar.')
+            return redirect('accounts:company_admin_dashboard')
+        messages.error(request, 'Could not save branding. Please check the form.')
+    else:
+        branding_form = CompanyBrandingForm(instance=company)
     users = CustomUser.objects.filter(company=request.user.company).exclude(role='superadmin')
-    return render(request, 'accounts/company_admin_dashboard.html', {'users': users})
+    return render(request, 'accounts/company_admin_dashboard.html',
+                  {'users': users, 'branding_form': branding_form, 'company': company})
 
 # Company User CRUD for Company Admin
 @user_passes_test(is_company_admin)

@@ -1,0 +1,160 @@
+{% extends "partials/base.html" %}
+{% load static %}
+{% block title %}Extension {{ ext.extension }}{% endblock title %}
+{% block content %}
+<div class="main-content">
+  <div class="page-content">
+    <div class="container-fluid">
+
+      {% if messages %}
+        {% for message in messages %}
+          <div class="alert alert-{{ message.tags }} alert-dismissible fade show" role="alert">
+            {{ message }}<button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+          </div>
+        {% endfor %}
+      {% endif %}
+
+      <div class="d-flex justify-content-between align-items-center mb-2">
+        <a href="{% url 'cdr3cx:extension_list' %}" class="btn btn-link btn-sm ps-0"><i class="ri-arrow-left-line me-1"></i>All extensions</a>
+        <a href="{% url 'cdr3cx:report_generate_now' %}?type=agent_productivity&window=last_30_days&format=pdf" class="btn btn-sm btn-outline-danger"><i class="ri-file-pdf-2-line me-1"></i>Export PDF</a>
+      </div>
+
+      <div class="row g-3">
+        <!-- Profile -->
+        <div class="col-lg-5">
+          <div class="card border-0 shadow-sm h-100">
+            <div class="card-header bg-transparent border-0 py-2"><h6 class="mb-0 fw-semibold">Profile</h6></div>
+            <div class="card-body">
+              <div class="d-flex align-items-center gap-3 mb-3">
+                <span class="avatar-title rounded-circle bg-primary-subtle text-primary fs-3" style="width:56px;height:56px;display:flex;align-items:center;justify-content:center">{{ ext.extension|slice:":2" }}</span>
+                <div>
+                  <h5 class="mb-0">{{ ext.full_name|default:ext.display_name|default:"Unnamed" }}</h5>
+                  <span class="text-muted">Extension {{ ext.extension }}</span>
+                </div>
+              </div>
+              <div class="mb-3">
+                {% if not ext.is_active %}<span class="badge bg-secondary-subtle text-secondary">Inactive (not in 3CX)</span>
+                {% elif not ext.enabled %}<span class="badge bg-warning-subtle text-warning">Disabled</span>
+                {% else %}<span class="badge bg-success-subtle text-success">Active</span>{% endif %}
+                {% if ext.is_registered %}<span class="badge bg-info-subtle text-info">Online</span>{% else %}<span class="badge bg-light text-muted">Offline</span>{% endif %}
+                {% if ext.disable_external_call %}<span class="badge bg-danger-subtle text-danger">External calls blocked</span>{% else %}<span class="badge bg-success-subtle text-success">External calls allowed</span>{% endif %}
+              </div>
+              <table class="table table-sm mb-0">
+                <tr><td class="text-muted" style="width:45%">Email</td><td>{{ ext.email|default:"—" }}</td></tr>
+                <tr><td class="text-muted">Mobile</td><td>{{ ext.mobile|default:"—" }}</td></tr>
+                <tr><td class="text-muted">Display name</td><td>{{ ext.display_name|default:"—" }}</td></tr>
+                <tr><td class="text-muted">Outbound caller ID</td><td>{{ ext.outbound_caller_id|default:"—" }}</td></tr>
+                <tr><td class="text-muted">Company</td><td>{{ ext.company.name|default:"—" }}</td></tr>
+                <tr><td class="text-muted">3CX user ID</td><td>{{ ext.pbx_user_id|default:"—" }}</td></tr>
+                <tr><td class="text-muted">Last synced</td><td>{% if ext.last_synced_at %}{{ ext.last_synced_at }}{% else %}—{% endif %}</td></tr>
+              </table>
+            </div>
+          </div>
+        </div>
+
+        <!-- Quota + balance -->
+        <div class="col-lg-7">
+          <div class="card border-0 shadow-sm h-100">
+            <div class="card-header bg-transparent border-0 py-2 d-flex justify-content-between align-items-center">
+              <h6 class="mb-0 fw-semibold">Quota &amp; Balance</h6>
+              {% if is_admin %}<a href="{% url 'cdr3cx:assign_quota' %}" class="btn btn-light btn-sm">Assign quota</a>{% endif %}
+            </div>
+            <div class="card-body">
+              {% if user_quota and user_quota.quota %}
+              <div class="row text-center g-2 mb-3">
+                <div class="col-4"><div class="border rounded p-2"><div class="fs-12 text-muted">Plan</div><div class="fw-semibold">{{ user_quota.quota.name }}</div></div></div>
+                <div class="col-4"><div class="border rounded p-2"><div class="fs-12 text-muted">Total</div><div class="fw-semibold">{{ user_quota.total_amount|floatformat:2 }}</div></div></div>
+                <div class="col-4"><div class="border rounded p-2"><div class="fs-12 text-muted">Remaining</div><div class="fw-semibold {% if user_quota.remaining_balance <= 0 %}text-danger{% else %}text-success{% endif %}">{{ user_quota.remaining_balance|floatformat:2 }}</div></div></div>
+              </div>
+              {% if user_quota.is_blocked %}<div class="alert alert-warning py-2 fs-13 mb-3">This extension is currently <strong>blocked</strong> (quota exhausted).</div>{% endif %}
+              {% else %}
+              <p class="text-muted">No quota assigned to this extension.{% if is_admin %} Use “Assign quota”.{% endif %}</p>
+              {% endif %}
+
+              {% if is_admin %}
+              <div class="d-flex flex-wrap gap-2 pt-2 border-top">
+                {% if user_quota and user_quota.quota %}
+                <form method="post" action="{% url 'cdr3cx:add_balance' ext.id %}" class="d-flex gap-1">
+                  {% csrf_token %}
+                  <input type="number" step="0.01" min="0" name="amount" class="form-control form-control-sm" style="width:120px" placeholder="Amount">
+                  <button class="btn btn-outline-primary btn-sm" type="submit">Add balance</button>
+                </form>
+                <a href="{% url 'cdr3cx:send_quota_email' ext.id %}" class="btn btn-outline-secondary btn-sm">Email status</a>
+                {% endif %}
+                <button id="toggle-ext-btn" class="btn btn-sm {% if ext.disable_external_call %}btn-outline-success{% else %}btn-outline-danger{% endif %}"
+                        data-extension-id="{{ ext.id }}" data-action="{% if ext.disable_external_call %}allow{% else %}block{% endif %}">
+                  {% if ext.disable_external_call %}Allow external calls{% else %}Block external calls{% endif %}
+                </button>
+              </div>
+              {% endif %}
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Activity -->
+      <div class="card border-0 shadow-sm mt-3">
+        <div class="card-header bg-transparent border-0 py-2 d-flex justify-content-between align-items-center">
+          <h6 class="mb-0 fw-semibold">Recent Activity <span class="text-muted fs-12">· last {{ activity_days }} days</span></h6>
+          <a href="{% url 'cdr3cx:agent_details' ext.extension %}" class="btn btn-link btn-sm p-0">View full call-center activity <i class="ri-arrow-right-line"></i></a>
+        </div>
+        <div class="card-body">
+          <div class="row text-center g-2 mb-3">
+            <div class="col-6 col-md-3"><div class="border rounded p-2"><div class="fs-12 text-muted">Calls</div><div class="fs-4 fw-semibold">{{ total_calls }}</div></div></div>
+            <div class="col-6 col-md-3"><div class="border rounded p-2"><div class="fs-12 text-muted">Answered</div><div class="fs-4 fw-semibold text-success">{{ answered_calls }}</div></div></div>
+            <div class="col-6 col-md-3"><div class="border rounded p-2"><div class="fs-12 text-muted">Answer %</div><div class="fs-4 fw-semibold">{{ answer_rate }}%</div></div></div>
+            <div class="col-6 col-md-3"><div class="border rounded p-2"><div class="fs-12 text-muted">Avg duration</div><div class="fs-4 fw-semibold">{{ avg_duration }}s</div></div></div>
+          </div>
+          <div class="table-responsive">
+            <table class="table table-sm table-hover align-middle mb-0">
+              <thead class="table-light"><tr>
+                <th>Time</th><th>Dir</th><th>From</th><th>To</th><th class="text-end">Duration</th><th class="text-end">Status</th>
+              </tr></thead>
+              <tbody>
+                {% for call in recent_calls %}
+                <tr>
+                  <td class="text-muted fs-12 text-nowrap">{{ call.call_time|date:"M d, H:i:s" }}</td>
+                  <td>{% if call.caller == ext.extension %}<span class="badge bg-primary-subtle text-primary">Out</span>{% else %}<span class="badge bg-info-subtle text-info">In</span>{% endif %}</td>
+                  <td class="fs-13">{{ call.from_no|default:call.caller|default:"—" }}</td>
+                  <td class="fs-13">{{ call.to_no|default:call.callee|default:"—" }}</td>
+                  <td class="text-end fs-13">{% if call.duration %}{{ call.duration }}s{% else %}—{% endif %}</td>
+                  <td class="text-end">{% if call.time_answered %}<span class="badge bg-success-subtle text-success">Answered</span>{% else %}<span class="badge bg-warning-subtle text-warning">No answer</span>{% endif %}</td>
+                </tr>
+                {% empty %}
+                <tr><td colspan="6" class="text-center text-muted py-4">No call activity in the last {{ activity_days }} days.</td></tr>
+                {% endfor %}
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+
+    </div>
+  </div>
+</div>
+{% block footer %}{% include "partials/footer.html" %}{% endblock footer %}
+{% endblock content %}
+
+{% block extra_js %}
+<script>
+(function () {
+  var btn = document.getElementById('toggle-ext-btn');
+  if (!btn) return;
+  btn.addEventListener('click', function () {
+    var id = btn.getAttribute('data-extension-id');
+    var action = btn.getAttribute('data-action');
+    btn.disabled = true; var prev = btn.textContent; btn.textContent = 'Working…';
+    var fd = new FormData();
+    fd.append('extension_id', id); fd.append('action', action);
+    fd.append('csrfmiddlewaretoken', '{{ csrf_token }}');
+    fetch("{% url 'cdr3cx:toggle_external_call' %}", {method: 'POST', body: fd, headers: {'X-Requested-With': 'XMLHttpRequest'}})
+      .then(function (r) { return r.json(); })
+      .then(function (d) {
+        if (d.success) { location.reload(); }
+        else { alert('Failed: ' + (d.error || 'unknown error')); btn.disabled = false; btn.textContent = prev; }
+      })
+      .catch(function (e) { alert('Error: ' + e); btn.disabled = false; btn.textContent = prev; });
+  });
+})();
+</script>
+{% endblock extra_js %}

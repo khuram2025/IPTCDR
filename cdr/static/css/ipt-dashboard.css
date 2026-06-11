@@ -1,0 +1,54 @@
+/* IPT / Telecom dashboard — extends call center compact patterns */
+.cc-toolbar-icon-ipt {
+  background: #0ab39c;
+}
+
+.cc-date-range-wide input[type="text"] {
+  width: 200px;
+  font-size: 0.75rem;
+  border-color: #e9ebec;
+}
+
+.ipt-kpi-link {
+  font-size: 0.72rem;
+  color: var(--cc-accent, #405189);
+  text-decoration: none;
+}
+.ipt-kpi-link:hover {
+  text-decoration: underline;
+}
+
+.ipt-sidebar-label {
+  font-size: 0.65rem;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: rgba(255,255,255,.45);
+  padding: 0.75rem 1.5rem 0.25rem;
+  margin: 0;
+}
+
+.navbar-menu .nav-sm .nav-link {
+  padding: 0.4rem 1.5rem 0.4rem 3.2rem;
+  font-size: 0.8125rem;
+}
+
+.navbar-menu .nav-sm .nav-link.active {
+  font-weight: 600;
+}
+
+.ipt-activity-item {
+  border-left: 2px solid #e9ebec;
+  padding-left: 0.75rem;
+  margin-bottom: 0.75rem;
+}
+
+.ipt-activity-item:last-child {
+  margin-bottom: 0;
+}
+
+@media (max-width: 991.98px) {
+  .cc-date-range-wide input[type="text"] {
+    width: 100%;
+    flex: 1;
+  }
+}

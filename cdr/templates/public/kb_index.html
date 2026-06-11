@@ -1,0 +1,72 @@
+{% extends 'public/base.html' %}
+{% load static %}
+{% block title %}Knowledge Base — 3CX & Call-Center Guides | Zentryc{% endblock %}
+{% block meta_description %}Free guides for 3CX contact centers: post-call CSAT surveys with Call Flow Designer, Zentryc portal configuration, ingest API reference and troubleshooting.{% endblock %}
+{% block meta_keywords %}3CX knowledge base, call center guides, CFD survey setup, Zentryc documentation, post-call CSAT{% endblock %}
+{% block canonical %}/kb/{% endblock %}{% block og_url %}/kb/{% endblock %}
+{% block og_title %}Zentryc Knowledge Base — 3CX & contact-center guides{% endblock %}
+{% block og_description %}Step-by-step configuration guides for 3CX integrations, surveys, analytics and reporting on Zentryc.{% endblock %}
+
+{% block structured_data %}
+<script type="application/ld+json">
+{
+  "@context": "https://schema.org",
+  "@type": "CollectionPage",
+  "name": "Zentryc Knowledge Base",
+  "description": "Configuration guides for 3CX and Zentryc contact-center features.",
+  "url": "https://connect.zentryc.com/kb/",
+  "publisher": {"@type": "Organization", "name": "Zentryc", "url": "https://connect.zentryc.com"},
+  "mainEntity": {
+    "@type": "ItemList",
+    "itemListElement": [
+      {% for a in articles %}
+      {
+        "@type": "ListItem",
+        "position": {{ forloop.counter }},
+        "url": "https://connect.zentryc.com/kb/{{ a.slug }}/",
+        "name": "{{ a.title|escapejs }}"
+      }{% if not forloop.last %},{% endif %}
+      {% endfor %}
+    ]
+  }
+}
+</script>
+{% endblock %}
+
+{% block body %}
+<section class="hero">
+  <div class="wrap sec" style="padding-bottom:40px">
+    <div class="center section-head">
+      <span class="eyebrow">Knowledge Base</span>
+      <h1>Guides for 3CX &amp; contact-center teams</h1>
+      <p class="lead">Practical, vendor-neutral documentation to configure surveys, analytics and integrations on Zentryc — written for supervisors, admins and PBX engineers.</p>
+    </div>
+  </div>
+</section>
+
+<section class="sec soft" style="padding-top:24px">
+  <div class="wrap">
+    <div class="cards">
+      {% for a in articles %}
+      <a href="/kb/{{ a.slug }}/" class="card" style="display:block">
+        <div class="ic"><i class="ri-book-open-line"></i></div>
+        <span class="eyebrow" style="font-size:.72rem;margin-bottom:10px">{{ a.category }}</span>
+        <h3>{{ a.title }}</h3>
+        <p>{{ a.description }}</p>
+        <p style="margin-top:14px;font-size:.88rem;color:var(--muted);font-weight:600">{{ a.read_minutes }} min read →</p>
+      </a>
+      {% endfor %}
+    </div>
+  </div>
+</section>
+
+<section class="sec">
+  <div class="wrap center">
+    <div class="cta">
+      <h2>Need help with your deployment?</h2>
+      <p>Book a demo and we'll walk through surveys, wallboards and reporting on your 3CX estate.</p>
+      <p style="margin-top:22px"><a class="btn btn-light" href="/contact/">Book a demo</a></p>
+    </div>
+  </div>
+</section>
+{% endblock %}

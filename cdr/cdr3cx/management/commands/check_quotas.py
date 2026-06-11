@@ -4,6 +4,7 @@ from django.conf import settings
 from decimal import Decimal
 
 from cdr3cx.models import UserQuota
+from cdr3cx.notification_utils import resolve_extension_alert_email
 
 
 class Command(BaseCommand):
@@ -36,7 +37,8 @@ class Command(BaseCommand):
                     Your System
                     """
                     from_email = settings.DEFAULT_FROM_EMAIL
-                    recipient_list = ['khuram2025@gmail.com']
+                    recipient = resolve_extension_alert_email(user_quota.extension)
+                    recipient_list = [recipient] if recipient else []
 
                     try:
                         send_mail(

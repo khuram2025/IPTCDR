@@ -1,0 +1,71 @@
+{% load static %}
+<div class="cc-toolbar card border-0 shadow-sm mb-3">
+  <div class="card-body py-2 px-3">
+    <div class="d-flex flex-wrap align-items-center justify-content-between gap-2">
+      <div class="d-flex align-items-center gap-2 min-w-0">
+        <div class="cc-toolbar-icon">
+          <i class="{% if toolbar_icon %}{{ toolbar_icon }}{% else %}ri-customer-service-2-line{% endif %}"></i>
+        </div>
+        <div class="min-w-0">
+          <h5 class="mb-0 fw-semibold text-truncate">{{ toolbar_title|default:"Call Center" }}</h5>
+          <span class="text-muted fs-12 text-truncate d-block">
+            {% if toolbar_subtitle %}{{ toolbar_subtitle }} · {% endif %}{{ date_range_label }}
+          </span>
+        </div>
+      </div>
+
+      <form id="ccFilterForm" method="get" action="{{ filter_action|default:'' }}" class="d-flex flex-wrap align-items-center gap-2">
+        <div class="btn-group cc-period-group" role="group" aria-label="Quick date filters">
+          {% for period, label in cc_periods %}
+          <a href="{{ filter_base_url }}?time_period={{ period }}"
+             class="btn btn-sm text-decoration-none {% if time_period == period %}btn-primary{% else %}btn-light{% endif %}">{{ label }}</a>
+          {% endfor %}
+        </div>
+
+        <div class="cc-date-range d-flex align-items-center gap-1">
+          <input type="date" class="form-control form-control-sm" name="start_date" id="start_date" value="{{ start_date }}" aria-label="From date">
+          <span class="text-muted fs-12 px-1">–</span>
+          <input type="date" class="form-control form-control-sm" name="end_date" id="end_date" value="{{ end_date }}" aria-label="To date">
+        </div>
+
+        <input type="hidden" name="time_period" id="timePeriodInput" value="{{ time_period|default:'1m' }}">
+
+        <div class="d-flex gap-1">
+          <button type="submit" class="btn btn-primary btn-sm px-3">
+            <i class="ri-filter-3-line me-1"></i>Apply
+          </button>
+          <a href="{{ reset_url }}" class="btn btn-light btn-sm" title="Reset">
+            <i class="ri-restart-line"></i>
+          </a>
+        </div>
+      </form>
+
+      <div class="d-flex gap-1">
+        {% if back_url %}
+        <a href="{{ back_url }}" class="btn btn-soft-primary btn-sm">
+          <i class="ri-arrow-left-line me-1"></i>Back
+        </a>
+        {% endif %}
+        {% if show_nav_links %}
+        <a href="{% url 'cdr3cx:missed_calls_details' %}?start_date={{ start_date }}&end_date={{ end_date }}" class="btn btn-soft-danger btn-sm">Missed</a>
+        <a href="{% url 'cdr3cx:call_back_tracking' %}?start_date={{ start_date }}&end_date={{ end_date }}" class="btn btn-soft-info btn-sm">Callbacks</a>
+        {% endif %}
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+(function () {
+  const form = document.getElementById('ccFilterForm');
+  const periodInput = document.getElementById('timePeriodInput');
+  const startInput = document.getElementById('start_date');
+  const endInput = document.getElementById('end_date');
+  if (!form || !periodInput) return;
+  form.addEventListener('submit', function () {
+    if (startInput && endInput && startInput.value && endInput.value) {
+      periodInput.value = 'custom';
+    }
+  });
+})();
+</script>

@@ -1,0 +1,156 @@
+{% extends "partials/base.html" %}
+{% load static %}
+{% block title %}Extensions{% endblock title %}
+{% block content %}
+<div class="main-content">
+  <div class="page-content">
+    <div class="container-fluid">
+
+      {% if messages %}
+        {% for message in messages %}
+          <div class="alert alert-{{ message.tags }} alert-dismissible fade show" role="alert">
+            {{ message }}
+            <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+          </div>
+        {% endfor %}
+      {% endif %}
+
+      <!-- Header -->
+      <div class="card border-0 shadow-sm mb-3">
+        <div class="card-body py-3">
+          <div class="d-flex flex-wrap align-items-center justify-content-between gap-2">
+            <div>
+              <h5 class="mb-1 fw-semibold"><i class="ri-contacts-book-2-line me-1"></i>Extensions</h5>
+              <span class="text-muted fs-13">
+                {{ active_count }} active of {{ total }} total
+                {% if last_synced %}· last synced from 3CX {{ last_synced|timesince }} ago{% else %}· not yet synced{% endif %}
+              </span>
+            </div>
+            {% if is_admin %}
+            <form method="post" action="{% url 'cdr3cx:extension_sync' %}">
+              {% csrf_token %}
+              <button type="submit" class="btn btn-primary btn-sm">
+                <i class="ri-refresh-line me-1"></i>Sync now from 3CX
+              </button>
+            </form>
+            {% endif %}
+          </div>
+        </div>
+      </div>
+
+      <!-- Filters -->
+      <div class="card border-0 shadow-sm mb-3">
+        <div class="card-body py-2">
+          <form method="get" class="row g-2 align-items-end">
+            <div class="col-md-4">
+              <label class="form-label fs-12 text-muted mb-1">Search</label>
+              <input type="text" name="q" value="{{ search }}" class="form-control form-control-sm"
+                     placeholder="number, name, email, mobile">
+            </div>
+            <div class="col-6 col-md-2">
+              <label class="form-label fs-12 text-muted mb-1">Status</label>
+              <select name="show" class="form-select form-select-sm">
+                <option value="active" {% if show == 'active' %}selected{% endif %}>Active</option>
+                <option value="all" {% if show == 'all' %}selected{% endif %}>All</option>
+                <option value="inactive" {% if show == 'inactive' %}selected{% endif %}>Inactive</option>
+              </select>
+            </div>
+            <div class="col-6 col-md-2">
+              <label class="form-label fs-12 text-muted mb-1">Registered</label>
+              <select name="registered" class="form-select form-select-sm">
+                <option value="">Any</option>
+                <option value="1" {% if registered == '1' %}selected{% endif %}>Online</option>
+                <option value="0" {% if registered == '0' %}selected{% endif %}>Offline</option>
+              </select>
+            </div>
+            <div class="col-6 col-md-2">
+              <label class="form-label fs-12 text-muted mb-1">External calls</label>
+              <select name="blocked" class="form-select form-select-sm">
+                <option value="">Any</option>
+                <option value="0" {% if blocked == '0' %}selected{% endif %}>Allowed</option>
+                <option value="1" {% if blocked == '1' %}selected{% endif %}>Blocked</option>
+              </select>
+            </div>
+            <div class="col-6 col-md-2 d-flex gap-2">
+              <button type="submit" class="btn btn-secondary btn-sm w-100">Filter</button>
+              <a href="{% url 'cdr3cx:extension_list' %}" class="btn btn-light btn-sm">Reset</a>
+            </div>
+          </form>
+        </div>
+      </div>
+
+      <!-- Table -->
+      <div class="card border-0 shadow-sm">
+        <div class="card-header bg-transparent border-0 d-flex justify-content-between align-items-center py-2">
+          <span class="text-muted fs-13">{{ result_count }} result{{ result_count|pluralize }}</span>
+        </div>
+        <div class="card-body p-0">
+          <div class="table-responsive">
+            <table class="table table-hover align-middle mb-0">
+              <thead class="table-light">
+                <tr>
+                  <th class="ps-3">Ext</th>
+                  <th>Name</th>
+                  <th>Email</th>
+                  <th>Mobile</th>
+                  <th>Status</th>
+                  <th>Quota</th>
+                  <th class="text-end">Balance</th>
+                  <th class="text-end pe-3"></th>
+                </tr>
+              </thead>
+              <tbody>
+                {% for ext in page_obj %}
+                {% url 'cdr3cx:extension_detail' ext.pk as detail_url %}
+                <tr style="cursor:pointer" onclick="window.location='{{ detail_url }}'">
+                  <td class="ps-3 fw-semibold">{{ ext.extension }}</td>
+                  <td>{{ ext.full_name|default:ext.display_name|default:"—" }}</td>
+                  <td class="fs-13 text-muted">{{ ext.email|default:"—" }}</td>
+                  <td class="fs-13 text-muted">{{ ext.mobile|default:"—" }}</td>
+                  <td>
+                    {% if not ext.is_active %}
+                      <span class="badge bg-secondary-subtle text-secondary" title="No longer in 3CX">Inactive</span>
+                    {% elif not ext.enabled %}
+                      <span class="badge bg-warning-subtle text-warning">Disabled</span>
+                    {% else %}
+                      <span class="badge bg-success-subtle text-success">Active</span>
+                    {% endif %}
+                    {% if ext.is_registered %}<span class="badge bg-info-subtle text-info" title="Phone registered">Online</span>{% endif %}
+                    {% if ext.disable_external_call %}<span class="badge bg-danger-subtle text-danger" title="External calls blocked">Ext blocked</span>{% endif %}
+                  </td>
+                  <td class="fs-13">{% if ext.quota.quota %}{{ ext.quota.quota.name }}{% else %}<span class="text-muted">—</span>{% endif %}</td>
+                  <td class="text-end fs-13">{% if ext.quota.quota %}{{ ext.quota.remaining_balance|floatformat:2 }}{% else %}—{% endif %}</td>
+                  <td class="text-end pe-3"><a href="{{ detail_url }}" class="btn btn-link btn-sm p-0" onclick="event.stopPropagation()"><i class="ri-arrow-right-s-line fs-18"></i></a></td>
+                </tr>
+                {% empty %}
+                <tr><td colspan="8" class="text-center text-muted py-5">
+                  <i class="ri-contacts-book-line fs-2 d-block mb-2 opacity-50"></i>
+                  No extensions match your filters.{% if is_admin %} Try “Sync now from 3CX”.{% endif %}
+                </td></tr>
+                {% endfor %}
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+
+      <!-- Pagination -->
+      {% if page_obj.has_other_pages %}
+      <nav class="mt-3">
+        <ul class="pagination pagination-sm justify-content-center">
+          {% if page_obj.has_previous %}
+            <li class="page-item"><a class="page-link" href="?{{ querystring }}&page={{ page_obj.previous_page_number }}">Prev</a></li>
+          {% else %}<li class="page-item disabled"><span class="page-link">Prev</span></li>{% endif %}
+          <li class="page-item disabled"><span class="page-link">Page {{ page_obj.number }} of {{ page_obj.paginator.num_pages }}</span></li>
+          {% if page_obj.has_next %}
+            <li class="page-item"><a class="page-link" href="?{{ querystring }}&page={{ page_obj.next_page_number }}">Next</a></li>
+          {% else %}<li class="page-item disabled"><span class="page-link">Next</span></li>{% endif %}
+        </ul>
+      </nav>
+      {% endif %}
+
+    </div>
+  </div>
+</div>
+{% block footer %}{% include "partials/footer.html" %}{% endblock footer %}
+{% endblock content %}

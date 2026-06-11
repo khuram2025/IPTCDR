@@ -1,204 +1,322 @@
 {% extends 'partials/base.html' %}
 {% load static %}
 
-{% block title %}Agent Details - {{ agent_name }}{% endblock %}
+{% block title %}Agent · {{ agent_name }}{% endblock %}
+
+{% block extra_css %}
+<link rel="stylesheet" href="{% static 'css/callcenter-dashboard.css' %}">
+{% endblock %}
 
 {% block content %}
-<!-- ============================================================== -->
-<!-- Start right Content here -->
-<!-- ============================================================== -->
 <div class="main-content">
-    <div class="page-content">
-        <div class="container-fluid">
-        <!-- start page title -->
-        <div class="row">
-            <div class="col-12">
-                <div class="page-title-box d-sm-flex align-items-center justify-content-between">
-                    <h4 class="mb-sm-0">Agent Details</h4>
-                    <div class="page-title-right">
-                        <ol class="breadcrumb m-0">
-                            <li class="breadcrumb-item"><a href="{% url 'cdr3cx:dashboard' %}">Dashboard</a></li>
-                            <li class="breadcrumb-item"><a href="{% url 'cdr3cx:call_center_dashboard' %}">Call Center</a></li>
-                            <li class="breadcrumb-item active">{{ agent_name }}</li>
-                        </ol>
-                    </div>
-                </div>
+  <div class="page-content">
+    <div class="container-fluid cc-dashboard">
+
+      {% if error %}
+      <div class="alert alert-danger border-0 shadow-sm" role="alert">{{ error }}</div>
+      {% else %}
+
+      {% include 'cdr/callcenter/_filter_toolbar.html' with filter_action=filter_base_url toolbar_icon="ri-user-voice-line" %}
+
+      <div class="d-flex justify-content-end mb-2">
+        <a href="{% url 'cdr3cx:report_generate_now' %}?type=agent_productivity&start={{ start_date }}&end={{ end_date }}&format=pdf" class="btn btn-sm btn-danger"><i class="ri-file-pdf-2-line me-1"></i>Export PDF</a>
+      </div>
+
+      <!-- Agent identity strip -->
+      <div class="card border-0 shadow-sm mb-3 cc-agent-strip">
+        <div class="card-body py-2 px-3">
+          <div class="d-flex align-items-center justify-content-between flex-wrap gap-2">
+            <div class="d-flex align-items-center gap-3 min-w-0">
+              <span class="cc-agent-avatar-lg">{{ agent_name|first|upper }}</span>
+              <div class="min-w-0">
+                <h6 class="mb-0 fw-semibold text-truncate">{{ agent_name }}</h6>
+                <span class="text-muted fs-12">Extension {{ agent_extension }}</span>
+              </div>
             </div>
+            <div class="d-flex align-items-center gap-2 text-muted fs-12">
+              <span class="badge bg-primary-subtle text-primary fw-normal">{{ total_calls }} calls</span>
+              <span class="d-none d-md-inline">·</span>
+              <span class="d-none d-md-inline">{{ date_range_label }}</span>
+            </div>
+          </div>
         </div>
-        <!-- end page title -->
+      </div>
 
-        {% if error %}
-        <div class="row">
-            <div class="col-12">
-                <div class="alert alert-danger" role="alert">
-                    <strong>Error:</strong> {{ error }}
+      <!-- KPI row -->
+      <div class="row g-2 mb-3">
+        {% if surveys_available and survey_metrics %}
+        <div class="col-6 col-md-3">
+          <div class="cc-kpi card border-0 shadow-sm h-100">
+            <div class="card-body py-2 px-3">
+              <div class="d-flex justify-content-between align-items-start">
+                <div>
+                  <p class="cc-kpi-label mb-1">CSAT</p>
+                  <h4 class="cc-kpi-value mb-0">{% if survey_metrics.csat_pct != None %}{{ survey_metrics.csat_pct }}%{% else %}—{% endif %}</h4>
+                  <span class="cc-kpi-sub">{{ survey_metrics.response_count }} surveys</span>
                 </div>
+                <span class="cc-kpi-icon bg-warning-subtle text-warning"><i class="ri-star-line"></i></span>
+              </div>
             </div>
+          </div>
         </div>
-        {% else %}
-
-        <!-- Agent Info -->
-        <div class="row">
-            <div class="col-12">
-                <div class="card">
-                    <div class="card-body">
-                        <div class="d-flex align-items-center">
-                            <div class="avatar-lg me-3">
-                                <div class="avatar-title bg-primary-subtle text-primary rounded-circle fs-2">
-                                    {{ agent_name|first|upper }}
-                                </div>
-                            </div>
-                            <div>
-                                <h4 class="mb-1">{{ agent_name }}</h4>
-                                <p class="text-muted mb-0">Extension: {{ agent_extension }}</p>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-            </div>
-        </div>
-
-        <!-- Date Range Filter -->
-        <div class="row mb-3">
-            <div class="col-12">
-                <div class="d-flex align-items-center justify-content-between flex-wrap bg-light p-3 rounded">
-                    <div class="d-flex align-items-center flex-wrap gap-3">
-                        <h5 class="mb-0 text-muted">Filter by Date Range:</h5>
-                        <form method="get" class="d-flex align-items-center gap-3 flex-wrap">
-                            <div class="d-flex align-items-center gap-2">
-                                <label for="start_date" class="form-label mb-0 text-nowrap">From:</label>
-                                <input type="date" class="form-control form-control-sm" id="start_date" name="start_date" value="{{ start_date }}" style="width: 150px;">
-                            </div>
-                            <div class="d-flex align-items-center gap-2">
-                                <label for="end_date" class="form-label mb-0 text-nowrap">To:</label>
-                                <input type="date" class="form-control form-control-sm" id="end_date" name="end_date" value="{{ end_date }}" style="width: 150px;">
-                            </div>
-                            <div class="d-flex gap-2">
-                                <button type="submit" class="btn btn-primary btn-sm">
-                                    <i class="ri-filter-line me-1"></i>Apply Filter
-                                </button>
-                                <a href="{% url 'cdr3cx:agent_details' agent_extension %}" class="btn btn-outline-secondary btn-sm">
-                                    <i class="ri-refresh-line me-1"></i>Reset
-                                </a>
-                            </div>
-                        </form>
-                    </div>
-                </div>
-            </div>
-        </div>
-
-        <!-- Stats Cards -->
-        <div class="row">
-            <div class="col-xl-4 col-md-6">
-                <div class="card card-height-100">
-                    <div class="card-body">
-                        <div class="d-flex align-items-center">
-                            <div class="avatar-sm flex-shrink-0">
-                                <span class="avatar-title bg-primary-subtle text-primary rounded-circle fs-3">
-                                    <i class="ri-phone-line"></i>
-                                </span>
-                            </div>
-                            <div class="flex-grow-1 ms-3">
-                                <p class="text-uppercase fw-semibold fs-12 text-muted mb-1">Total Calls Handled</p>
-                                <h4 class="mb-0">{{ total_calls|floatformat:0 }}</h4>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-            </div>
-
-            <div class="col-xl-4 col-md-6">
-                <div class="card card-height-100">
-                    <div class="card-body">
-                        <div class="d-flex align-items-center">
-                            <div class="avatar-sm flex-shrink-0">
-                                <span class="avatar-title bg-success-subtle text-success rounded-circle fs-3">
-                                    <i class="ri-time-line"></i>
-                                </span>
-                            </div>
-                            <div class="flex-grow-1 ms-3">
-                                <p class="text-uppercase fw-semibold fs-12 text-muted mb-1">Total Talk Time</p>
-                                <h4 class="mb-0">{{ total_duration_formatted }}</h4>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-            </div>
-
-            <div class="col-xl-4 col-md-6">
-                <div class="card card-height-100">
-                    <div class="card-body">
-                        <div class="d-flex align-items-center">
-                            <div class="avatar-sm flex-shrink-0">
-                                <span class="avatar-title bg-info-subtle text-info rounded-circle fs-3">
-                                    <i class="ri-timer-line"></i>
-                                </span>
-                            </div>
-                            <div class="flex-grow-1 ms-3">
-                                <p class="text-uppercase fw-semibold fs-12 text-muted mb-1">Average Call Duration</p>
-                                <h4 class="mb-0">{{ avg_duration_formatted }}</h4>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-            </div>
-        </div>
-
-        <!-- Recent Calls -->
-        <div class="row">
-            <div class="col-12">
-                <div class="card">
-                    <div class="card-header">
-                        <h4 class="card-title mb-0">Recent Call Center Calls</h4>
-                    </div>
-                    <div class="card-body">
-                        <div class="table-responsive">
-                            <table class="table table-hover table-nowrap align-middle mb-0">
-                                <thead class="table-light">
-                                    <tr>
-                                        <th scope="col">Date & Time</th>
-                                        <th scope="col">Caller Number</th>
-                                        <th scope="col">IVR Source</th>
-                                        <th scope="col">Duration</th>
-                                        <th scope="col">Status</th>
-                                    </tr>
-                                </thead>
-                                <tbody>
-                                    {% for call in recent_calls %}
-                                    <tr>
-                                        <td>{{ call.call_time|date:"M d, Y H:i:s" }}</td>
-                                        <td>{{ call.from_no }}</td>
-                                        <td>IVR {{ call.to_dn|default:"8004" }} <small class="text-muted">({{ call.to_dispname|default:"Call Center" }})</small></td>
-                                        <td>
-                                            {% if call.duration %}
-                                                {{ call.duration|floatformat:0 }}s
-                                            {% else %}
-                                                0s
-                                            {% endif %}
-                                        </td>
-                                        <td>
-                                            {% if call.time_answered %}
-                                                <span class="badge bg-success">Answered</span>
-                                            {% else %}
-                                                <span class="badge bg-warning">No Answer</span>
-                                            {% endif %}
-                                        </td>
-                                    </tr>
-                                    {% empty %}
-                                    <tr>
-                                        <td colspan="5" class="text-center">No call records found</td>
-                                    </tr>
-                                    {% endfor %}
-                                </tbody>
-                            </table>
-                        </div>
-                    </div>
-                </div>
-            </div>
-        </div>
-
         {% endif %}
+        <div class="col-6 col-md-3">
+          <div class="cc-kpi card border-0 shadow-sm h-100">
+            <div class="card-body py-2 px-3">
+              <div class="d-flex justify-content-between align-items-start">
+                <div>
+                  <p class="cc-kpi-label mb-1">Calls Handled</p>
+                  <h4 class="cc-kpi-value mb-0">{{ total_calls|floatformat:0 }}</h4>
+                  {% if calls_per_day %}<span class="cc-kpi-sub">~{{ calls_per_day }}/day</span>{% endif %}
+                </div>
+                <span class="cc-kpi-icon bg-primary-subtle text-primary"><i class="ri-phone-line"></i></span>
+              </div>
+            </div>
+          </div>
         </div>
+        <div class="col-6 col-md-3">
+          <div class="cc-kpi card border-0 shadow-sm h-100">
+            <div class="card-body py-2 px-3">
+              <div class="d-flex justify-content-between align-items-start">
+                <div>
+                  <p class="cc-kpi-label mb-1">Answered</p>
+                  <h4 class="cc-kpi-value mb-0 text-success">{{ answered_calls|floatformat:0 }}</h4>
+                  <span class="cc-kpi-sub">{{ answer_rate }}% of handled</span>
+                </div>
+                <span class="cc-kpi-icon bg-success-subtle text-success"><i class="ri-check-double-line"></i></span>
+              </div>
+            </div>
+          </div>
+        </div>
+        <div class="col-6 col-md-3">
+          <div class="cc-kpi card border-0 shadow-sm h-100">
+            <div class="card-body py-2 px-3">
+              <div class="d-flex justify-content-between align-items-start">
+                <div>
+                  <p class="cc-kpi-label mb-1">Total Talk</p>
+                  <h4 class="cc-kpi-value mb-0">{{ total_duration_formatted }}</h4>
+                  <span class="cc-kpi-sub">{{ total_duration_seconds|floatformat:0 }}s total</span>
+                </div>
+                <span class="cc-kpi-icon bg-warning-subtle text-warning"><i class="ri-time-line"></i></span>
+              </div>
+            </div>
+          </div>
+        </div>
+        <div class="col-6 col-md-3">
+          <div class="cc-kpi card border-0 shadow-sm h-100">
+            <div class="card-body py-2 px-3">
+              <div class="d-flex justify-content-between align-items-start">
+                <div>
+                  <p class="cc-kpi-label mb-1">Avg Duration</p>
+                  <h4 class="cc-kpi-value mb-0">{{ avg_duration_formatted }}</h4>
+                  <span class="cc-kpi-sub">Per answered call</span>
+                </div>
+                <span class="cc-kpi-icon bg-info-subtle text-info"><i class="ri-timer-line"></i></span>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      {% if agent_acd.available %}
+      <!-- Real agent-side ACD performance from the 3CX XAPI -->
+      <div class="row g-2 mb-3">
+        <div class="col-12">
+          <div class="card border-0 shadow-sm">
+            <div class="card-header bg-transparent border-0 py-2 px-3 d-flex align-items-center justify-content-between">
+              <h6 class="mb-0 fw-semibold">Real ACD Performance — live from 3CX
+                <span class="badge bg-success-subtle text-success ms-1" title="Per-agent answered/lost rings, AHT and occupancy from ReportAgentsInQueueStatistics">real agent data</span>
+              </h6>
+              <span class="text-muted fs-12">answer-rate target {{ agent_acd.target_pct }}%</span>
+            </div>
+            <div class="card-body p-3">
+              <div class="row g-2 mb-2">
+                <div class="col-6 col-md-2">
+                  <div class="border rounded p-2 h-100"><div class="fs-12 text-muted">Answered</div>
+                    <div class="fs-4 fw-semibold">{{ agent_acd.answered }}</div></div>
+                </div>
+                <div class="col-6 col-md-2">
+                  <div class="border rounded p-2 h-100"><div class="fs-12 text-muted">Lost rings</div>
+                    <div class="fs-4 fw-semibold {% if agent_acd.lost %}text-danger{% endif %}">{{ agent_acd.lost }}</div></div>
+                </div>
+                <div class="col-6 col-md-2">
+                  <div class="border rounded p-2 h-100"><div class="fs-12 text-muted">Answer %</div>
+                    <div class="fs-4 fw-semibold {% if agent_acd.answer_rate == None %}text-muted{% elif agent_acd.answer_meets_target %}text-success{% else %}text-danger{% endif %}">{% if agent_acd.answer_rate != None %}{{ agent_acd.answer_rate }}%{% else %}—{% endif %}</div>
+                    <div class="fs-12 text-muted">target {{ agent_acd.target_pct }}%</div></div>
+                </div>
+                <div class="col-6 col-md-2">
+                  <div class="border rounded p-2 h-100"><div class="fs-12 text-muted">AHT</div>
+                    <div class="fs-4 fw-semibold">{{ agent_acd.aht_formatted }}</div>
+                    <div class="fs-12 text-muted">per answered</div></div>
+                </div>
+                <div class="col-6 col-md-2">
+                  <div class="border rounded p-2 h-100"><div class="fs-12 text-muted">Occupancy</div>
+                    <div class="fs-4 fw-semibold">{% if agent_acd.occupancy_pct != None %}{{ agent_acd.occupancy_pct }}%{% else %}—{% endif %}</div>
+                    <div class="fs-12 text-muted">talk ÷ logged-in</div></div>
+                </div>
+                <div class="col-6 col-md-2">
+                  <div class="border rounded p-2 h-100"><div class="fs-12 text-muted">Talk time</div>
+                    <div class="fs-4 fw-semibold">{{ agent_acd.talk_formatted }}</div>
+                    <div class="fs-12 text-muted">logged in {{ agent_acd.logged_in_formatted }}</div></div>
+                </div>
+              </div>
+              {% if agent_acd.per_queue %}
+              <table class="table table-sm mb-0 align-middle">
+                <thead class="table-light"><tr>
+                  <th>Queue</th><th class="text-end">Answered</th><th class="text-end">Lost rings</th>
+                  <th class="text-end">Answer %</th><th class="text-end">AHT</th>
+                </tr></thead>
+                <tbody>
+                {% for q in agent_acd.per_queue %}
+                  <tr>
+                    <td>{{ q.name }} <span class="text-muted fs-12">({{ q.dn }})</span></td>
+                    <td class="text-end">{{ q.answered }}</td>
+                    <td class="text-end {% if q.lost %}text-danger{% endif %}">{{ q.lost }}</td>
+                    <td class="text-end fw-semibold {% if q.answer_rate == None %}text-muted{% elif q.answer_rate >= agent_acd.target_pct %}text-success{% else %}text-danger{% endif %}">{% if q.answer_rate != None %}{{ q.answer_rate }}%{% else %}—{% endif %}</td>
+                    <td class="text-end">{{ q.aht_formatted }}</td>
+                  </tr>
+                {% endfor %}
+                </tbody>
+              </table>
+              {% endif %}
+            </div>
+          </div>
+        </div>
+      </div>
+      {% endif %}
+
+      <!-- Charts -->
+      {% if daily_trends or hourly_calls %}
+      <div class="row g-2 mb-3">
+        <div class="col-lg-8">
+          <div class="card border-0 shadow-sm h-100">
+            <div class="card-header bg-transparent border-0 py-2 px-3 d-flex align-items-center justify-content-between">
+              <h6 class="mb-0 fw-semibold">Call Volume</h6>
+              <span class="badge bg-light text-muted fw-normal">{{ daily_trend_label|default:date_range_label }}</span>
+            </div>
+            <div class="card-body pt-0 pb-2 px-3">
+              <div class="cc-chart-wrap"><canvas id="agentDailyChart"></canvas></div>
+            </div>
+          </div>
+        </div>
+        <div class="col-lg-4">
+          <div class="card border-0 shadow-sm h-100">
+            <div class="card-header bg-transparent border-0 py-2 px-3">
+              <h6 class="mb-0 fw-semibold">Hourly Distribution</h6>
+            </div>
+            <div class="card-body pt-0 pb-2 px-3">
+              <div class="cc-chart-wrap cc-chart-sm"><canvas id="agentHourlyChart"></canvas></div>
+            </div>
+          </div>
+        </div>
+      </div>
+      {% endif %}
+
+      <!-- Call log -->
+      <div class="card border-0 shadow-sm">
+        <div class="card-header bg-transparent border-0 py-2 px-3 d-flex align-items-center justify-content-between">
+          <h6 class="mb-0 fw-semibold">Call Log</h6>
+          <span class="text-muted fs-12">{{ recent_calls|length }} record{{ recent_calls|length|pluralize }}</span>
+        </div>
+        <div class="card-body p-0">
+          <div class="table-responsive">
+            <table class="table table-sm table-hover cc-table mb-0 align-middle">
+              <thead>
+                <tr>
+                  <th>Time</th>
+                  <th>Caller</th>
+                  <th>IVR</th>
+                  <th class="text-end">Duration</th>
+                  <th class="text-end">Status</th>
+                </tr>
+              </thead>
+              <tbody>
+                {% for call in recent_calls %}
+                <tr>
+                  <td class="text-muted fs-12 text-nowrap">{{ call.call_time|date:"M d, H:i:s" }}</td>
+                  <td class="fw-medium">{{ call.from_no }}</td>
+                  <td class="fs-12 text-muted">{{ call.to_dn|default:"—" }} · {{ call.to_dispname|default:"Call Center"|truncatechars:22 }}</td>
+                  <td class="text-end fs-12">{% if call.duration %}{{ call.duration|floatformat:0 }}s{% else %}—{% endif %}</td>
+                  <td class="text-end">
+                    {% if call.time_answered %}
+                      <span class="badge bg-success-subtle text-success">Answered</span>
+                    {% else %}
+                      <span class="badge bg-warning-subtle text-warning">No Answer</span>
+                    {% endif %}
+                  </td>
+                </tr>
+                {% empty %}
+                <tr>
+                  <td colspan="5" class="text-center text-muted py-5">
+                    <i class="ri-phone-off-line fs-2 d-block mb-2 opacity-50"></i>
+                    No calls for this agent in the selected period
+                  </td>
+                </tr>
+                {% endfor %}
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+
+      {% endif %}
     </div>
+  </div>
 </div>
+
+{% if daily_trends or hourly_calls %}
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
+<script>
+(function () {
+  const chartDefaults = {
+    responsive: true,
+    maintainAspectRatio: false,
+    plugins: { legend: { labels: { boxWidth: 10, font: { size: 11 } } } },
+    scales: {
+      x: { grid: { display: false }, ticks: { font: { size: 10 }, maxRotation: 0 } },
+      y: { beginAtZero: true, ticks: { font: { size: 10 }, stepSize: 1 }, grid: { color: 'rgba(0,0,0,.04)' } }
+    }
+  };
+
+  const dailyCtx = document.getElementById('agentDailyChart');
+  if (dailyCtx) {
+    new Chart(dailyCtx, {
+      type: 'line',
+      data: {
+        labels: [{% for trend in daily_trends %}'{{ trend.label|default:trend.date|slice:"5:" }}'{% if not forloop.last %},{% endif %}{% endfor %}],
+        datasets: [{
+          label: 'Calls',
+          data: [{% for trend in daily_trends %}{{ trend.total_calls }}{% if not forloop.last %},{% endif %}{% endfor %}],
+          borderColor: '#405189',
+          backgroundColor: 'rgba(64,81,137,.08)',
+          fill: true,
+          tension: .35,
+          borderWidth: 2,
+          pointRadius: 2
+        }]
+      },
+      options: { ...chartDefaults, plugins: { ...chartDefaults.plugins, legend: { display: false } } }
+    });
+  }
+
+  const hourlyCtx = document.getElementById('agentHourlyChart');
+  if (hourlyCtx) {
+    new Chart(hourlyCtx, {
+      type: 'bar',
+      data: {
+        labels: [{% for hour in hourly_calls %}'{{ hour.hour|slice:":2" }}'{% if not forloop.last %},{% endif %}{% endfor %}],
+        datasets: [{
+          label: 'Calls',
+          data: [{% for hour in hourly_calls %}{{ hour.calls }}{% if not forloop.last %},{% endif %}{% endfor %}],
+          backgroundColor: 'rgba(10,179,156,.75)',
+          borderRadius: 3,
+          borderSkipped: false
+        }]
+      },
+      options: { ...chartDefaults, plugins: { ...chartDefaults.plugins, legend: { display: false } } }
+    });
+  }
+})();
+</script>
+{% endif %}
 {% endblock %}

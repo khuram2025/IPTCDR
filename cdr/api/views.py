@@ -3,14 +3,21 @@
 All querysets are scoped by ``request.user.company`` (works for both API-key
 and session auth, since both expose ``.company`` on the user).
 """
-from rest_framework import mixins, viewsets, permissions
+from django.utils.dateparse import parse_date
+from rest_framework import mixins, viewsets, permissions, status
 from rest_framework.decorators import action
 from rest_framework.response import Response
+from rest_framework.throttling import AnonRateThrottle
 from rest_framework.views import APIView
 
 from accounts.models import Company, Currency, Extension
 from billing.models import FraudIncident, FraudRule, TaxRule
 from cdr3cx.models import CallPattern, CallRecord, Quota, UserQuota
+
+from surveys.models import SurveyCampaign, SurveyResponse
+from surveys.services.ingest import IngestError, ingest_survey_response, resolve_campaign_from_token
+from surveys.services.metrics import survey_dashboard_metrics
+from surveys.tasks import post_survey_ingest
 
 from .models import ApiKey, WebhookSubscription
 from .serializers import (
@@ -19,6 +26,7 @@ from .serializers import (
     CurrencySerializer, ExtensionSerializer, FraudIncidentSerializer,
     FraudRuleSerializer, QuotaSerializer, TaxRuleSerializer,
     UserQuotaSerializer, WebhookSubscriptionSerializer,
+    SurveyCampaignSerializer, SurveyResponseSerializer,
 )
 
 
@@ -197,3 +205,99 @@ class HealthView(APIView):
 
     def get(self, request):
         return Response({'status': 'ok', 'service': 'iptportal-api', 'version': '1.0.0'})
+
+
+class SurveyIngestThrottle(AnonRateThrottle):
+    rate = '120/min'
+
+
+class SurveyIngestView(APIView):
+    """CFD POST endpoint — authenticated via X-Survey-Token per campaign."""
+    authentication_classes: list = []
+    permission_classes = [permissions.AllowAny]
+    throttle_classes = [SurveyIngestThrottle]
+
+    def post(self, request):
+        token = request.META.get('HTTP_X_SURVEY_TOKEN', '').strip()
+        try:
+            campaign = resolve_campaign_from_token(token)
+            slug = (request.data.get('campaign_slug') or '').strip()
+            if slug and slug != campaign.slug:
+                return Response({'detail': 'campaign_slug does not match token'}, status=400)
+            response, created = ingest_survey_response(campaign, request.data)
+            if created:
+                post_survey_ingest.delay(response.pk)
+            code = status.HTTP_201_CREATED if created else status.HTTP_200_OK
+            return Response({
+                'id': response.pk,
+                'created': created,
+                'match_confidence': response.match_confidence,
+                'call_record_id': response.call_record_id,
+            }, status=code)
+        except IngestError as exc:
+            return Response({'detail': str(exc)}, status=exc.status_code)
+
+
+class SurveyCampaignViewSet(_TenantScopedMixin, viewsets.ModelViewSet):
+    queryset = SurveyCampaign.objects.prefetch_related('questions')
+    serializer_class = SurveyCampaignSerializer
+    required_scopes = ['read:surveys']
+    search_fields = ['name', 'slug']
+    ordering_fields = ['name', 'created_at']
+
+    def initial(self, request, *args, **kwargs):
+        if self.action in ('create', 'update', 'partial_update', 'destroy'):
+            self.required_scopes = ['write:surveys']
+        else:
+            self.required_scopes = ['read:surveys']
+        super().initial(request, *args, **kwargs)
+
+    def perform_create(self, serializer):
+        serializer.save(company=self.request.user.company)
+
+
+class SurveyResponseViewSet(_TenantScopedMixin, viewsets.ReadOnlyModelViewSet):
+    queryset = SurveyResponse.objects.select_related(
+        'campaign', 'agent', 'queue', 'call_record',
+    ).prefetch_related('answers').order_by('-completed_at')
+    serializer_class = SurveyResponseSerializer
+    required_scopes = ['read:surveys']
+    search_fields = ['caller']
+    ordering_fields = ['completed_at', 'caller']
+
+    def get_queryset(self):
+        qs = super().get_queryset()
+        since = self.request.query_params.get('since')
+        until = self.request.query_params.get('until')
+        if since:
+            qs = qs.filter(completed_at__gte=since)
+        if until:
+            qs = qs.filter(completed_at__lte=until)
+        campaign = self.request.query_params.get('campaign')
+        if campaign:
+            qs = qs.filter(campaign_id=campaign)
+        agent = self.request.query_params.get('agent')
+        if agent:
+            qs = qs.filter(agent_id=agent)
+        queue = self.request.query_params.get('queue')
+        if queue:
+            qs = qs.filter(queue_id=queue)
+        return qs
+
+
+class SurveyMetricsView(APIView):
+    """Aggregated CSAT/NPS metrics for a date range."""
+    required_scopes = ['read:surveys']
+
+    def get(self, request):
+        company = getattr(request.user, 'company', None)
+        if not company:
+            return Response({'detail': 'No company'}, status=400)
+        since = parse_date(request.query_params.get('since') or '')
+        until = parse_date(request.query_params.get('until') or '')
+        if not since or not until:
+            from django.utils import timezone
+            until = timezone.localdate()
+            since = until.replace(day=1)
+        data = survey_dashboard_metrics(company, since, until)
+        return Response(data)

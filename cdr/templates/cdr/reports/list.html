@@ -1,0 +1,136 @@
+{% extends 'partials/base.html' %}
+{% block title %}Scheduled Reports{% endblock %}
+
+{% block content %}
+<div class="main-content">
+  <div class="page-content">
+    <div class="container-fluid">
+
+      {% if error %}
+      <div class="alert alert-danger border-0 shadow-sm">{{ error }}</div>
+      {% else %}
+
+      {% if messages %}
+        {% for m in messages %}
+        <div class="alert alert-{{ m.tags|default:'info' }} border-0 shadow-sm py-2">{{ m }}</div>
+        {% endfor %}
+      {% endif %}
+
+      <div class="d-flex align-items-center justify-content-between mb-3">
+        <div>
+          <h5 class="mb-0">Scheduled Reports</h5>
+          <span class="text-muted fs-13">Automated call-center reports — emailed on a recurring schedule</span>
+        </div>
+        <a href="{% url 'cdr3cx:report_create' %}" class="btn btn-primary btn-sm">
+          <i class="ri-add-line me-1"></i>New scheduled report</a>
+      </div>
+
+      <!-- Ad-hoc: generate + download now -->
+      <div class="card border-0 shadow-sm mb-3">
+        <div class="card-header bg-transparent border-0 py-2 px-3">
+          <h6 class="mb-0 fw-semibold">Generate a report now</h6>
+        </div>
+        <div class="card-body py-2">
+          <form method="get" action="{% url 'cdr3cx:report_generate_now' %}" class="row g-2 align-items-end">
+            <div class="col-md-4">
+              <label class="form-label fs-12 mb-1">Report</label>
+              <select name="type" class="form-select form-select-sm">
+                {% for key, val in report_types.items %}<option value="{{ key }}">{{ val.0 }}</option>{% endfor %}
+              </select>
+            </div>
+            <div class="col-md-3">
+              <label class="form-label fs-12 mb-1">Window</label>
+              <select name="window" class="form-select form-select-sm">
+                {% for key, label in windows.items %}<option value="{{ key }}">{{ label }}</option>{% endfor %}
+              </select>
+            </div>
+            <div class="col-md-3">
+              <label class="form-label fs-12 mb-1">Format</label>
+              <select name="format" class="form-select form-select-sm">
+                {% for f in formats %}<option value="{{ f }}">{{ f|upper }}</option>{% endfor %}
+              </select>
+            </div>
+            <div class="col-md-2">
+              <button class="btn btn-outline-primary btn-sm w-100"><i class="ri-download-2-line me-1"></i>Generate</button>
+            </div>
+          </form>
+        </div>
+      </div>
+
+      <!-- Scheduled reports -->
+      <div class="card border-0 shadow-sm mb-3">
+        <div class="card-body p-0">
+          <table class="table table-sm mb-0 align-middle">
+            <thead class="table-light"><tr>
+              <th class="ps-3">Name</th><th>Type</th><th>Window</th><th>Format</th>
+              <th>Schedule</th><th>Next run</th><th>Last run</th><th></th><th class="pe-3 text-end">Actions</th>
+            </tr></thead>
+            <tbody>
+            {% for r in reports %}
+              <tr>
+                <td class="ps-3 fw-semibold">{{ r.name }}</td>
+                <td class="fs-13">{{ r.get_report_type_display }}</td>
+                <td class="fs-13">{{ r.get_window_display }}</td>
+                <td><span class="badge bg-light text-dark">{{ r.fmt|upper }}</span></td>
+                <td class="fs-13">{{ r.get_recurrence_display }}
+                  {% if r.recurrence == 'weekly' %}· {{ r.get_weekday_display }}{% elif r.recurrence == 'monthly' %}· day {{ r.day_of_month }}{% endif %}
+                  {{ r.hour|stringformat:"02d" }}:{{ r.minute|stringformat:"02d" }}</td>
+                <td class="fs-13">{{ r.next_run_at|date:"M d, H:i"|default:"—" }}</td>
+                <td class="fs-13">{{ r.last_run_at|date:"M d, H:i"|default:"never" }}</td>
+                <td>{% if r.is_active %}<span class="badge bg-success-subtle text-success">active</span>{% else %}<span class="badge bg-secondary-subtle text-secondary">paused</span>{% endif %}</td>
+                <td class="pe-3 text-end text-nowrap">
+                  <form method="post" action="{% url 'cdr3cx:report_run_now' r.pk %}" class="d-inline">
+                    {% csrf_token %}
+                    <button class="btn btn-sm btn-outline-success py-0" title="Run now"><i class="ri-play-line"></i></button>
+                  </form>
+                  <a href="{% url 'cdr3cx:report_edit' r.pk %}" class="btn btn-sm btn-outline-secondary py-0" title="Edit"><i class="ri-pencil-line"></i></a>
+                  <form method="post" action="{% url 'cdr3cx:report_delete' r.pk %}" class="d-inline" onsubmit="return confirm('Delete this scheduled report?');">
+                    {% csrf_token %}
+                    <button class="btn btn-sm btn-outline-danger py-0" title="Delete"><i class="ri-delete-bin-line"></i></button>
+                  </form>
+                </td>
+              </tr>
+            {% empty %}
+              <tr><td colspan="9" class="text-center text-muted py-4">No scheduled reports yet. Create one or generate ad-hoc above.</td></tr>
+            {% endfor %}
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+      <!-- Recent runs -->
+      <div class="card border-0 shadow-sm">
+        <div class="card-header bg-transparent border-0 py-2 px-3"><h6 class="mb-0 fw-semibold">Recent runs</h6></div>
+        <div class="card-body p-0">
+          <table class="table table-sm mb-0 align-middle">
+            <thead class="table-light"><tr>
+              <th class="ps-3">When</th><th>Report</th><th>Window</th><th>Format</th>
+              <th class="text-end">Rows</th><th>Status</th><th>Emailed</th><th class="pe-3 text-end">File</th>
+            </tr></thead>
+            <tbody>
+            {% for run in runs %}
+              <tr>
+                <td class="ps-3 fs-13">{{ run.created_at|date:"M d, H:i" }}</td>
+                <td class="fs-13">{{ run.report_type }}</td>
+                <td class="fs-13">{{ run.window }}</td>
+                <td><span class="badge bg-light text-dark">{{ run.fmt|upper }}</span></td>
+                <td class="text-end">{{ run.row_count }}</td>
+                <td>{% if run.status == 'success' %}<span class="badge bg-success-subtle text-success">success</span>{% else %}<span class="badge bg-danger-subtle text-danger" title="{{ run.error }}">failed</span>{% endif %}</td>
+                <td>{% if run.emailed %}<i class="ri-mail-check-line text-success"></i>{% else %}<span class="text-muted">—</span>{% endif %}</td>
+                <td class="pe-3 text-end">
+                  {% if run.status == 'success' %}<a href="{% url 'cdr3cx:report_download' run.pk %}" class="btn btn-sm btn-outline-primary py-0"><i class="ri-download-2-line"></i></a>{% endif %}
+                </td>
+              </tr>
+            {% empty %}
+              <tr><td colspan="8" class="text-center text-muted py-4">No runs yet.</td></tr>
+            {% endfor %}
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+      {% endif %}
+    </div>
+  </div>
+</div>
+{% endblock %}

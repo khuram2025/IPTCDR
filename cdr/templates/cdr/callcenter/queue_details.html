@@ -1,0 +1,297 @@
+{% extends 'partials/base.html' %}
+{% load static %}
+
+{% block title %}Queue · {{ queue_name }}{% endblock %}
+
+{% block extra_css %}
+<link rel="stylesheet" href="{% static 'css/callcenter-dashboard.css' %}">
+{% endblock %}
+
+{% block content %}
+<div class="main-content">
+  <div class="page-content">
+    <div class="container-fluid cc-dashboard">
+
+      {% if error %}
+      <div class="alert alert-danger border-0 shadow-sm" role="alert">{{ error }}</div>
+      {% else %}
+
+      {% include 'cdr/callcenter/_filter_toolbar.html' with filter_action=filter_base_url toolbar_icon="ri-customer-service-2-line" %}
+
+      <div class="d-flex justify-content-end mb-2">
+        <a href="{% url 'cdr3cx:report_generate_now' %}?type=queue_performance&start={{ start_date }}&end={{ end_date }}&format=pdf" class="btn btn-sm btn-danger"><i class="ri-file-pdf-2-line me-1"></i>Export PDF</a>
+      </div>
+
+      <!-- Queue identity strip -->
+      <div class="card border-0 shadow-sm mb-3 cc-agent-strip">
+        <div class="card-body py-2 px-3">
+          <div class="d-flex align-items-center justify-content-between flex-wrap gap-2">
+            <div class="d-flex align-items-center gap-3 min-w-0">
+              <span class="cc-agent-avatar-lg bg-info-subtle text-info"><i class="ri-customer-service-2-line"></i></span>
+              <div class="min-w-0">
+                <h6 class="mb-0 fw-semibold text-truncate">{{ queue_name }}</h6>
+                <span class="text-muted fs-12">Queue {{ queue_dn }}</span>
+              </div>
+            </div>
+            <div class="d-flex align-items-center gap-2 text-muted fs-12">
+              <span class="badge bg-primary-subtle text-primary fw-normal">{{ calls }} calls</span>
+              <span class="d-none d-md-inline">·</span>
+              <span class="d-none d-md-inline">{{ date_range_label }}</span>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      {% if not has_data %}
+      <div class="alert alert-info border-0 shadow-sm" role="alert">
+        <i class="ri-information-line me-1"></i>
+        No queue statistics for this period. Real queue metrics come from the 3CX XAPI queue connector — confirm it is running and has pulled data for this date range.
+      </div>
+      {% endif %}
+
+      <!-- KPI row -->
+      <div class="row g-2 mb-3">
+        {% if surveys_available and survey_metrics %}
+        <div class="col-6 col-md-3">
+          <div class="cc-kpi card border-0 shadow-sm h-100">
+            <div class="card-body py-2 px-3">
+              <div class="d-flex justify-content-between align-items-start">
+                <div>
+                  <p class="cc-kpi-label mb-1">CSAT</p>
+                  <h4 class="cc-kpi-value mb-0">{% if survey_metrics.csat_pct != None %}{{ survey_metrics.csat_pct }}%{% else %}—{% endif %}</h4>
+                  <span class="cc-kpi-sub">{{ survey_metrics.response_count }} surveys</span>
+                </div>
+                <span class="cc-kpi-icon bg-warning-subtle text-warning"><i class="ri-star-line"></i></span>
+              </div>
+            </div>
+          </div>
+        </div>
+        {% endif %}
+        <div class="col-6 col-md-3">
+          <div class="cc-kpi card border-0 shadow-sm h-100">
+            <div class="card-body py-2 px-3">
+              <div class="d-flex justify-content-between align-items-start">
+                <div>
+                  <p class="cc-kpi-label mb-1">Calls</p>
+                  <h4 class="cc-kpi-value mb-0">{{ calls|floatformat:0 }}</h4>
+                  <span class="cc-kpi-sub">ASA {{ asa_formatted }}</span>
+                </div>
+                <span class="cc-kpi-icon bg-primary-subtle text-primary"><i class="ri-phone-line"></i></span>
+              </div>
+            </div>
+          </div>
+        </div>
+        <div class="col-6 col-md-3">
+          <div class="cc-kpi card border-0 shadow-sm h-100">
+            <div class="card-body py-2 px-3">
+              <div class="d-flex justify-content-between align-items-start">
+                <div>
+                  <p class="cc-kpi-label mb-1">Answered</p>
+                  <h4 class="cc-kpi-value mb-0 text-success">{{ answered|floatformat:0 }}<small class="fs-13 fw-normal ms-1">{{ answer_rate }}%</small></h4>
+                  <span class="cc-kpi-sub">Avg talk {{ avg_talk_formatted }}</span>
+                </div>
+                <span class="cc-kpi-icon bg-success-subtle text-success"><i class="ri-check-double-line"></i></span>
+              </div>
+            </div>
+          </div>
+        </div>
+        <div class="col-6 col-md-3">
+          <div class="cc-kpi card border-0 shadow-sm h-100">
+            <div class="card-body py-2 px-3">
+              <div class="d-flex justify-content-between align-items-start">
+                <div>
+                  <p class="cc-kpi-label mb-1">Abandoned</p>
+                  <h4 class="cc-kpi-value mb-0 {% if abandon_rate <= 5 %}text-success{% elif abandon_rate <= 10 %}text-warning{% else %}text-danger{% endif %}">{{ abandon_count|floatformat:0 }}<small class="fs-13 fw-normal ms-1">{{ abandon_rate }}%</small></h4>
+                  <span class="cc-kpi-sub">Avg wait {{ avg_abandon_wait_formatted }}</span>
+                </div>
+                <span class="cc-kpi-icon bg-danger-subtle text-danger"><i class="ri-phone-off-line"></i></span>
+              </div>
+            </div>
+          </div>
+        </div>
+        <div class="col-6 col-md-3">
+          <div class="cc-kpi card border-0 shadow-sm h-100">
+            <div class="card-body py-2 px-3">
+              <div class="d-flex justify-content-between align-items-start">
+                <div>
+                  <p class="cc-kpi-label mb-1">Longest Wait</p>
+                  <h4 class="cc-kpi-value mb-0">{{ max_abandon_wait_formatted }}</h4>
+                  <span class="cc-kpi-sub">Before abandon</span>
+                </div>
+                <span class="cc-kpi-icon bg-warning-subtle text-warning"><i class="ri-timer-flash-line"></i></span>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Call volume chart -->
+      {% if daily_trends %}
+      <div class="row g-2 mb-3">
+        <div class="col-12">
+          <div class="card border-0 shadow-sm">
+            <div class="card-header bg-transparent border-0 py-2 px-3 d-flex align-items-center justify-content-between">
+              <h6 class="mb-0 fw-semibold">Call Volume</h6>
+              <span class="badge bg-light text-muted fw-normal">{{ daily_trend_label|default:date_range_label }}</span>
+            </div>
+            <div class="card-body pt-0 pb-2 px-3">
+              <div class="cc-chart-wrap"><canvas id="queueDailyChart"></canvas></div>
+            </div>
+          </div>
+        </div>
+      </div>
+      {% endif %}
+
+      <!-- Agents in this queue -->
+      <div class="card border-0 shadow-sm mb-3">
+        <div class="card-header bg-transparent border-0 py-2 px-3 d-flex align-items-center justify-content-between">
+          <h6 class="mb-0 fw-semibold">Agents in this Queue
+            <span class="badge bg-success-subtle text-success ms-1" title="Per-agent answered/lost rings, AHT and occupancy from ReportAgentsInQueueStatistics">real agent data</span>
+          </h6>
+          <span class="text-muted fs-12">{{ agents|length }} agent{{ agents|length|pluralize }}</span>
+        </div>
+        <div class="card-body p-0">
+          <div class="table-responsive">
+            <table class="table table-sm table-hover cc-table mb-0 align-middle">
+              <thead class="table-light">
+                <tr>
+                  <th class="ps-3">Agent</th>
+                  <th class="text-end">Answered</th>
+                  <th class="text-end">Lost rings</th>
+                  <th class="text-end">Answer %</th>
+                  <th class="text-end">AHT</th>
+                  <th class="text-end">Occupancy</th>
+                  <th class="text-end pe-3">Talk time</th>
+                </tr>
+              </thead>
+              <tbody>
+                {% for a in agents %}
+                <tr>
+                  <td class="ps-3"><a href="{% url 'cdr3cx:agent_details' a.dn %}?start_date={{ start_date }}&end_date={{ end_date }}" class="text-reset text-decoration-none">{{ a.name }}</a> <span class="text-muted fs-12">({{ a.dn }})</span></td>
+                  <td class="text-end">{{ a.answered }}</td>
+                  <td class="text-end {% if a.lost %}text-danger{% endif %}">{{ a.lost }}</td>
+                  <td class="text-end fw-semibold {% if a.answer_rate == None %}text-muted{% elif a.answer_rate >= 80 %}text-success{% elif a.answer_rate >= 50 %}text-warning{% else %}text-danger{% endif %}">{% if a.answer_rate != None %}{{ a.answer_rate }}%{% else %}—{% endif %}</td>
+                  <td class="text-end">{{ a.aht_formatted }}</td>
+                  <td class="text-end">{% if a.occupancy_pct != None %}{{ a.occupancy_pct }}%{% else %}—{% endif %}</td>
+                  <td class="text-end pe-3">{{ a.talk_formatted }}</td>
+                </tr>
+                {% empty %}
+                <tr>
+                  <td colspan="7" class="text-center text-muted py-5">
+                    <i class="ri-user-unfollow-line fs-2 d-block mb-2 opacity-50"></i>
+                    No agent data for this queue in the selected period
+                  </td>
+                </tr>
+                {% endfor %}
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+
+      <!-- Abandoned calls -->
+      <div class="card border-0 shadow-sm">
+        <div class="card-header bg-transparent border-0 py-2 px-3 d-flex align-items-center justify-content-between">
+          <h6 class="mb-0 fw-semibold">Abandoned Calls
+            <span class="badge bg-success-subtle text-success ms-1" title="Real seconds the caller waited before hanging up — from ReportAbandonedQueueCalls">real wait</span>
+          </h6>
+          <span class="text-muted fs-12">{{ abandoned_calls|length }} shown{% if abandon_count > abandoned_calls|length %} of {{ abandon_count }}{% endif %}</span>
+        </div>
+        <div class="card-body p-0">
+          <div class="table-responsive">
+            <table class="table table-sm table-hover cc-table mb-0 align-middle">
+              <thead class="table-light">
+                <tr>
+                  <th class="ps-3">Time</th>
+                  <th>Caller</th>
+                  <th class="text-end">Waited</th>
+                  <th class="text-end">Agents rung</th>
+                  <th class="text-end pe-3">Last agent</th>
+                </tr>
+              </thead>
+              <tbody>
+                {% for c in abandoned_calls %}
+                <tr>
+                  <td class="ps-3 text-muted fs-12 text-nowrap">{{ c.call_time|date:"M d, H:i:s" }}</td>
+                  <td class="fw-medium">{{ c.caller_id|default:"—" }}</td>
+                  <td class="text-end {% if c.wait_seconds and c.wait_seconds > 120 %}text-danger fw-semibold{% endif %}">{% if c.wait_seconds != None %}{{ c.wait_seconds|floatformat:0 }}s{% else %}—{% endif %}</td>
+                  <td class="text-end">{{ c.polling_attempts }}</td>
+                  <td class="text-end pe-3 fs-12 text-muted">{% if c.last_agent_name %}{{ c.last_agent_name }}{% elif c.last_agent_dn %}{{ c.last_agent_dn }}{% else %}—{% endif %}</td>
+                </tr>
+                {% empty %}
+                <tr>
+                  <td colspan="5" class="text-center text-muted py-5">
+                    <i class="ri-emotion-happy-line fs-2 d-block mb-2 opacity-50"></i>
+                    No abandoned calls for this queue in the selected period
+                  </td>
+                </tr>
+                {% endfor %}
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+
+      {% endif %}
+    </div>
+  </div>
+</div>
+
+{% if daily_trends %}
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
+<script>
+(function () {
+  const chartDefaults = {
+    responsive: true,
+    maintainAspectRatio: false,
+    plugins: { legend: { labels: { boxWidth: 10, font: { size: 11 } } } },
+    scales: {
+      x: { grid: { display: false }, ticks: { font: { size: 10 }, maxRotation: 0 } },
+      y: { beginAtZero: true, ticks: { font: { size: 10 }, stepSize: 1 }, grid: { color: 'rgba(0,0,0,.04)' } }
+    }
+  };
+
+  const dailyCtx = document.getElementById('queueDailyChart');
+  if (dailyCtx) {
+    new Chart(dailyCtx, {
+      type: 'line',
+      data: {
+        labels: [{% for trend in daily_trends %}'{{ trend.label }}'{% if not forloop.last %},{% endif %}{% endfor %}],
+        datasets: [
+          {
+            label: 'Calls',
+            data: [{% for trend in daily_trends %}{{ trend.total_calls }}{% if not forloop.last %},{% endif %}{% endfor %}],
+            borderColor: '#405189',
+            backgroundColor: 'rgba(64,81,137,.08)',
+            fill: true,
+            tension: .35,
+            borderWidth: 2,
+            pointRadius: 2
+          },
+          {
+            label: 'Answered',
+            data: [{% for trend in daily_trends %}{{ trend.answered }}{% if not forloop.last %},{% endif %}{% endfor %}],
+            borderColor: '#0ab39c',
+            backgroundColor: 'transparent',
+            tension: .35,
+            borderWidth: 2,
+            pointRadius: 2
+          },
+          {
+            label: 'Abandoned',
+            data: [{% for trend in daily_trends %}{{ trend.abandoned }}{% if not forloop.last %},{% endif %}{% endfor %}],
+            borderColor: '#f06548',
+            backgroundColor: 'transparent',
+            tension: .35,
+            borderWidth: 2,
+            pointRadius: 2
+          }
+        ]
+      },
+      options: chartDefaults
+    });
+  }
+})();
+</script>
+{% endif %}
+{% endblock %}

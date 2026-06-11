@@ -1,0 +1,100 @@
+{% extends 'public/base.html' %}
+{% block title %}Features — Call-Center Analytics, Wallboards, Alerts & Billing | Zentryc{% endblock %}
+{% block meta_description %}Explore every Zentryc feature: real-time ACD analytics, live supervisor wallboards, agent productivity, abandonment intelligence, SLA alerts, scheduled reports, telecom billing, quota management, fraud detection, multi-vendor support and enterprise security.{% endblock %}
+{% block canonical %}/features/{% endblock %}{% block og_url %}/features/{% endblock %}
+{% block og_title %}Zentryc Features — the complete call-center & billing platform{% endblock %}
+
+{% block body %}
+<section class="hero">
+  <div class="wrap sec" style="padding-bottom:48px">
+    <div class="center section-head">
+      <span class="eyebrow">Platform features</span>
+      <h1>Every number you need — and the tools to act on it</h1>
+      <p class="lead">Zentryc is a complete contact-center intelligence and telecom-billing suite. Here is everything it does, grouped the way you run your operation.</p>
+    </div>
+  </div>
+</section>
+
+<!-- ANALYTICS -->
+<section class="sec" id="analytics" style="padding-top:24px">
+  <div class="wrap">
+    <span class="eyebrow">Call-center analytics</span>
+    <h2>The truth about your queues</h2>
+    <p class="lead">Most 3CX reports measure the IVR auto-answer, not the agent — so they flatter you. Zentryc reads the real queue engine.</p>
+    <div class="cards" style="margin-top:30px">
+      <div class="card"><div class="ic"><i class="ri-line-chart-line"></i></div><h3>Genuine ACD KPIs</h3><p>Answer rate, service level, speed-of-answer (ASA) and average talk time computed from real agent-wait timing.</p></div>
+      <div class="card"><div class="ic"><i class="ri-phone-line"></i></div><h3>Abandonment intelligence</h3><p>True wait-before-abandon, abandoned-call counts, short-abandon thresholds and which agent the call was ringing.</p></div>
+      <div class="card"><div class="ic"><i class="ri-team-line"></i></div><h3>Agent productivity</h3><p>Per-agent answered vs lost rings, answer rate, AHT and occupancy (talk ÷ logged-in), every metric vs its target.</p></div>
+      <div class="card"><div class="ic"><i class="ri-stack-line"></i></div><h3>Per-queue breakdown</h3><p>Drill into any queue: volume, answered, abandoned, ASA and longest wait over any date range.</p></div>
+      <div class="card"><div class="ic"><i class="ri-search-eye-line"></i></div><h3>Per-call drill-down</h3><p>Open any call to see its full timeline, parties, routing, cost and voice-quality, plus related calls from the same caller.</p></div>
+      <div class="card"><div class="ic"><i class="ri-flashlight-line"></i></div><h3>Fast at scale</h3><p>Materialized daily rollups keep date-range dashboards sub-second across millions of call records.</p></div>
+    </div>
+  </div>
+</section>
+
+<!-- REALTIME -->
+<section class="soft sec" id="realtime">
+  <div class="wrap">
+    <span class="eyebrow">Real-time operations</span>
+    <h2>Run the floor live</h2>
+    <div class="cards" style="margin-top:30px">
+      <div class="card"><div class="ic"><i class="ri-tv-2-line"></i></div><h3>Supervisor wallboard</h3><p>Full-screen, TV-ready board: calls waiting, talking vs connecting, longest current wait and per-queue load, auto-refreshing every few seconds.</p></div>
+      <div class="card"><div class="ic"><i class="ri-notification-3-line"></i></div><h3>SLA breach alerts</h3><p>Tiered amber/red alerts when answer rate, ASA or abandon-wait crosses your thresholds — per tenant and per queue.</p></div>
+      <div class="card"><div class="ic"><i class="ri-route-line"></i></div><h3>Escalations</h3><p>Unacknowledged alerts escalate to the right supervisor after a configurable delay — no missed breach.</p></div>
+      <div class="card"><div class="ic"><i class="ri-mail-send-line"></i></div><h3>Email, SMS &amp; WhatsApp</h3><p>Deliver alerts on the channels your team actually watches, with a full delivery audit trail.</p></div>
+    </div>
+  </div>
+</section>
+
+<!-- REPORTING -->
+<section class="sec" id="reporting">
+  <div class="wrap">
+    <span class="eyebrow">Reporting</span>
+    <h2>Reports that send themselves</h2>
+    <div class="cards" style="margin-top:30px">
+      <div class="card"><div class="ic"><i class="ri-calendar-schedule-line"></i></div><h3>Scheduled reports</h3><p>Daily, weekly or monthly delivery in your timezone — call-center summary, queue performance, agent productivity, SLA breaches and more.</p></div>
+      <div class="card"><div class="ic"><i class="ri-file-chart-line"></i></div><h3>CSV · Excel · PDF · HTML</h3><p>Every report renders in four formats, branded and ready to forward to stakeholders.</p></div>
+      <div class="card"><div class="ic"><i class="ri-apps-2-line"></i></div><h3>Report catalog</h3><p>A growing library of prebuilt reports you can run ad-hoc and download instantly, or schedule in two clicks.</p></div>
+    </div>
+  </div>
+</section>
+
+<!-- BILLING -->
+<section class="soft sec" id="billing">
+  <div class="wrap">
+    <span class="eyebrow">Telecom billing</span>
+    <h2>From call cost to paid invoice</h2>
+    <div class="cards" style="margin-top:30px">
+      <div class="card"><div class="ic"><i class="ri-bank-card-line"></i></div><h3>Invoicing</h3><p>Generate per-tenant invoices that reconcile to the summed per-call cost, with line items by call category.</p></div>
+      <div class="card"><div class="ic"><i class="ri-money-dollar-circle-line"></i></div><h3>Multi-currency &amp; tax</h3><p>Bill in the tenant's currency with the correct VAT/tax rule applied automatically by country.</p></div>
+      <div class="card"><div class="ic"><i class="ri-wallet-3-line"></i></div><h3>Quota management</h3><p>Per-extension spend quotas with automatic external-call blocking on the PBX when a balance runs out.</p></div>
+      <div class="card"><div class="ic"><i class="ri-shield-check-line"></i></div><h3>Fraud detection</h3><p>Toll-fraud rules over call patterns, incident tracking and instant alerts before the bill explodes.</p></div>
+    </div>
+  </div>
+</section>
+
+<!-- PLATFORM & SECURITY -->
+<section class="sec" id="security">
+  <div class="wrap">
+    <span class="eyebrow">Platform &amp; security</span>
+    <h2>Enterprise-ready, multi-tenant SaaS</h2>
+    <div class="cards" style="margin-top:30px">
+      <div class="card"><div class="ic"><i class="ri-building-line"></i></div><h3>Multi-tenant</h3><p>Strict per-company data isolation — run unlimited tenants from one secure platform.</p></div>
+      <div class="card"><div class="ic"><i class="ri-lock-2-line"></i></div><h3>Security &amp; compliance</h3><p>Role-based access control, audit logging, IP allow-lists and per-tenant session timeouts.</p></div>
+      <div class="card"><div class="ic"><i class="ri-layout-grid-line"></i></div><h3>Modern dashboards</h3><p>Clean, responsive UI with light &amp; dark modes — usable on the wall, the desk and the phone.</p></div>
+      <div class="card"><div class="ic"><i class="ri-global-line"></i></div><h3>Arabic &amp; RTL</h3><p>Full right-to-left layout and localization, built for KSA and the GCC.</p></div>
+      <div class="card"><div class="ic"><i class="ri-links-line"></i></div><h3>Multi-vendor core</h3><p>Vendor-neutral data model — 3CX today, with Cisco CUCM and cloud platforms on the roadmap.</p></div>
+      <div class="card"><div class="ic"><i class="ri-server-line"></i></div><h3>Reliable by design</h3><p>Background workers, scheduled jobs and idempotent ingestion keep data flowing without touching the hot path.</p></div>
+    </div>
+  </div>
+</section>
+
+<section class="sec" style="padding-top:0">
+  <div class="wrap"><div class="cta">
+    <h2>Put these features to work</h2>
+    <p class="lead" style="margin:0 auto 24px">See Zentryc running against a live 3CX call center.</p>
+    <a class="btn btn-light" href="/contact/">Book a demo</a>
+    <a class="btn btn-light" href="/pricing/">View pricing</a>
+  </div></div>
+</section>
+{% endblock %}

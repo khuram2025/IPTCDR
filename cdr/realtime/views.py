@@ -26,7 +26,7 @@ def wallboard(request):
 
 @login_required
 def wallboard_projection(request):
-    """Full-screen, dark-theme view for TVs in call-center floors."""
+    """Full-screen, bright projection view for TVs in call-center floors."""
     return _render_wallboard(request, 'realtime/wallboard_projection.html')
 
 

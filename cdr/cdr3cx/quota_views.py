@@ -91,16 +91,34 @@ def toggle_external_call(request):
     extension_id = request.POST.get('extension_id')
     action = request.POST.get('action')  # 'block' or 'allow'
     try:
-        extension = Extension.objects.get(pk=extension_id)
+        extension = Extension.objects.select_related('company').get(pk=extension_id)
+        # Tenant isolation: a company admin may only toggle their own extensions.
+        if extension.company_id != request.user.company_id:
+            return JsonResponse({'success': False, 'error': 'Not allowed for this extension'})
+
+        company = extension.company
+        if not (company and company.pbx_api_url and company.pbx_api_user
+                and company.pbx_api_password):
+            return JsonResponse({
+                'success': False,
+                'error': 'No 3CX API credentials configured for this company.'})
+
         allow_external = action == 'allow'
-        # Call PBX logic
-        pbx_success = set_external_call(extension.extension, allow_external)
+        # Use the OWNING company's PBX creds (never a hardcoded PBX).
+        pbx_success = set_external_call(
+            extension.extension, allow_external,
+            base_url=company.pbx_api_url,
+            user=company.pbx_api_user,
+            password=company.pbx_api_password,
+        )
         if pbx_success:
             extension.disable_external_call = not allow_external
             extension.save()
             return JsonResponse({'success': True, 'new_status': not allow_external})
         else:
             return JsonResponse({'success': False, 'error': 'PBX API call failed'})
+    except Extension.DoesNotExist:
+        return JsonResponse({'success': False, 'error': 'Extension not found'})
     except Exception as e:
         return JsonResponse({'success': False, 'error': str(e)})
 
@@ -152,6 +170,7 @@ from django.template.loader import render_to_string
 from django.shortcuts import render, get_object_or_404, redirect
 from django.core.mail import send_mail
 from django.conf import settings
+from .notification_utils import resolve_extension_alert_email
 
 
 # cdr3cx/views.py
@@ -190,7 +209,7 @@ def send_quota_email(request, extension_id):
         'remaining_balance': remaining_balance,
     })
 
-    recipient_email = 'khuram2025@gmail.com'
+    recipient_email = resolve_extension_alert_email(extension)
 
     try:
         send_mail(

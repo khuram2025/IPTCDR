@@ -1,25 +1,53 @@
+{% extends "partials/base.html" %}
+{% load static %}
+
+{% block title %}Notifications{% endblock title %}
+
 {% block content %}
-<h1>Notifications</h1>
-<a href="{% url 'notifications:notification_create' %}">Create New Notification</a>
-<table>
-  <thead>
-    <tr>
-      <th>Subject</th>
-      <th>Recipient</th>
-      <th>Actions</th>
-    </tr>
-  </thead>
-  <tbody>
-    {% for notification in notifications %}
-    <tr>
-      <td>{{ notification.subject }}</td>
-      <td>{{ notification.recipient }}</td>
-      <td>
-        <a href="{% url 'notifications:notification_detail' notification.pk %}">View</a> | <a href="{% url 'notifications:notification_update' notification.pk %}">Edit</a> | <a href="{% url 'notifications:notification_delete' notification.pk %}">Delete</a> |
-        <a href="{% url 'notifications:notification_send_email' notification.pk %}">Send Email</a>
-      </td>
-    </tr>
-    {% endfor %}
-  </tbody>
-</table>
-{% endblock %}
+<div class="page-content">
+    <div class="container-fluid">
+        <div class="row mb-3">
+            <div class="col-12 d-flex justify-content-between align-items-center">
+                <h4 class="mb-0">Notifications</h4>
+                <a href="{% url 'notifications:notification_create' %}" class="btn btn-primary">
+                    <i class="ri-add-line align-bottom me-1"></i> Create Notification
+                </a>
+            </div>
+        </div>
+
+        <div class="card">
+            <div class="card-body">
+                <div class="table-responsive">
+                    <table class="table table-hover align-middle table-nowrap mb-0">
+                        <thead class="table-light">
+                            <tr>
+                                <th>Subject</th>
+                                <th>Recipient</th>
+                                <th class="text-end">Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for notification in notifications %}
+                            <tr>
+                                <td>{{ notification.subject }}</td>
+                                <td>{{ notification.recipient }}</td>
+                                <td class="text-end">
+                                    <a href="{% url 'notifications:notification_detail' notification.pk %}" class="btn btn-sm btn-soft-info">View</a>
+                                    <a href="{% url 'notifications:notification_update' notification.pk %}" class="btn btn-sm btn-soft-primary">Edit</a>
+                                    <a href="{% url 'notifications:notification_send_email' notification.pk %}" class="btn btn-sm btn-soft-success">Send Email</a>
+                                    <a href="{% url 'notifications:notification_delete' notification.pk %}" class="btn btn-sm btn-soft-danger">Delete</a>
+                                </td>
+                            </tr>
+                            {% empty %}
+                            <tr>
+                                <td colspan="3" class="text-center text-muted">No notifications yet.</td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock content %}

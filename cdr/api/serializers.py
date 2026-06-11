@@ -5,6 +5,8 @@ from accounts.models import Company, Currency, Extension
 from billing.models import FraudIncident, FraudRule, TaxRule
 from cdr3cx.models import CallPattern, CallRecord, Quota, UserQuota
 
+from surveys.models import SurveyAnswer, SurveyCampaign, SurveyQuestion, SurveyResponse
+
 from .models import ApiKey, WebhookSubscription
 
 
@@ -135,3 +137,38 @@ class WebhookSubscriptionSerializer(serializers.ModelSerializer):
         validated_data['company'] = self.context['request'].user.company
         validated_data['secret'] = WebhookSubscription.generate_secret()
         return super().create(validated_data)
+
+
+class SurveyQuestionSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = SurveyQuestion
+        fields = ['id', 'order', 'tag', 'question_type', 'prompt_text',
+                  'min_value', 'max_value', 'required']
+
+
+class SurveyCampaignSerializer(serializers.ModelSerializer):
+    questions = SurveyQuestionSerializer(many=True, read_only=True)
+
+    class Meta:
+        model = SurveyCampaign
+        fields = ['id', 'name', 'slug', 'channel', 'cfd_app_name', 'license_verified',
+                  'match_window_minutes', 'csat_target_pct', 'is_active', 'questions',
+                  'created_at', 'updated_at']
+        read_only_fields = ['slug', 'created_at', 'updated_at']
+
+
+class SurveyAnswerSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = SurveyAnswer
+        fields = ['tag', 'value_text', 'value_numeric', 'value_bool', 'recording_path']
+
+
+class SurveyResponseSerializer(serializers.ModelSerializer):
+    answers = SurveyAnswerSerializer(many=True, read_only=True)
+    campaign_name = serializers.CharField(source='campaign.name', read_only=True)
+
+    class Meta:
+        model = SurveyResponse
+        fields = ['id', 'campaign', 'campaign_name', 'caller', 'completed_at',
+                  'match_confidence', 'call_record', 'agent', 'queue',
+                  'recording_path', 'answers', 'created_at']

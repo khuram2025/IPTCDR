@@ -1,0 +1,95 @@
+{% extends 'public/base.html' %}
+{% block title %}Pricing — Zentryc Call-Center Analytics & Billing SaaS{% endblock %}
+{% block meta_description %}Simple, scalable Zentryc pricing. Starter, Professional and Enterprise plans for real-time call-center analytics, wallboards, SLA alerts, automated reports and telecom billing. Start with a 14-day free trial.{% endblock %}
+{% block canonical %}/pricing/{% endblock %}{% block og_url %}/pricing/{% endblock %}
+{% block og_title %}Zentryc Pricing — plans for every contact center{% endblock %}
+
+{% block structured_data %}
+<script type="application/ld+json">
+{
+ "@context":"https://schema.org","@type":"Product","name":"Zentryc",
+ "description":"Call-center analytics and telecom billing SaaS.",
+ "offers":[
+  {"@type":"Offer","name":"Starter","priceCurrency":"USD","price":"99"},
+  {"@type":"Offer","name":"Professional","priceCurrency":"USD","price":"299"},
+  {"@type":"Offer","name":"Enterprise","priceCurrency":"USD","price":"0","description":"Custom pricing"}
+ ]
+}
+</script>
+{% endblock %}
+
+{% block body %}
+<section class="hero">
+  <div class="wrap sec" style="padding-bottom:40px">
+    <div class="center section-head">
+      <span class="eyebrow">Pricing</span>
+      <h1>Pricing that scales with your call center</h1>
+      <p class="lead">Every plan includes real-time analytics, the live wallboard and automated reports. Start free for 14 days — no card required.</p>
+    </div>
+  </div>
+</section>
+
+<section class="sec" style="padding-top:0">
+  <div class="wrap">
+    <div class="price-grid">
+      <div class="plan">
+        <div class="pname">Starter</div>
+        <div class="pprice">$99<small>/mo</small></div>
+        <p>For a single small contact center getting started with real metrics.</p>
+        <ul class="ticks">
+          <li><i class="ri-check-line"></i> 1 PBX / tenant, up to 20 agents</li>
+          <li><i class="ri-check-line"></i> Real-time ACD analytics</li>
+          <li><i class="ri-check-line"></i> Live supervisor wallboard</li>
+          <li><i class="ri-check-line"></i> Email SLA alerts</li>
+          <li><i class="ri-check-line"></i> Scheduled reports (CSV/Excel/PDF)</li>
+        </ul>
+        <div style="flex:1"></div>
+        <a class="btn btn-ghost" href="/contact/" style="margin-top:22px;justify-content:center">Start free trial</a>
+      </div>
+
+      <div class="plan hot">
+        <div class="pname">Professional</div>
+        <div class="pprice">$299<small>/mo</small></div>
+        <p>For growing operations that need agent analytics and billing.</p>
+        <ul class="ticks">
+          <li><i class="ri-check-line"></i> Up to 100 agents</li>
+          <li><i class="ri-check-line"></i> Everything in Starter, plus:</li>
+          <li><i class="ri-check-line"></i> Agent productivity &amp; occupancy</li>
+          <li><i class="ri-check-line"></i> Abandonment intelligence</li>
+          <li><i class="ri-check-line"></i> SMS &amp; WhatsApp alerts + escalation</li>
+          <li><i class="ri-check-line"></i> Telecom billing, quotas &amp; fraud rules</li>
+        </ul>
+        <div style="flex:1"></div>
+        <a class="btn btn-primary" href="/contact/" style="margin-top:22px;justify-content:center">Start free trial</a>
+      </div>
+
+      <div class="plan">
+        <div class="pname">Enterprise</div>
+        <div class="pprice">Custom</div>
+        <p>For multi-site, multi-tenant and multi-vendor estates.</p>
+        <ul class="ticks">
+          <li><i class="ri-check-line"></i> Unlimited agents &amp; tenants</li>
+          <li><i class="ri-check-line"></i> Everything in Professional, plus:</li>
+          <li><i class="ri-check-line"></i> Multi-vendor adapters (Cisco, cloud)</li>
+          <li><i class="ri-check-line"></i> SSO, custom roles &amp; audit exports</li>
+          <li><i class="ri-check-line"></i> Dedicated onboarding &amp; SLA</li>
+          <li><i class="ri-check-line"></i> On-prem or private-cloud option</li>
+        </ul>
+        <div style="flex:1"></div>
+        <a class="btn btn-ghost" href="/contact/" style="margin-top:22px;justify-content:center">Talk to sales</a>
+      </div>
+    </div>
+    <p class="center" style="margin-top:26px;color:var(--muted)">Prices shown are indicative. Final pricing depends on agent count, tenants and channels — <a href="/contact/" style="color:var(--indigo);font-weight:600">contact us for a quote</a>.</p>
+  </div>
+</section>
+
+<section class="soft sec">
+  <div class="wrap center section-head"><span class="eyebrow">FAQ</span><h2>Common questions</h2></div>
+  <div class="wrap" style="max-width:780px">
+    <div class="card" style="margin-bottom:14px"><h3>Does it work with my 3CX?</h3><p>Yes — Zentryc connects to 3CX V20 via its call feed and read-only API. Cisco CUCM and cloud platforms are on the roadmap with the same dashboards.</p></div>
+    <div class="card" style="margin-bottom:14px"><h3>Is my data isolated?</h3><p>Every tenant is strictly isolated, with role-based access, audit logging and per-tenant IP allow-listing.</p></div>
+    <div class="card" style="margin-bottom:14px"><h3>How fast can we go live?</h3><p>Most call centers are live within days — connect the PBX, we normalize the data, and your dashboards populate.</p></div>
+    <div class="card"><h3>Do you support Arabic?</h3><p>Yes — full right-to-left layout and localization, built for KSA and the GCC.</p></div>
+  </div>
+</section>
+{% endblock %}

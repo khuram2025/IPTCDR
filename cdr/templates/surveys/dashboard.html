@@ -1,0 +1,131 @@
+{% extends 'partials/base.html' %}
+{% load static %}
+{% block title %}Survey Dashboard{% endblock %}
+{% block extra_css %}
+<link rel="stylesheet" href="{% static 'css/callcenter-dashboard.css' %}">
+{% endblock %}
+{% block content %}
+<div class="main-content">
+  <div class="page-content">
+    <div class="container-fluid cc-dashboard">
+      {% include 'cdr/callcenter/_filter_toolbar.html' with filter_action=filter_base_url %}
+
+      <div class="d-flex justify-content-between align-items-center mb-3">
+        <h4 class="mb-0"><i class="ri-survey-line me-2"></i>Survey Dashboard</h4>
+        <a href="{% url 'surveys:responses' %}?start={{ start_date }}&end={{ end_date }}" class="btn btn-sm btn-outline-primary">All Responses</a>
+      </div>
+
+      <div class="row g-2 mb-3">
+        <div class="col-6 col-md-3">
+          <div class="cc-kpi card border-0 shadow-sm h-100">
+            <div class="card-body py-2 px-3">
+              <p class="cc-kpi-label mb-1">CSAT</p>
+              <h4 class="cc-kpi-value mb-0 {% if metrics.csat.csat_pct != None and metrics.csat.csat_pct >= metrics.csat_target_pct %}text-success{% elif metrics.csat.csat_pct != None %}text-warning{% endif %}">
+                {% if metrics.csat.csat_pct != None %}{{ metrics.csat.csat_pct }}%{% else %}—{% endif %}
+              </h4>
+              <small class="text-muted">Target {{ metrics.csat_target_pct }}%</small>
+            </div>
+          </div>
+        </div>
+        <div class="col-6 col-md-3">
+          <div class="cc-kpi card border-0 shadow-sm h-100">
+            <div class="card-body py-2 px-3">
+              <p class="cc-kpi-label mb-1">Avg Rating</p>
+              <h4 class="cc-kpi-value mb-0">{% if metrics.csat.avg_rating != None %}{{ metrics.csat.avg_rating }}/5{% else %}—{% endif %}</h4>
+            </div>
+          </div>
+        </div>
+        <div class="col-6 col-md-3">
+          <div class="cc-kpi card border-0 shadow-sm h-100">
+            <div class="card-body py-2 px-3">
+              <p class="cc-kpi-label mb-1">Responses</p>
+              <h4 class="cc-kpi-value mb-0">{{ metrics.total_responses }}</h4>
+              <small class="text-muted">Match {{ metrics.match_rate|default:"—" }}%</small>
+            </div>
+          </div>
+        </div>
+        <div class="col-6 col-md-3">
+          <div class="cc-kpi card border-0 shadow-sm h-100">
+            <div class="card-body py-2 px-3">
+              <p class="cc-kpi-label mb-1">Issue Resolved</p>
+              <h4 class="cc-kpi-value mb-0">{% if metrics.solved.solved_pct != None %}{{ metrics.solved.solved_pct }}%{% else %}—{% endif %}</h4>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="row g-3">
+        <div class="col-lg-8">
+          <div class="card border-0 shadow-sm">
+            <div class="card-header bg-transparent border-0"><h6 class="mb-0">Rating Trend</h6></div>
+            <div class="card-body">
+              <div id="survey-rating-chart" style="min-height:280px"></div>
+            </div>
+          </div>
+        </div>
+        <div class="col-lg-4">
+          <div class="card border-0 shadow-sm h-100">
+            <div class="card-header bg-transparent border-0"><h6 class="mb-0">By Queue</h6></div>
+            <div class="card-body p-0">
+              <div class="table-responsive">
+                <table class="table table-sm table-hover mb-0">
+                  <thead><tr><th>Queue</th><th class="text-end">CSAT</th><th class="text-end">n</th></tr></thead>
+                  <tbody>
+                    {% for q in metrics.by_queue %}
+                    <tr><td>{{ q.queue_name }}</td><td class="text-end">{% if q.csat_pct != None %}{{ q.csat_pct }}%{% else %}—{% endif %}</td><td class="text-end">{{ q.count }}</td></tr>
+                    {% empty %}<tr><td colspan="3" class="text-muted text-center py-3">No data</td></tr>{% endfor %}
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="card border-0 shadow-sm mt-3">
+        <div class="card-header bg-transparent border-0"><h6 class="mb-0">Recent Responses</h6></div>
+        <div class="table-responsive">
+          <table class="table table-hover align-middle mb-0">
+            <thead><tr><th>When</th><th>Caller</th><th>Agent</th><th>Queue</th><th>Match</th><th></th></tr></thead>
+            <tbody>
+              {% for r in recent_responses %}
+              <tr>
+                <td>{{ r.completed_at|date:"Y-m-d H:i" }}</td>
+                <td>{{ r.caller }}</td>
+                <td>{% if r.agent %}{{ r.agent.display_name }}{% else %}—{% endif %}</td>
+                <td>{% if r.queue %}{{ r.queue.name }}{% else %}—{% endif %}</td>
+                <td><span class="badge bg-{% if r.match_confidence == 'exact' %}success{% elif r.match_confidence == 'heuristic' %}info{% else %}secondary{% endif %}-subtle text-{% if r.match_confidence == 'exact' %}success{% elif r.match_confidence == 'heuristic' %}info{% else %}secondary{% endif %}">{{ r.get_match_confidence_display }}</span></td>
+                <td><a href="{% url 'surveys:response_detail' r.pk %}" class="btn btn-sm btn-light">View</a></td>
+              </tr>
+              {% empty %}
+              <tr><td colspan="6" class="text-center text-muted py-4">No survey responses in this period.</td></tr>
+              {% endfor %}
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}
+{% block extra_js %}
+<script src="{% static 'libs/apexcharts/apexcharts.min.js' %}"></script>
+<script>
+(function(){
+  var metrics = {{ metrics_json|safe }};
+  var trend = metrics.rating_trend || [];
+  var labels = trend.map(function(r){ return r.day; });
+  var series = trend.map(function(r){ return r.avg_rating ? parseFloat(r.avg_rating).toFixed(2) : null; });
+  if (document.querySelector('#survey-rating-chart') && typeof ApexCharts !== 'undefined') {
+    new ApexCharts(document.querySelector('#survey-rating-chart'), {
+      chart: { type: 'line', height: 280, toolbar: { show: false } },
+      series: [{ name: 'Avg rating', data: series }],
+      xaxis: { categories: labels },
+      yaxis: { min: 1, max: 5, tickAmount: 4 },
+      stroke: { curve: 'smooth', width: 2 },
+      colors: ['#405189']
+    }).render();
+  }
+})();
+</script>
+{% endblock %}

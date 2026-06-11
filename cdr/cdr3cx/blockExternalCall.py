@@ -1,140 +1,123 @@
+"""Toggle an extension's external-calling permission on its 3CX (XAPI).
+
+Credentials are ALWAYS tenant-specific and supplied by the caller from the owning
+Company's ``pbx_api_url`` / ``pbx_api_user`` / ``pbx_api_password`` -- there is no
+hardcoded PBX or password in this module. Pure ``requests`` (no Django imports) so
+it stays unit-testable; callers resolve the company creds and pass them in.
+"""
+import logging
+
 import requests
-import json
 import urllib3
 
-# Disable SSL warnings (not recommended for production)
+# 3CX commonly uses self-signed certs on the management port; callers can still
+# force verification via verify_tls=True (default), which works for tenants with
+# valid certs (same path the XAPI reporting client uses).
 urllib3.disable_warnings(urllib3.exceptions.InsecureRequestWarning)
 
-# Replace these variables with your actual values
-PBX_DOMAIN = 'smasco.3cx.ae:5001'  # e.g., 'pbx.example.com' or '192.168.1.100'
-USER_NUM = '1001'  # Your extension number for authentication
-USER_PASS = 'Smasco@445'  # Your web client password for authentication
-TARGET_EXTENSION = '1003'  # The extension you want to modify
+logger = logging.getLogger(__name__)
 
-def authenticate_user():
-    url = f'https://{PBX_DOMAIN}/webclient/api/Login/GetAccessToken'
-    headers = {
-        'Accept': 'application/json',
-        'Content-Type': 'application/json'
-    }
-    payload = {
-        "SecurityCode": "",
-        "Password": USER_PASS,
-        "Username": USER_NUM
-    }
+TIMEOUT = 30
 
-    # Print the authentication request details
-    # print("Authentication Request:")
-    # print("URL:", url)
-    # print("Headers:", headers)
-    # print("Payload:", json.dumps(payload, indent=4))
 
-    response = requests.post(url, headers=headers, json=payload, verify=False)
+def _domain_from_base_url(base_url):
+    """'https://pbx.example.com:5001' -> 'pbx.example.com:5001'. '' if blank."""
+    if not base_url:
+        return ''
+    return base_url.replace('https://', '').replace('http://', '').rstrip('/')
 
-    # Print the response details
-    # print("Response Status Code:", response.status_code)
-    # Truncate the response text for security
-    # print("Response Text:", response.text[:100] + '...')
 
-    if response.status_code == 200:
-        data = response.json()
-        if data.get('Status') == 'AuthSuccess':
-            access_token = data['Token']['access_token']
-            # print("Authentication successful.")
-            return access_token
-        else:
-            # print('Authentication failed:', data.get('Status'))
-            return None
-    else:
-        # print('Authentication request failed with status code:', response.status_code)
-        # print('Response:', response.text)
+def authenticate_user(domain, user, password, verify_tls=True):
+    """Return a 3CX access token for these creds, or None on any failure."""
+    if not (domain and user and password):
+        logger.warning('authenticate_user: missing PBX domain/user/password')
         return None
-
-def get_user_id(access_token, extension_number):
-    url = f'https://{PBX_DOMAIN}/xapi/v1/Users'
-    params = {
-        '$filter': f"Number eq '{extension_number}'"
-    }
-    headers = {
-        'Authorization': f'Bearer {access_token}'
-    }
-
-    # Print the user ID request details
-    # print("\nGet User ID Request:")
-    # print("URL:", url)
-    # print("Headers:", headers)
-    # print("Params:", params)
-
-    response = requests.get(url, headers=headers, params=params, verify=False)
-
-    # Print the response details
-    # print("Response Status Code:", response.status_code)
-    # print("Response Text:", response.text)
-
-    if response.status_code == 200:
-        data = response.json()
-        if data['value']:
-            user_id = data['value'][0]['Id']
-            # print(f"User ID for extension {extension_number}: {user_id}")
-            return user_id
-        else:
-            # print(f'Extension {extension_number} not found.')
-            return None
-    else:
-        # print('Failed to retrieve user ID. Status code:', response.status_code)
-        # print('Response:', response.text)
+    url = f'https://{domain}/webclient/api/Login/GetAccessToken'
+    try:
+        response = requests.post(
+            url,
+            headers={'Accept': 'application/json', 'Content-Type': 'application/json'},
+            json={'SecurityCode': '', 'Password': password, 'Username': user},
+            verify=verify_tls, timeout=TIMEOUT,
+        )
+    except requests.RequestException as e:
+        logger.warning('authenticate_user: request error: %s', e)
         return None
+    if response.status_code != 200:
+        logger.warning('authenticate_user: HTTP %s', response.status_code)
+        return None
+    data = response.json() or {}
+    if data.get('Status') == 'AuthSuccess':
+        return (data.get('Token') or {}).get('access_token')
+    logger.warning('authenticate_user: auth failed (Status=%s)', data.get('Status'))
+    return None
 
-def set_external_call(extension_number, allow_external):
+
+def get_user_id(access_token, extension_number, domain, verify_tls=True):
+    """Resolve the 3CX Users.Id for an extension number, or None."""
+    url = f'https://{domain}/xapi/v1/Users'
+    try:
+        response = requests.get(
+            url,
+            headers={'Authorization': f'Bearer {access_token}'},
+            params={'$filter': f"Number eq '{extension_number}'"},
+            verify=verify_tls, timeout=TIMEOUT,
+        )
+    except requests.RequestException as e:
+        logger.warning('get_user_id: request error: %s', e)
+        return None
+    if response.status_code != 200:
+        logger.warning('get_user_id: HTTP %s', response.status_code)
+        return None
+    values = (response.json() or {}).get('value') or []
+    if not values:
+        logger.warning('get_user_id: extension %s not found on PBX', extension_number)
+        return None
+    return values[0].get('Id')
+
+
+def set_external_call(extension_number, allow_external, base_url=None, user=None,
+                      password=None, verify_tls=True):
+    """Set an extension's external-calling permission on its 3CX.
+
+    allow_external=True  -> Internal=False (external calls allowed)
+    allow_external=False -> Internal=True  (external calls blocked)
+
+    base_url/user/password are REQUIRED (the owning Company's pbx_api_*); without
+    a full set this returns False (no hardcoded fallback). Returns True on success.
     """
-    Set external call permission for an extension.
-    allow_external=True: Allow external calls (Internal=False)
-    allow_external=False: Block external calls (Internal=True)
-    """
-    access_token = authenticate_user()
+    domain = _domain_from_base_url(base_url)
+    if not (domain and user and password):
+        logger.warning(
+            'set_external_call: missing PBX credentials for ext %s; skipping',
+            extension_number)
+        return False
+
+    access_token = authenticate_user(domain, user, password, verify_tls=verify_tls)
     if not access_token:
-        # print('Authentication failed.')
         return False
-    user_id = get_user_id(access_token, extension_number)
+
+    user_id = get_user_id(access_token, extension_number, domain, verify_tls=verify_tls)
     if not user_id:
-        # print('User ID not found for extension:', extension_number)
         return False
-    url = f'https://{PBX_DOMAIN}/xapi/v1/Users({user_id})'
-    headers = {
-        'Authorization': f'Bearer {access_token}',
-        'Content-Type': 'application/json'
-    }
-    payload = {
-        "Internal": not allow_external
-    }
-    # print("\nSet External Call Request:")
-    # print("URL:", url)
-    # print("Headers:", headers)
-    # print("Payload:", json.dumps(payload, indent=4))
-    response = requests.patch(url, headers=headers, json=payload, verify=False)
-    # print("Response Status Code:", response.status_code)
-    # print("Response Text:", response.text)
+
+    url = f'https://{domain}/xapi/v1/Users({user_id})'
+    try:
+        response = requests.patch(
+            url,
+            headers={'Authorization': f'Bearer {access_token}',
+                     'Content-Type': 'application/json'},
+            json={'Internal': not allow_external},
+            verify=verify_tls, timeout=TIMEOUT,
+        )
+    except requests.RequestException as e:
+        logger.warning('set_external_call: request error: %s', e)
+        return False
+
     if response.status_code in (200, 204):
-        # print(f'Successfully updated external call permission for extension {extension_number} (user ID: {user_id})')
+        logger.info('set_external_call: ext %s -> external calls %s',
+                    extension_number, 'ALLOWED' if allow_external else 'BLOCKED')
         return True
-    else:
-        # print('Failed to update user settings. Status code:', response.status_code)
-        # print('Response:', response.text)
-        return False
-
-def main():
-    # Step 1: Authenticate
-    access_token = authenticate_user()
-    if not access_token:
-        return
-
-    # Step 2: Get User ID of the target extension
-    user_id = get_user_id(access_token, TARGET_EXTENSION)
-    if not user_id:
-        return
-
-    # Step 3: Enable record calls
-    enable_record_calls(access_token, user_id)
-
-if __name__ == '__main__':
-    main()
+    logger.warning('set_external_call: PATCH HTTP %s for ext %s: %s',
+                   response.status_code, extension_number, response.text[:200])
+    return False

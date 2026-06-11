@@ -1,738 +1,448 @@
-{% extends "partials/base.html" %} {% load custom_filters %} {% load static %} {% block title %}Dashboard{% endblock title %} {% block extra_css %}
-<!-- jsvectormap css -->
-<link href="{% static 'libs/jsvectormap/dist/css/jsvectormap.min.css'%}" rel="stylesheet" type="text/css" />
+{% extends "partials/base.html" %}
+{% load custom_filters %}
+{% load static %}
 
-<!--Swiper slider css-->
-<link href="{% static 'libs/swiper/swiper-bundle.min.css'%}" rel="stylesheet" type="text/css" />
-<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.4/css/all.min.css" />
-{% endblock extra_css %} {% block content %}
-<!-- ============================================================== -->
-<!-- Start right Content here -->
-<!-- ============================================================== -->
+{% block title %}Telecom Analytics{% endblock %}
+
+{% block extra_css %}
+<link rel="stylesheet" href="{% static 'css/callcenter-dashboard.css' %}">
+<link rel="stylesheet" href="{% static 'css/ipt-dashboard.css' %}">
+<style>
+.ipt-dashboard .page-content { padding-top: .65rem; padding-bottom: .65rem; }
+.ipt-dashboard .container-fluid { max-width: 1600px; }
+.ipt-toolbar-sub { font-size: .68rem; }
+.ipt-panel-header { padding: .35rem .7rem; border-bottom: 1px solid #f1f3f5; display: flex; align-items: center; justify-content: space-between; gap: .5rem; min-height: 1.85rem; }
+.ipt-panel-header h6 { font-size: .76rem; font-weight: 600; margin: 0; }
+.ipt-panel-link { font-size: .68rem; color: var(--cc-accent,#405189); text-decoration: none; }
+.ipt-panel-link:hover { text-decoration: underline; }
+.ipt-panel-body { padding: .45rem .7rem; }
+.ipt-stat-grid { display: grid; grid-template-columns: repeat(4,1fr); gap: .3rem; }
+.ipt-stat-grid-2 { grid-template-columns: repeat(2,1fr); }
+.ipt-stat-cell { text-align: center; padding: .3rem .2rem; background: #f8f9fc; border-radius: .35rem; }
+.ipt-stat-label { font-size: .6rem; font-weight: 600; text-transform: uppercase; letter-spacing: .03em; color: #878a99; line-height: 1.2; }
+.ipt-stat-value { font-size: .9rem; font-weight: 700; line-height: 1.2; color: #212529; }
+.ipt-stat-value small { font-size: .6rem; font-weight: 500; }
+.ipt-kpi-row .cc-kpi .card-body { padding: .4rem .6rem !important; }
+.ipt-kpi-row .cc-kpi-value { font-size: 1.1rem; }
+.ipt-kpi-row .cc-kpi-icon { width: 26px; height: 26px; font-size: .8rem; }
+.ipt-kpi-row .cc-kpi-label { font-size: .6rem; margin-bottom: .1rem !important; }
+.ipt-kpi-row .cc-kpi-sub { font-size: .6rem; }
+.ipt-kv-row { display: flex; justify-content: space-between; align-items: center; padding: .15rem 0; font-size: .72rem; gap: .5rem; }
+.ipt-kv-row + .ipt-kv-row { border-top: 1px solid #f1f3f5; }
+.ipt-kv-label { color: #878a99; }
+.ipt-kv-value { font-weight: 600; text-align: right; }
+.ipt-ops-strip .ipt-ops-col { border-right: 1px solid #f1f3f5; padding: .45rem .6rem; }
+.ipt-ops-strip .ipt-ops-col:last-child { border-right: none; }
+.ipt-ops-title { font-size: .7rem; font-weight: 600; margin-bottom: .3rem; display: flex; align-items: center; justify-content: space-between; }
+.ipt-table-compact thead th { font-size: .6rem; font-weight: 600; text-transform: uppercase; letter-spacing: .03em; color: #878a99; background: #f8f9fa; padding: .3rem .6rem; border-bottom: 1px solid #e9ebec; }
+.ipt-table-compact tbody td { padding: .28rem .6rem; font-size: .72rem; border-bottom: 1px solid #f1f3f5; vertical-align: middle; }
+.ipt-table-compact tbody tr:last-child td { border-bottom: none; }
+.ipt-ext-name { max-width: 130px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; display: block; }
+.ipt-activity-item { border-left: 2px solid #e9ebec; padding: .2rem 0 .2rem .45rem; margin-bottom: .35rem; }
+.ipt-activity-item:last-child { margin-bottom: 0; }
+.ipt-country-item { padding: .15rem 0; border-bottom: 1px solid #f1f3f5; font-size: .7rem; }
+.ipt-country-item:last-child { border-bottom: none; }
+.ipt-chart-sm { min-height: 195px; }
+.ipt-chart-md { min-height: 215px; }
+.ipt-badge-sm { font-size: .62rem; padding: .12em .4em; }
+.ipt-toolbar-actions .btn-sm { padding: .2rem .45rem; font-size: .72rem; }
+@media (max-width:1199.98px) { .ipt-ops-strip .ipt-ops-col { border-right: none; border-bottom: 1px solid #f1f3f5; } .ipt-ops-strip .ipt-ops-col:last-child { border-bottom: none; } }
+@media (max-width:991.98px) { .ipt-stat-grid { grid-template-columns: repeat(2,1fr); } }
+</style>
+{% endblock %}
+
+{% block content %}
 <div class="main-content">
   <div class="page-content">
-    <div class="container-fluid">
-      {% block pagetitle %} {% endblock pagetitle %}
-      <div class="row">
-        <div class="col">
-          <div class="h-100">
-            <div class="row mb-3 pb-1">
-              <div class="col-12">
-                <div class="d-flex align-items-lg-center flex-lg-row flex-column">
-                  <div class="flex-grow-1">
-                    <h4 class="fs-16 mb-1">Welcome Back, {{ user.company.name|default:"User" }}!</h4>
-                    <p class="text-muted mb-0">Here's what's happening with your telecom system today.</p>
-                  </div>
-                  <div class="mt-3 mt-lg-0">
-                    <form id="timePeriodForm" action="{% url 'cdr3cx:dashboard' %}" method="GET">
-                      <div class="row g-3 mb-0 align-items-center">
-                        <div class="col-auto">
-                          <div>
-                            <button type="button" class="btn btn-soft-secondary material-shadow-none btn-sm" onclick="submitForm('today')">Today</button>
-                            <button type="button" class="btn btn-soft-secondary material-shadow-none btn-sm" onclick="submitForm('7d')">7D</button>
-                            <button type="button" class="btn btn-soft-secondary material-shadow-none btn-sm" onclick="submitForm('1m')">1M</button>
-                            <button type="button" class="btn btn-soft-secondary material-shadow-none btn-sm" onclick="submitForm('6m')">6M</button>
-                            <button type="button" class="btn btn-soft-primary material-shadow-none btn-sm" onclick="submitForm('1y')">1Y</button>
-                            <input type="hidden" name="time_period" id="timePeriodInput" />
-                          </div>
-                        </div>
-                        <!--end col-->
-                        <div class="col-auto">
-                          <div class="input-group">
-                            <input type="text" class="form-control border-0 minimal-border dash-filter-picker shadow flatpickr-input" name="custom_date" id="customDateInput" data-provider="flatpickr" data-range-date="true" data-date-format="d M, Y" placeholder="Select custom date range" value="{{ custom_date_range }}" />
-                            <div class="input-group-text bg-primary border-primary text-white">
-                              <i class="ri-calendar-2-line"></i>
-                            </div>
-                          </div>
-                        </div>
-                        <!--end col-->
-                        <div class="col-auto">
-                          <button type="submit" class="btn btn-soft-info btn-icon waves-effect waves-light material-shadow-none layout-rightside-btn">
-                            <i class="ri-pulse-line"></i>
-                          </button>
-                        </div>
-                        <!--end col-->
-                      </div>
-                      <!--end row-->
-                    </form>
-                  </div>
+    <div class="container-fluid cc-dashboard ipt-dashboard">
 
-                  <script>
-                    function submitForm(timePeriod) {
-                      document.getElementById("timePeriodInput").value = timePeriod;
-                      document.getElementById("timePeriodForm").submit();
-                    }
-                  </script>
-                </div>
-                <!-- end card header -->
+      <!-- Compact unified toolbar -->
+      <div class="cc-toolbar card border-0 shadow-sm mb-2">
+        <div class="card-body py-2 px-3">
+          <div class="d-flex flex-wrap align-items-center justify-content-between gap-2">
+            <div class="d-flex align-items-center gap-2 min-w-0">
+              <div class="cc-toolbar-icon cc-toolbar-icon-ipt"><i class="ri-pulse-line"></i></div>
+              <div class="min-w-0">
+                <h6 class="mb-0 fw-semibold text-truncate">Telecom Analytics</h6>
+                <span class="text-muted ipt-toolbar-sub">{{ date_range_label }}</span>
               </div>
-              <!--end col-->
             </div>
-            <!--end row-->
-
-            <div class="row">
-              <div class="col-xl-3 col-md-6">
-                <!-- card -->
-                <div class="card card-animate">
-                  <div class="card-body">
-                    <div class="d-flex align-items-center">
-                      <div class="flex-grow-1 overflow-hidden">
-                        <p class="text-uppercase fw-medium text-muted text-truncate mb-0">Total Calls</p>
-                      </div>
-                      <div class="flex-shrink-0">
-                        <h5 class="text-success fs-14 mb-0"><i class="ri-arrow-right-up-line fs-13 align-middle"></i> {{ total_call_cost|floatformat:2 }} SAR</h5>
-                      </div>
-                    </div>
-                    <div class="d-flex align-items-end justify-content-between mt-4">
-                      <div>
-                        <h4 class="fs-22 fw-semibold ff-secondary mb-4"><span class="counter-value" data-target="{{ total_calls }}">0</span></h4>
-                        <a href="{% url 'cdr3cx:all_calls' %}" class="text-decoration-underline">View all Calls</a>
-                      </div>
-                      <div class="avatar-sm flex-shrink-0">
-                        <span class="avatar-title bg-success-subtle rounded fs-3">
-                          <i class="fas fa-phone-alt text-success"></i>
-                        </span>
-                      </div>
-                    </div>
-                  </div>
-                  <!-- end card body -->
-                </div>
-                <!-- end card -->
+            <form id="iptFilterForm" method="get" action="{{ filter_base_url }}" class="d-flex flex-wrap align-items-center gap-1 flex-grow-1 justify-content-center">
+              <div class="btn-group cc-period-group" role="group">
+                {% for period, label in ipt_periods %}
+                <a href="{{ filter_base_url }}?time_period={{ period }}" class="btn btn-sm text-decoration-none {% if time_period == period %}btn-primary{% else %}btn-light{% endif %}">{{ label }}</a>
+                {% endfor %}
               </div>
-              <!-- end col -->
-
-              <div class="col-xl-3 col-md-6">
-                <!-- card -->
-                <div class="card card-animate">
-                  <div class="card-body">
-                    <div class="d-flex align-items-center">
-                      <div class="flex-grow-1 overflow-hidden">
-                        <p class="text-uppercase fw-medium text-muted text-truncate mb-0">Local Calls</p>
-                      </div>
-                      <div class="flex-shrink-0">
-                        <h5 class="text-danger fs-14 mb-0"><i class="ri-arrow-right-down-line fs-13 align-middle"></i> {{ local_call_cost|floatformat:2 }} SAR</h5>
-                      </div>
-                    </div>
-                    <div class="d-flex align-items-end justify-content-between mt-4">
-                      <div>
-                        <h4 class="fs-22 fw-semibold ff-secondary mb-4"><span class="counter-value" data-target="{{total_local_calls }}">0</span></h4>
-                        <a href="{% url 'cdr3cx:outgoing' %}" class="text-decoration-underline">See Details</a>
-                      </div>
-                      <div class="avatar-sm flex-shrink-0">
-                        <span class="avatar-title bg-info-subtle rounded fs-3">
-                          <i class="fas fa-phone-alt text-info"></i>
-                        </span>
-                      </div>
-                    </div>
-                  </div>
-                  <!-- end card body -->
-                </div>
-                <!-- end card -->
+              <div class="cc-date-range cc-date-range-wide">
+                <input type="text" class="form-control form-control-sm" name="custom_date" id="customDateInput" placeholder="Custom range" value="{{ custom_date_range }}" aria-label="Custom date range">
               </div>
-              <!-- end col -->
-
-              <div class="col-xl-3 col-md-6">
-                <!-- card -->
-                <div class="card card-animate">
-                  <div class="card-body">
-                    <div class="d-flex align-items-center">
-                      <div class="flex-grow-1 overflow-hidden">
-                        <p class="text-uppercase fw-medium text-muted text-truncate mb-0">Incoming Calls</p>
-                      </div>
-                      <div class="flex-shrink-0">
-                        <h5 class="text-success fs-14 mb-0"><i class="ri-arrow-right-up-line fs-13 align-middle"></i> +29.08 %</h5>
-                      </div>
-                    </div>
-                    <div class="d-flex align-items-end justify-content-between mt-4">
-                      <div>
-                        <h4 class="fs-22 fw-semibold ff-secondary mb-4"><span class="counter-value" data-target="{{ total_national_mobile_calls }}">0</span></h4>
-                        <a href="{% url 'cdr3cx:incoming' %}" class="text-decoration-underline">See details</a>
-                      </div>
-                      <div class="avatar-sm flex-shrink-0">
-                        <span class="avatar-title bg-warning-subtle rounded fs-3">
-                          <i class="bx bx-mobile-alt text-info"></i>
-                        </span>
-                      </div>
-                    </div>
-                  </div>
-                  <!-- end card body -->
-                </div>
-                <!-- end card -->
-              </div>
-              <!-- end col -->
-
-              <div class="col-xl-3 col-md-6">
-                <!-- card -->
-                <div class="card card-animate">
-                  <div class="card-body">
-                    <div class="d-flex align-items-center">
-                      <div class="flex-grow-1 overflow-hidden">
-                        <p class="text-uppercase fw-medium text-muted text-truncate mb-0">International Calls</p>
-                      </div>
-                      <div class="flex-shrink-0">
-                        <h5 class="text-muted fs-14 mb-0">{{ international_call_cost|floatformat:2 }} SAR</h5>
-                      </div>
-                    </div>
-                    <div class="d-flex align-items-end justify-content-between mt-4">
-                      <div>
-                        <h4 class="fs-22 fw-semibold ff-secondary mb-4"><span class="counter-value" data-target="{{ total_international_calls }}">0</span></h4>
-                        <a href="{% url 'cdr3cx:outgoing_international' %}" class="text-decoration-underline">View International Calls</a>
-                      </div>
-                      <div class="avatar-sm flex-shrink-0">
-                        <span class="avatar-title bg-primary-subtle rounded fs-3">
-                          <i class="bx bx-globe text-primary"></i>
-                        </span>
-                      </div>
-                    </div>
-                  </div>
-                  <!-- end card body -->
-                </div>
-                <!-- end card -->
-              </div>
-              <!-- end col -->
-            </div>
-            <!-- end row-->
-
-            <div class="row">
-              <div class="col-xl-8">
-                <div class="card">
-                  <div class="card-header align-items-center d-flex">
-                    <h4 class="card-title mb-0 flex-grow-1">Calls Statistics</h4>
-                    <div class="flex-shrink-0">
-                      <div class="dropdown card-header-dropdown">
-                        <a class="text-reset dropdown-btn" href="#" data-bs-toggle="dropdown" aria-haspopup="true" aria-expanded="false">
-                          <span class="fw-semibold text-uppercase fs-12">Sort by: </span><span class="text-muted">{{ sort_by|default:"Amount" }}<i class="mdi mdi-chevron-down ms-1"></i></span>
-                        </a>
-                        <div class="dropdown-menu dropdown-menu-end">
-                          <a class="dropdown-item {% if sort_by == 'amount' %}active{% endif %}" href="?sort_by=amount{% if time_period %}&time_period={{ time_period }}{% endif %}{% if custom_date_range %}&custom_date={{ custom_date_range }}{% endif %}">Amount</a>
-                          <a class="dropdown-item {% if sort_by == 'calls' %}active{% endif %}" href="?sort_by=calls{% if time_period %}&time_period={{ time_period }}{% endif %}{% if custom_date_range %}&custom_date={{ custom_date_range }}{% endif %}">No. Of Calls</a>
-                        </div>
-                      </div>
-                    </div>
-                  </div>
-                  <!-- end card header -->
-
-                  <div class="card-body">
-                    <div class="table-responsive table-card">
-                      <table class="table table-hover table-centered align-middle table-nowrap mb-0">
-                        <tbody>
-                          {% for stat in caller_stats|slice:":10" %}
-                          <tr data-href="{% url 'cdr3cx:caller_calls' stat.caller %}" style="cursor: pointer">
-                            <td>
-                              <div class="d-flex align-items-center">
-                                <div class="avatar-sm rounded p-1 me-2 d-flex align-items-center justify-content-center">
-                                  {% with from_dispname=stat.from_dispname|default:"Caller Name" %} {% with name_parts=from_dispname.split %}
-                                  <div class="text-center" style="line-height: 1.2">
-                                    <div class="fw-bold" style="font-size: 0.8em">{{ name_parts.0 }}</div>
-                                    <div class="small" style="font-size: 0.7em">{% if name_parts|length > 2 %} {{ name_parts|slice:"1:3"|join:" " }} {% else %} {{ name_parts|slice:"1:"|join:" " }} {% endif %}</div>
-                                  </div>
-                                  {% endwith %} {% endwith %}
-                                </div>
-
-                                <div>
-                                  <h5 class="#">
-                                    <a href="{% url 'cdr3cx:caller_calls' stat.caller %}" class="text-reset">{{ stat.caller }}</a>
-                                  </h5>
-                                  <span class="text-muted"> {% if time_period == 'today' %} Today {% elif time_period == '7d' %} Last 7 Days {% elif time_period == '1m' %} Last Month {% elif time_period == '6m' %} Last 6 Months {% elif time_period == '1y' %} Last Year {% elif time_period == 'custom' %} {{ start_date|date:"d M, Y" }} to {{ end_date|date:"d M, Y" }} {% else %} {{ stat.call_time|date:"d M, Y" }} {% endif %} </span>
-                                </div>
-                              </div>
-                            </td>
-                            <td>
-                              <h5 class="fs-14 my-1 fw-normal">{{ stat.total_calls }} Calls</h5>
-                              <span class="text-muted">{{ stat.total_duration|format_duration }}</span>
-                            </td>
-                            <td>
-                              <h5 class="fs-14 my-1 fw-normal">{{ stat.external_calls }} External Calls {{ stat.total_cost }} SAR</h5>
-                              <span class="text-muted">{{ stat.external_duration|format_duration}}</span>
-                            </td>
-                            <td>
-                              <h5 class="fs-14 my-1 fw-normal">{{ stat.company_calls }} Company Calls</h5>
-                              <span class="text-muted">{{ stat.company_duration|format_duration }}</span>
-                            </td>
-                          </tr>
-                          {% endfor %}
-                        </tbody>
-                      </table>
-                    </div>
-                  </div>
-                </div>
-              </div>
-              <!-- end col -->
-              <div class="col-xl-4">
-                <div class="card card-height-100">
-                  <div class="card-header align-items-center d-flex">
-                    <h4 class="card-title mb-0 flex-grow-1">Calls Ratio</h4>
-                    <div class="flex-shrink-0">
-                      <div class="dropdown card-header-dropdown">
-                        <a class="text-reset dropdown-btn" href="#" data-bs-toggle="dropdown" aria-haspopup="true" aria-expanded="false">
-                          <span class="text-muted">Report<i class="mdi mdi-chevron-down ms-1"></i></span>
-                        </a>
-                        <div class="dropdown-menu dropdown-menu-end">
-                          <a class="dropdown-item" href="#">Download Report</a>
-                          <a class="dropdown-item" href="#">Export</a>
-                          <a class="dropdown-item" href="#">Import</a>
-                        </div>
-                      </div>
-                    </div>
-                  </div>
-                  <!-- end card header -->
-
-                  <div class="card-body">
-                    <div class="card-body">
-                      <div id="calls-ratio-chart" class="apex-charts" dir="ltr"></div>
-                      <div class="text-center mt-2">
-                        <h4 id="selected-ratio-title">Total Calls</h4>
-                        <p class="mb-0">
-                          <span id="selected-ratio-value">{{ total_calls }}</span>
-                          (<span id="selected-ratio-percentage">100%</span>)
-                        </p>
-                      </div>
-                    </div>
-                  </div>
-                </div>
-                <!-- .card-->
-              </div>
-              <!-- .col-->
+              <input type="hidden" name="time_period" id="timePeriodInput" value="{{ time_period|default:'today' }}">
+              {% if sort_by %}<input type="hidden" name="sort_by" value="{{ sort_by }}">{% endif %}
+              <button type="submit" class="btn btn-primary btn-sm px-2"><i class="ri-filter-3-line"></i><span class="d-none d-lg-inline ms-1">Apply</span></button>
+              <a href="{{ reset_url }}" class="btn btn-light btn-sm" title="Reset"><i class="ri-restart-line"></i></a>
+            </form>
+            <div class="d-flex gap-1 ipt-toolbar-actions flex-shrink-0">
+              <a href="{% url 'cdr3cx:call_center_dashboard' %}" class="btn btn-soft-info btn-sm"><i class="ri-customer-service-2-line"></i><span class="d-none d-md-inline ms-1">Call Center</span></a>
+              <a href="{% url 'cdr3cx:report_generate_now' %}?type=callcenter_pack&start={{ start_date }}&end={{ end_date }}&format=pdf" class="btn btn-sm btn-danger"><i class="ri-file-pdf-2-line"></i><span class="d-none d-md-inline ms-1">PDF</span></a>
             </div>
           </div>
-          <!-- end .h-100-->
         </div>
-        <!-- end col -->
-
-        <div class="col-auto layout-rightside-col">
-          <div class="overlay"></div>
-          <div class="layout-rightside">
-            <div class="card h-100 rounded-0">
-              <div class="card-body p-0">
-                <div class="p-3">
-                  <h6 class="text-muted mb-0 text-uppercase fw-semibold">Recent Call Activity</h6>
-                </div>
-                <div data-simplebar style="max-height: 410px" class="p-3 pt-0">
-                  <div class="acitivity-timeline acitivity-main">
-                    <div class="acitivity-item d-flex">
-                      <div class="flex-shrink-0 avatar-xs acitivity-avatar">
-                        <div class="avatar-title bg-success-subtle text-success rounded-circle">
-                          <i class="ri-shopping-cart-2-line"></i>
-                        </div>
-                      </div>
-                      <div class="flex-grow-1 ms-3">
-                        <h6 class="mb-1 lh-base">Caller Number</h6>
-                        <small class="mb-0 text-muted">02:14 PM Today</small>
-                      </div>
-                    </div>
-                    <div class="acitivity-item py-3 d-flex">
-                      <div class="flex-shrink-0 avatar-xs acitivity-avatar">
-                        <div class="avatar-title bg-danger-subtle text-danger rounded-circle">
-                          <i class="ri-stack-fill"></i>
-                        </div>
-                      </div>
-                      <div class="flex-grow-1 ms-3">
-                        <h6 class="mb-1 lh-base">Called <span class="fw-semibold">style Number</span></h6>
-
-                        <p class="mb-0 text-muted"><small>9:47 PM Yesterday</small></p>
-                      </div>
-                    </div>
-                  </div>
-                </div>
-
-                <div class="p-3 mt-2">
-                  <h6 class="text-muted mb-3 text-uppercase fw-semibold">Top 10 Countries</h6>
-                  <ol class="ps-3 text-muted">
-                    {% for country, count in top_talking_countries %}
-                    <li class="py-1">
-                      <a href="{% url 'cdr3cx:country_specific_calls' country|slugify %}" class="text-muted">{{ country }}<span class="float-end">({{ count }})</span></a>
-                    </li>
-                    {% endfor %}
-                  </ol>
-                  <div class="mt-3 text-center">
-                    <a href="{% url 'cdr3cx:outgoing_international' %}" class="text-decoration-underline">View International Calls</a>
-                  </div>
-                </div>
-              </div>
-            </div>
-            <!-- end card-->
-          </div>
-          <!-- end .rightbar-->
-        </div>
-        <!-- end col -->
       </div>
+
+      <!-- KPI strip -->
+      <div class="row g-2 mb-2 ipt-kpi-row">
+        <div class="col-6 col-xl-3">
+          <div class="cc-kpi card border-0 shadow-sm h-100">
+            <div class="card-body">
+              <div class="d-flex justify-content-between align-items-center">
+                <div>
+                  <p class="cc-kpi-label mb-0">Total Calls</p>
+                  <h4 class="cc-kpi-value mb-0">{{ total_calls|floatformat:0 }}</h4>
+                  <span class="cc-kpi-sub">{{ total_call_cost|floatformat:2 }} SAR</span>
+                </div>
+                <span class="cc-kpi-icon bg-success-subtle text-success"><i class="ri-phone-line"></i></span>
+              </div>
+              <a href="{% url 'cdr3cx:all_calls' %}?{{ filter_qs }}" class="ipt-kpi-link">View all →</a>
+            </div>
+          </div>
+        </div>
+        <div class="col-6 col-xl-3">
+          <div class="cc-kpi card border-0 shadow-sm h-100">
+            <div class="card-body">
+              <div class="d-flex justify-content-between align-items-center">
+                <div>
+                  <p class="cc-kpi-label mb-0">Local Calls</p>
+                  <h4 class="cc-kpi-value mb-0">{{ total_local_calls|floatformat:0 }}</h4>
+                  <span class="cc-kpi-sub">{{ local_call_cost|floatformat:2 }} SAR</span>
+                </div>
+                <span class="cc-kpi-icon bg-info-subtle text-info"><i class="ri-building-line"></i></span>
+              </div>
+              <a href="{% url 'cdr3cx:all_calls' %}?tab=local&{{ filter_qs }}" class="ipt-kpi-link">Details →</a>
+            </div>
+          </div>
+        </div>
+        <div class="col-6 col-xl-3">
+          <div class="cc-kpi card border-0 shadow-sm h-100">
+            <div class="card-body">
+              <div class="d-flex justify-content-between align-items-center">
+                <div>
+                  <p class="cc-kpi-label mb-0">Incoming</p>
+                  <h4 class="cc-kpi-value mb-0">{{ total_incoming_calls|floatformat:0 }}</h4>
+                  <span class="cc-kpi-sub">Inbound calls</span>
+                </div>
+                <span class="cc-kpi-icon bg-warning-subtle text-warning"><i class="ri-arrow-down-line"></i></span>
+              </div>
+              <a href="{% url 'cdr3cx:all_calls' %}?tab=incoming&{{ filter_qs }}" class="ipt-kpi-link">Details →</a>
+            </div>
+          </div>
+        </div>
+        <div class="col-6 col-xl-3">
+          <div class="cc-kpi card border-0 shadow-sm h-100">
+            <div class="card-body">
+              <div class="d-flex justify-content-between align-items-center">
+                <div>
+                  <p class="cc-kpi-label mb-0">International</p>
+                  <h4 class="cc-kpi-value mb-0">{{ total_international_calls|floatformat:0 }}</h4>
+                  <span class="cc-kpi-sub">{{ international_call_cost|floatformat:2 }} SAR</span>
+                </div>
+                <span class="cc-kpi-icon bg-primary-subtle text-primary"><i class="ri-global-line"></i></span>
+              </div>
+              <a href="{% url 'cdr3cx:all_calls' %}?tab=international&{{ filter_qs }}" class="ipt-kpi-link">Details →</a>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Operations strip: CC + Extensions + Health in one card -->
+      <div class="card border-0 shadow-sm mb-2 ipt-ops-strip">
+        <div class="row g-0">
+          <div class="col-xl-5 ipt-ops-col">
+            <div class="ipt-ops-title">
+              <span><i class="ri-customer-service-2-line me-1 text-primary"></i>Contact Center</span>
+              <a href="{% url 'cdr3cx:call_center_dashboard' %}?{{ filter_qs }}" class="ipt-panel-link">Open →</a>
+            </div>
+            {% if cc.available %}
+            <div class="ipt-stat-grid">
+              <div class="ipt-stat-cell"><div class="ipt-stat-label">Calls</div><div class="ipt-stat-value">{{ cc.calls }}</div></div>
+              <div class="ipt-stat-cell"><div class="ipt-stat-label">Answered</div><div class="ipt-stat-value text-success">{{ cc.answered }}<small class="ms-1">{{ cc.answer_rate }}%</small></div></div>
+              <div class="ipt-stat-cell"><div class="ipt-stat-label">ASA</div><div class="ipt-stat-value">{{ cc.asa_fmt }}</div></div>
+              <div class="ipt-stat-cell"><div class="ipt-stat-label">Abandoned</div><div class="ipt-stat-value {% if cc.abandon_rate <= 5 %}text-success{% elif cc.abandon_rate <= 10 %}text-warning{% else %}text-danger{% endif %}">{{ cc.abandon_count }}<small class="ms-1">{{ cc.abandon_rate }}%</small></div></div>
+            </div>
+            {% else %}
+            <p class="text-muted mb-0 fs-12"><i class="ri-information-line me-1"></i>No ACD queue data for this period.</p>
+            {% endif %}
+          </div>
+          <div class="col-xl-3 col-md-6 ipt-ops-col">
+            <div class="ipt-ops-title">
+              <span><i class="ri-contacts-book-2-line me-1 text-info"></i>Extensions</span>
+              <a href="{% url 'cdr3cx:extension_list' %}" class="ipt-panel-link">Manage →</a>
+            </div>
+            <div class="ipt-kv-row"><span class="ipt-kv-label">Active</span><span class="ipt-kv-value">{{ ext_total }}</span></div>
+            <div class="ipt-kv-row"><span class="ipt-kv-label">Online now</span><span class="ipt-kv-value text-success">{{ ext_online }}</span></div>
+            <div class="ipt-kv-row"><span class="ipt-kv-label">Ext-call blocked</span><span class="ipt-kv-value {% if ext_blocked %}text-danger{% endif %}">{{ ext_blocked }}</span></div>
+            {% if ext_last_synced %}<div class="fs-11 text-muted mt-1">synced {{ ext_last_synced|timesince }} ago</div>{% endif %}
+          </div>
+          <div class="col-xl-4 col-md-6 ipt-ops-col">
+            <div class="ipt-ops-title"><span><i class="ri-heart-pulse-line me-1 text-danger"></i>Health</span></div>
+            <div class="ipt-kv-row">
+              <span class="ipt-kv-label">CDR feed {% if last_cdr %}<span class="text-muted">· {{ last_cdr|timesince }} ago</span>{% endif %}</span>
+              <span>{% if ingest_ok %}<span class="badge bg-success-subtle text-success ipt-badge-sm">Live</span>{% else %}<span class="badge bg-danger-subtle text-danger ipt-badge-sm">Stalled</span>{% endif %}</span>
+            </div>
+            <div class="ipt-kv-row">
+              <span class="ipt-kv-label">SLA alerts (7d)</span>
+              <span class="ipt-kv-value">{% if alerts_red %}<span class="badge bg-danger ipt-badge-sm">{{ alerts_red }}</span>{% endif %}{% if alerts_amber %}<span class="badge bg-warning text-dark ipt-badge-sm">{{ alerts_amber }}</span>{% endif %}{% if not alerts_red and not alerts_amber %}<span class="text-success">0</span>{% endif %}</span>
+            </div>
+            <div class="ipt-kv-row"><span class="ipt-kv-label">Open fraud</span><span class="ipt-kv-value {% if fraud_open %}text-danger{% endif %}">{{ fraud_open }}</span></div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Billing + Top Spenders -->
+      <div class="row g-2 mb-2">
+        <div class="col-xl-3">
+          <div class="card border-0 shadow-sm h-100">
+            <div class="ipt-panel-header">
+              <h6><i class="ri-money-dollar-circle-line me-1 text-success"></i>Billing &amp; Quota</h6>
+              <a href="{% url 'cdr3cx:quota_usage' %}" class="ipt-panel-link">Quota →</a>
+            </div>
+            <div class="ipt-panel-body">
+              <div class="ipt-stat-grid ipt-stat-grid-2 mb-2">
+                <div class="ipt-stat-cell"><div class="ipt-stat-label">Today</div><div class="ipt-stat-value">{{ spend_today|floatformat:2 }}</div></div>
+                <div class="ipt-stat-cell"><div class="ipt-stat-label">Month</div><div class="ipt-stat-value">{{ spend_month|floatformat:2 }}</div></div>
+              </div>
+              <div class="ipt-kv-row"><span class="ipt-kv-label">Quota blocked</span><span class="ipt-kv-value {% if quota_blocked %}text-danger{% endif %}">{{ quota_blocked }}</span></div>
+              <div class="ipt-kv-row"><span class="ipt-kv-label">Low balance</span><span class="ipt-kv-value {% if quota_low %}text-warning{% endif %}">{{ quota_low }}</span></div>
+            </div>
+          </div>
+        </div>
+        <div class="col-xl-9">
+          <div class="card border-0 shadow-sm h-100">
+            <div class="ipt-panel-header"><h6>Top Spenders <span class="text-muted fw-normal">· this period</span></h6></div>
+            <div class="table-responsive">
+              <table class="table table-sm table-hover mb-0 ipt-table-compact">
+                <thead><tr><th class="ps-3">Extension</th><th class="text-end">Calls</th><th class="text-end pe-3">Cost (SAR)</th></tr></thead>
+                <tbody>
+                  {% for s in top_spenders %}
+                  <tr>
+                    <td class="ps-3"><span class="ipt-ext-name d-inline">{{ s.from_dispname|default:s.caller|default:"—" }}</span> <span class="text-muted">({{ s.caller }})</span></td>
+                    <td class="text-end">{{ s.calls }}</td>
+                    <td class="text-end pe-3 fw-medium">{{ s.cost|floatformat:2 }}</td>
+                  </tr>
+                  {% empty %}
+                  <tr><td colspan="3" class="text-center text-muted py-2">No spend in this period</td></tr>
+                  {% endfor %}
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Top Extensions + Call Mix -->
+      <div class="row g-2 mb-2">
+        <div class="col-xl-7">
+          <div class="card border-0 shadow-sm h-100">
+            <div class="ipt-panel-header">
+              <h6>Top Extensions</h6>
+              <div class="d-flex align-items-center gap-2">
+                <div class="dropdown">
+                  <button class="btn btn-light btn-sm dropdown-toggle py-0 px-2" type="button" data-bs-toggle="dropdown" style="font-size:.7rem">Sort: {{ sort_by|default:"amount"|title }}</button>
+                  <ul class="dropdown-menu dropdown-menu-end">
+                    <li><a class="dropdown-item{% if sort_by == 'amount' %} active{% endif %}" href="?sort_by=amount&amp;{{ filter_qs }}">Amount</a></li>
+                    <li><a class="dropdown-item{% if sort_by == 'calls' %} active{% endif %}" href="?sort_by=calls&amp;{{ filter_qs }}">Calls</a></li>
+                  </ul>
+                </div>
+                <a href="{% url 'cdr3cx:top_extensions' %}?{{ filter_qs }}" class="ipt-panel-link">View all →</a>
+              </div>
+            </div>
+            <div class="table-responsive">
+              <table class="table table-sm table-hover cc-table ipt-table-compact mb-0">
+                <thead><tr><th class="ps-3">Extension</th><th class="text-end">Calls</th><th class="text-end">Duration</th><th class="text-end">External</th><th class="text-end pe-3">Cost</th></tr></thead>
+                <tbody>
+                  {% for stat in caller_stats|slice:":8" %}
+                  <tr class="ipt-drill-row" data-href="{% url 'cdr3cx:caller_calls' stat.caller %}?{{ drill_qs }}" style="cursor:pointer">
+                    <td class="ps-3">
+                      <div class="d-flex align-items-center gap-1">
+                        <span class="cc-avatar">{{ stat.caller|slice:":2" }}</span>
+                        <div class="min-w-0">
+                          <span class="fw-medium">{{ stat.caller }}</span>
+                          {% if stat.from_dispname %}<div class="text-muted ipt-ext-name">{{ stat.from_dispname }}</div>{% endif %}
+                        </div>
+                      </div>
+                    </td>
+                    <td class="text-end fw-medium">{{ stat.total_calls }}</td>
+                    <td class="text-end text-muted">{{ stat.total_duration|format_duration }}</td>
+                    <td class="text-end">{{ stat.external_calls }}</td>
+                    <td class="text-end pe-3 fw-medium">{{ stat.total_cost|floatformat:2 }}</td>
+                  </tr>
+                  {% empty %}
+                  <tr><td colspan="5" class="text-center text-muted py-3">No extension activity</td></tr>
+                  {% endfor %}
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+        <div class="col-xl-5">
+          <div class="card border-0 shadow-sm h-100">
+            <div class="ipt-panel-header"><h6>Call Mix</h6></div>
+            <div class="ipt-panel-body pt-0">
+              <div id="calls-ratio-chart" class="ipt-chart-sm"></div>
+              <div class="text-center">
+                <span class="fs-12 text-muted" id="selected-ratio-title">Total Calls</span>
+                <span class="fw-semibold ms-1 fs-13" id="selected-ratio-value">{{ total_calls }}</span>
+                <span class="fs-12 text-muted" id="selected-ratio-percentage">(100%)</span>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Trends + Activity sidebar -->
+      <div class="row g-2">
+        <div class="col-xl-8">
+          <div class="card border-0 shadow-sm h-100">
+            <div class="ipt-panel-header">
+              <h6>Call Trends</h6>
+              <div class="btn-group cc-period-group">
+                <button type="button" class="btn btn-sm btn-light time-period-btn{% if chart_time_period == '1M' %} btn-primary{% endif %}" data-period="1M">1M</button>
+                <button type="button" class="btn btn-sm btn-light time-period-btn{% if chart_time_period == '6M' %} btn-primary{% endif %}" data-period="6M">6M</button>
+                <button type="button" class="btn btn-sm btn-light time-period-btn{% if chart_time_period == '1Y' %} btn-primary{% endif %}" data-period="1Y">1Y</button>
+              </div>
+            </div>
+            <div class="ipt-panel-body pt-0">
+              <div id="calls-chart" class="ipt-chart-md"></div>
+            </div>
+          </div>
+        </div>
+        <div class="col-xl-4">
+          <div class="card border-0 shadow-sm mb-2">
+            <div class="ipt-panel-header">
+              <h6>Recent Activity</h6>
+              <a href="{% url 'cdr3cx:all_calls' %}?{{ filter_qs }}" class="ipt-panel-link">All calls</a>
+            </div>
+            <div class="ipt-panel-body">
+              {% for call in recent_activity|slice:":5" %}
+              <div class="ipt-activity-item">
+                <div class="d-flex justify-content-between align-items-start gap-2">
+                  <div class="min-w-0">
+                    <div class="fw-medium text-truncate" style="font-size:.72rem">{{ call.from_no|default:call.caller }}</div>
+                    <div class="text-muted" style="font-size:.65rem">→ {{ call.callee|default:"—" }}</div>
+                  </div>
+                  <div class="text-end flex-shrink-0" style="font-size:.65rem">
+                    <div class="text-muted">{{ call.call_time|date:"M d, H:i" }}</div>
+                    {% if call.duration %}<div>{{ call.duration }}s</div>{% endif %}
+                  </div>
+                </div>
+              </div>
+              {% empty %}
+              <p class="text-muted mb-0 text-center py-2" style="font-size:.72rem">No recent calls</p>
+              {% endfor %}
+            </div>
+          </div>
+          <div class="card border-0 shadow-sm">
+            <div class="ipt-panel-header"><h6>Top Countries</h6></div>
+            <div class="ipt-panel-body py-2">
+              {% for country, count in top_talking_countries|slice:":5" %}
+              <div class="ipt-country-item">
+                <a href="{% url 'cdr3cx:country_specific_calls' country|slugify %}?{{ filter_qs }}" class="d-flex justify-content-between text-decoration-none text-body">
+                  <span class="text-truncate me-2">{{ country }}</span>
+                  <span class="badge bg-light text-muted fw-normal ipt-badge-sm">{{ count }}</span>
+                </a>
+              </div>
+              {% empty %}
+              <p class="text-muted mb-0" style="font-size:.72rem">No international data</p>
+              {% endfor %}
+              <div class="text-center mt-1"><a href="{% url 'cdr3cx:all_calls' %}?tab=international&{{ filter_qs }}" class="ipt-kpi-link">International →</a></div>
+            </div>
+          </div>
+        </div>
+      </div>
+
     </div>
-    <!-- container-fluid -->
   </div>
-  <!-- End Page-content -->
-  {% block footer %} {% include "partials/footer.html" %} {% endblock footer %}
 </div>
-<!-- end main content-->
-{% endblock content %} {% block extra_js %}
-<!-- apexcharts -->
-<script src="{% static 'libs/apexcharts/dist/apexcharts.min.js'%}"></script>
+{% endblock %}
 
-<!-- Vector map-->
-<script src="{% static 'libs/jsvectormap/dist/js/jsvectormap.min.js'%}"></script>
-<script src="{% static 'libs/jsvectormap/dist/maps/world-merc.js'%}"></script>
-
-<!--Swiper slider js-->
-<script src="{% static 'libs/swiper/swiper-bundle.min.js'%}"></script>
-
-<!-- Dashboard init -->
-<script src="{% static 'js/pages/dashboard-ecommerce.init.js'%}"></script>
+{% block extra_js %}
+<script src="{% static 'libs/apexcharts/dist/apexcharts.min.js' %}"></script>
 <script>
-  function submitForm(period) {
-    document.getElementById("timePeriodInput").value = period;
-    document.getElementById("customDateInput").value = "";
-    document.getElementById("timePeriodForm").submit();
+(function () {
+  var form = document.getElementById('iptFilterForm');
+  var periodInput = document.getElementById('timePeriodInput');
+  var customInput = document.getElementById('customDateInput');
+  if (form) {
+    form.addEventListener('submit', function () {
+      if (customInput && customInput.value && customInput.value.includes(' to ')) periodInput.value = 'custom';
+    });
+    if (customInput && window.flatpickr) {
+      flatpickr(customInput, { mode: 'range', dateFormat: 'd M, Y', onChange: function (d) { if (d.length === 2) periodInput.value = 'custom'; } });
+    }
   }
 
-  document.addEventListener("DOMContentLoaded", function () {
-    flatpickr("#customDateInput", {
-      mode: "range",
-      dateFormat: "d M, Y",
-      onChange: function (selectedDates, dateStr, instance) {
-        if (selectedDates.length === 2) {
-          document.getElementById("timePeriodInput").value = "custom";
-          document.getElementById("timePeriodForm").submit();
-        }
-      },
-    });
+  document.querySelectorAll('.ipt-drill-row[data-href]').forEach(function (row) {
+    row.addEventListener('click', function () { window.location.href = this.dataset.href; });
   });
-</script>
-<script>
-  document.addEventListener("DOMContentLoaded", function () {
-      var callStats = {{ call_stats|safe }};
-      console.log("Call stats:", callStats);
 
-      if (callStats.length === 0) {
-          console.error("No call stats data available");
-          document.querySelector("#calls-chart").innerHTML = "No data available for the selected time period.";
-          return;
-      }
+  var ratioSeries = [{{ total_incoming_calls }}, {{ total_local_calls }}, {{ total_international_calls }}, {{ total_internal_calls }}];
+  var ratioLabels = ['Incoming', 'Local', 'International', 'Internal'];
+  var ratioColors = ['#405189', '#0ab39c', '#f06548', '#f7b84b'];
+  var filtered = ratioSeries.map(function (v, i) { return { v: v, l: ratioLabels[i], c: ratioColors[i] }; }).filter(function (x) { return x.v > 0; });
+  if (filtered.length && document.querySelector('#calls-ratio-chart')) {
+    new ApexCharts(document.querySelector('#calls-ratio-chart'), {
+      series: filtered.map(function (x) { return x.v; }),
+      labels: filtered.map(function (x) { return x.l; }),
+      colors: filtered.map(function (x) { return x.c; }),
+      chart: { type: 'donut', height: 195, events: { dataPointSelection: function (e, ctx, cfg) {
+        var i = cfg.dataPointIndex, total = cfg.w.globals.series.reduce(function (a, b) { return a + b; }, 0);
+        document.getElementById('selected-ratio-title').textContent = filtered[i].l;
+        document.getElementById('selected-ratio-value').textContent = filtered[i].v;
+        document.getElementById('selected-ratio-percentage').textContent = '(' + ((filtered[i].v / total) * 100).toFixed(1) + '%)';
+      }}},
+      plotOptions: { pie: { donut: { size: '70%' } } },
+      legend: { position: 'bottom', fontSize: '10px' },
+      dataLabels: { enabled: false }
+    }).render();
+  }
 
-      var options = {
-          series: [
-              {
-                  name: 'Total Calls',
-                  type: 'column',
-                  data: callStats.map(stat => stat.total_calls)
-              },
-              {
-                  name: 'Local Calls',
-                  type: 'line',
-                  data: callStats.map(stat => stat.local_calls)
-              },
-              {
-                  name: 'International Calls',
-                  type: 'line',
-                  data: callStats.map(stat => stat.international_calls)
-              }
-          ],
-          chart: {
-              height: 350,
-              type: 'line',
-              toolbar: {
-                  show: false
-              }
-          },
-          stroke: {
-              width: [0, 3, 3],
-              curve: 'smooth',
-              dashArray: [0, 0, 5]
-          },
-          plotOptions: {
-              bar: {
-                  columnWidth: '50%'
-              }
-          },
-          colors: ['#556ee6', '#34c38f', '#f46a6a'],
-          dataLabels: {
-              enabled: false
-          },
-          labels: callStats.map(stat => {
-              let date = new Date(stat.period);
-              return date.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
-          }),
-          xaxis: {
-              type: 'datetime'
-          },
-          yaxis: [
-              {
-                  title: {
-                      text: 'Number of Calls',
-                  },
-              }
-          ],
-          tooltip: {
-              shared: true,
-              intersect: false,
-          },
-          legend: {
-              show: true
-          }
-      };
+  var callStats = {{ call_stats_json|safe }};
+  var trendChart = null;
+  function renderTrend(data) {
+    if (!document.querySelector('#calls-chart')) return;
+    var opts = {
+      series: [
+        { name: 'Total', type: 'column', data: data.map(function (s) { return s.total_calls; }) },
+        { name: 'Local', type: 'line', data: data.map(function (s) { return s.local_calls; }) },
+        { name: 'International', type: 'line', data: data.map(function (s) { return s.international_calls; }) }
+      ],
+      chart: { height: 215, type: 'line', toolbar: { show: false } },
+      stroke: { width: [0, 2, 2], curve: 'smooth' },
+      colors: ['#405189', '#0ab39c', '#f06548'],
+      dataLabels: { enabled: false },
+      labels: data.map(function (s) { var d = new Date(s.period); return d.toLocaleDateString('en-US', { month: 'short', day: 'numeric' }); }),
+      xaxis: { type: 'category', labels: { style: { fontSize: '9px' } } },
+      legend: { fontSize: '10px' }
+    };
+    if (trendChart) trendChart.destroy();
+    trendChart = new ApexCharts(document.querySelector('#calls-chart'), opts);
+    trendChart.render();
+  }
+  if (callStats && callStats.length) renderTrend(callStats);
+  else if (document.querySelector('#calls-chart')) document.querySelector('#calls-chart').innerHTML = '<p class="text-muted text-center py-4" style="font-size:.8rem">No trend data</p>';
 
-      try {
-          var chart = new ApexCharts(document.querySelector("#calls-chart"), options);
-          chart.render();
-
-          // Add event listeners for time period buttons
-          document.querySelectorAll('.time-period-btn').forEach(button => {
-              button.addEventListener('click', function() {
-                  var period = this.dataset.period;
-                  // Make an AJAX call to update the chart data
-                  fetch("{% url 'cdr3cx:update_call_stats' %}?chart_time_period=" + period)
-                      .then(response => response.json())
-                      .then(data => {
-                          console.log("Updated call stats:", data);
-                          if (data.length === 0) {
-                              console.error("No data available for the selected time period");
-                              return;
-                          }
-                          chart.updateSeries([
-                              { data: data.map(stat => stat.total_calls) },
-                              { data: data.map(stat => stat.local_calls) },
-                              { data: data.map(stat => stat.international_calls) }
-                          ]);
-                          chart.updateOptions({
-                              labels: data.map(stat => {
-                                  let date = new Date(stat.period);
-                                  return date.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
-                              })
-                          });
-                      })
-                      .catch(error => console.error("Error updating chart:", error));
-              });
+  document.querySelectorAll('.time-period-btn').forEach(function (btn) {
+    btn.addEventListener('click', function () {
+      fetch("{% url 'cdr3cx:update_call_stats' %}?chart_time_period=" + this.dataset.period)
+        .then(function (r) { return r.json(); })
+        .then(function (data) {
+          if (data && data.length) renderTrend(data);
+          document.querySelectorAll('.time-period-btn').forEach(function (b) {
+            b.classList.toggle('btn-primary', b === btn);
+            b.classList.toggle('btn-light', b !== btn);
           });
-      } catch (error) {
-          console.error("Error rendering chart:", error);
-      }
-  });
-</script>
-
-<script>
-    document.addEventListener("DOMContentLoaded", function () {
-        var options = {
-            series: [
-                {{ total_external_calls }},
-                {{ total_international_calls }},
-                {{ total_national_mobile_calls }},
-                {{ total_national_calls }}
-            ],
-            chart: {
-                height: 350,
-                type: 'donut',
-                events: {
-                    dataPointSelection: function(event, chartContext, config) {
-                        var selectedLabel = config.w.config.labels[config.dataPointIndex];
-                        var selectedValue = config.w.config.series[config.dataPointIndex];
-                        var total = config.w.config.series.reduce((a, b) => a + b, 0);
-                        var percentage = ((selectedValue / total) * 100).toFixed(1);
-
-                        document.querySelector("#selected-ratio-title").textContent = selectedLabel;
-                        document.querySelector("#selected-ratio-value").textContent = selectedValue;
-                        document.querySelector("#selected-ratio-percentage").textContent = percentage + '%';
-                    }
-                }
-            },
-            labels: ['External', 'International', 'National Mobile', 'National'],
-            colors: ["#556ee6", "#34c38f", "#f46a6a", "#f1b44c"],
-            plotOptions: {
-                pie: {
-                    donut: {
-                        size: '70%',
-                        background: 'transparent',
-                        labels: {
-                            show: true,
-                            name: {
-                                show: true,
-                                fontSize: '22px',
-                                fontFamily: 'Helvetica, Arial, sans-serif',
-                                fontWeight: 600,
-                                color: undefined,
-                                offsetY: -10
-                            },
-                            value: {
-                                show: true,
-                                fontSize: '18px',
-                                fontFamily: 'Helvetica, Arial, sans-serif',
-                                fontWeight: 400,
-                                color: undefined,
-                                offsetY: 10,
-                                formatter: function (val) {
-                                    return val
-                                }
-                            },
-                            total: {
-                                show: true,
-                                showAlways: true,
-                                label: 'Total Calls',
-                                fontSize: '22px',
-                                fontFamily: 'Helvetica, Arial, sans-serif',
-                                fontWeight: 600,
-                                color: '#373d3f'
-                            }
-                        }
-                    }
-                }
-            },
-            legend: {
-                show: true,
-                position: 'bottom',
-                horizontalAlign: 'center',
-                floating: false,
-                fontSize: '14px',
-                fontFamily: 'Helvetica, Arial, sans-serif',
-                formatter: function(seriesName, opts) {
-                    return [seriesName, " - ", opts.w.globals.series[opts.seriesIndex]]
-                }
-            },
-            dataLabels: {
-                enabled: true,
-                formatter: function (val, opts) {
-                    return Math.round(val) + '%'
-                },
-                style: {
-                    fontSize: '14px',
-                    fontWeight: 'bold',
-                    colors: ['#fff']
-                },
-                background: {
-                    enabled: true,
-                    foreColor: '#000',
-                    padding: 4,
-                    borderRadius: 2,
-                    borderWidth: 1,
-                    borderColor: '#fff',
-                    opacity: 0.5,
-                },
-                dropShadow: {
-                    enabled: false
-                }
-            },
-            responsive: [{
-                breakpoint: 480,
-                options: {
-                    chart: {
-                        height: 300
-                    }
-                }
-            }],
-            noData: {
-                text: 'No calls data available'
-            }
-        };
-
-        // Filter out zero values
-        options.series = options.series.filter((value, index) => {
-            if (value === 0) {
-                options.labels.splice(index, 1);
-                options.colors.splice(index, 1);
-                return false;
-            }
-            return true;
         });
-
-        var chart = new ApexCharts(document.querySelector("#calls-ratio-chart"), options);
-        chart.render();
-    });
-
-    document.addEventListener("DOMContentLoaded", function () {
-      var callStats = {{ call_stats|safe }};
-      var options = {
-          series: [
-              {
-                  name: 'Total Calls',
-                  type: 'column',
-                  data: callStats.map(stat => stat.total_calls)
-              },
-              {
-                  name: 'Local Calls',
-                  type: 'line',
-                  data: callStats.map(stat => stat.local_calls)
-              },
-              {
-                  name: 'International Calls',
-                  type: 'line',
-                  data: callStats.map(stat => stat.international_calls)
-              }
-          ],
-          chart: {
-              height: 350,
-              type: 'line',
-              toolbar: {
-                  show: false
-              }
-          },
-          stroke: {
-              width: [0, 3, 3],
-              curve: 'smooth',
-              dashArray: [0, 0, 5]
-          },
-          plotOptions: {
-              bar: {
-                  columnWidth: '50%'
-              }
-          },
-          colors: ['#556ee6', '#34c38f', '#f46a6a'],
-          dataLabels: {
-              enabled: false
-          },
-          labels: callStats.map(stat => {
-              let date = new Date(stat.period);
-              return date.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
-          }),
-          xaxis: {
-              type: 'datetime'
-          },
-          yaxis: [
-              {
-                  title: {
-                      text: 'Number of Calls',
-                  },
-              }
-          ],
-          tooltip: {
-              shared: true,
-              intersect: false,
-          },
-          legend: {
-              show: true
-          }
-      };
-
-      var chart = new ApexCharts(document.querySelector("#calls-chart"), options);
-      chart.render();
-
-      // Add event listeners for time period buttons
-      document.querySelectorAll('.time-period-btn').forEach(button => {
-          button.addEventListener('click', function() {
-              var period = this.dataset.period;
-              // Make an AJAX call to update the chart data
-              fetch(`/update-call-stats/?chart_time_period=${period}`)
-                  .then(response => response.json())
-                  .then(data => {
-                      chart.updateSeries([
-                          { data: data.map(stat => stat.total_calls) },
-                          { data: data.map(stat => stat.local_calls) },
-                          { data: data.map(stat => stat.international_calls) }
-                      ]);
-                      chart.updateOptions({
-                          labels: data.map(stat => {
-                              let date = new Date(stat.period);
-                              return date.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
-                          })
-                      });
-                  });
-          });
-      });
-  });
-</script>
-<script>
-  document.addEventListener("DOMContentLoaded", function () {
-    const rows = document.querySelectorAll("tr[data-href]");
-    rows.forEach((row) => {
-      row.addEventListener("click", function () {
-        window.location.href = this.dataset.href;
-      });
     });
   });
+})();
 </script>
-{% endblock extra_js %}
+{% endblock %}

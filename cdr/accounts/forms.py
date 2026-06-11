@@ -6,7 +6,20 @@ from .models import Company, CustomUser, Role
 class CompanyForm(forms.ModelForm):
     class Meta:
         model = Company
-        fields = ['name', 'address', 'phone', 'listening_port']
+        fields = ['name', 'address', 'phone', 'listening_port', 'pbx_source_ips',
+                  'pbx_api_url', 'pbx_api_user', 'pbx_api_password']
+        widgets = {'pbx_api_password': forms.PasswordInput(render_value=True)}
+
+
+class CompanyBrandingForm(forms.ModelForm):
+    """Company name + logo, shown in the sidebar (in place of 'Zentryc') and on reports."""
+    class Meta:
+        model = Company
+        fields = ['name', 'logo']
+        widgets = {
+            'name': forms.TextInput(attrs={'class': 'form-control', 'placeholder': 'Company name'}),
+            'logo': forms.ClearableFileInput(attrs={'class': 'form-control', 'accept': 'image/*'}),
+        }
 
 class CustomUserCreationForm(UserCreationForm):
     company = forms.ModelChoiceField(queryset=Company.objects.all(), required=False)

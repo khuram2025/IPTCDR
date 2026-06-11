@@ -1,99 +1,411 @@
 {% load static %}
 <!DOCTYPE html>
-<html lang="en" data-bs-theme="dark">
+<html lang="en" data-layout="vertical" data-topbar="light" data-sidebar="dark" data-bs-theme="light">
 <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>Wallboard — Projection</title>
-    <link rel="stylesheet" href="{% static 'libs/bootstrap/css/bootstrap.min.css' %}" />
+    <title>Live Wallboard — Projection | Zentryc</title>
+    <link rel="shortcut icon" href="{% static 'images/favicon.ico' %}" />
+    <link href="{% static 'css/bootstrap.min.css' %}" rel="stylesheet" />
+    <link href="{% static 'css/icons.min.css' %}" rel="stylesheet" />
+    <link href="{% static 'css/app.min.css' %}" rel="stylesheet" />
+    <link href="{% static 'css/callcenter-dashboard.css' %}" rel="stylesheet" />
     <style>
-        body { background: #0f172a; color: #f1f5f9; font-family: -apple-system, sans-serif; padding: 24px; }
-        .kpi { background: #1e293b; border-radius: 12px; padding: 24px; text-align: center; }
-        .kpi h3 { font-size: 14px; color: #94a3b8; text-transform: uppercase; letter-spacing: 0.05em; margin: 0 0 8px; }
-        .kpi .v { font-size: 64px; font-weight: 700; line-height: 1; margin: 0; }
-        .kpi.success .v { color: #4ade80; }
-        .kpi.warning .v { color: #fbbf24; }
-        .kpi.danger  .v { color: #f87171; }
-        .kpi.info    .v { color: #60a5fa; }
-        .recent { background: #1e293b; border-radius: 12px; padding: 16px; max-height: 400px; overflow: auto; }
-        .recent .row-call { display: flex; padding: 8px; border-bottom: 1px solid #334155; align-items: center; }
-        .recent .row-call:last-child { border-bottom: none; }
-        .ws-pill { position: fixed; top: 16px; right: 16px; padding: 6px 12px; border-radius: 999px; font-size: 12px; }
-        .pill-live { background: #16a34a; }
-        .pill-down { background: #dc2626; }
+        /* Projection mode — Velzon theme, scaled for TV */
+        body {
+            background-color: var(--vz-body-bg, #f3f6f9);
+            font-family: var(--vz-body-font-family, "Poppins", sans-serif);
+        }
+
+        .wb-proj {
+            --cc-accent: #405189;
+            --cc-radius: 0.5rem;
+            min-height: 100vh;
+            padding: 16px 20px 20px;
+        }
+
+        .wb-proj .cc-toolbar {
+            margin-bottom: 12px;
+        }
+
+        .wb-proj .cc-toolbar-icon {
+            background: var(--cc-accent);
+        }
+
+        .wb-proj .wb-clock {
+            font-size: 1.4rem;
+            font-weight: 600;
+            font-variant-numeric: tabular-nums;
+            color: #212529;
+            line-height: 1.1;
+        }
+
+        .wb-proj .wb-date {
+            font-size: 0.72rem;
+            color: #878a99;
+        }
+
+        /* Scale KPIs for projection while keeping cc-kpi look */
+        .wb-proj .cc-kpi-value {
+            font-size: clamp(1.75rem, 3.5vw, 2.75rem);
+        }
+
+        .wb-proj .cc-kpi-icon {
+            width: 40px;
+            height: 40px;
+            font-size: 1.15rem;
+        }
+
+        .wb-proj .cc-kpi .card-body {
+            padding: 0.85rem 1rem;
+        }
+
+        .wb-proj .cc-kpi-label {
+            font-size: 0.68rem;
+        }
+
+        .wb-proj .cc-kpi-sub {
+            font-size: 0.68rem;
+        }
+
+        .wb-proj .card-header {
+            padding: 0.5rem 0.85rem;
+            background: transparent;
+            border-bottom: 1px solid #e9ebec;
+        }
+
+        .wb-proj .card-header h6 {
+            font-size: 0.78rem;
+            font-weight: 600;
+            margin: 0;
+            color: #495057;
+        }
+
+        .wb-proj .cc-table thead th {
+            font-size: 0.65rem;
+            padding: 0.45rem 0.75rem;
+        }
+
+        .wb-proj .cc-table tbody td {
+            font-size: 0.8rem;
+            padding: 0.4rem 0.75rem;
+        }
+
+        .wb-proj .wb-chart-wrap {
+            height: 220px;
+            padding: 0.5rem 0.75rem 0.75rem;
+        }
+
+        .wb-proj .company-logo {
+            max-height: 36px;
+            max-width: 140px;
+            object-fit: contain;
+        }
+
+        @media (min-width: 1400px) {
+            .wb-proj .cc-kpi-value { font-size: 2.75rem; }
+        }
     </style>
 </head>
 <body>
-    <div class="ws-pill pill-down" id="ws-status">connecting…</div>
+<div class="wb-proj cc-dashboard">
 
-    <div class="row g-3 mb-3">
-        <div class="col-md-3"><div class="kpi info">
-            <h3>Calls (24h)</h3><p class="v" data-kpi="total">—</p></div></div>
-        <div class="col-md-3"><div class="kpi success">
-            <h3>Answer rate</h3><p class="v" data-kpi="answer_rate">—</p></div></div>
-        <div class="col-md-3"><div class="kpi warning">
-            <h3>Missed</h3><p class="v" data-kpi="missed">—</p></div></div>
-        <div class="col-md-3"><div class="kpi danger">
-            <h3>In progress</h3><p class="v" data-kpi="in_progress">—</p></div></div>
+    <!-- Header toolbar (matches Telecom Analytics / Call Center dashboards) -->
+    <div class="cc-toolbar card border-0 shadow-sm">
+        <div class="card-body py-2 px-3">
+            <div class="d-flex flex-wrap align-items-center justify-content-between gap-2">
+                <div class="d-flex align-items-center gap-2 min-w-0">
+                    <div class="cc-toolbar-icon">
+                        <i class="ri-tv-2-line"></i>
+                    </div>
+                    <div class="min-w-0">
+                        <div class="d-flex align-items-center gap-2">
+                            {% if request.user.company.logo %}
+                            <img src="{{ request.user.company.logo.url }}" alt="{{ request.user.company.name }}" class="company-logo">
+                            {% endif %}
+                            <h5 class="mb-0 fw-semibold text-truncate">
+                                {% if request.user.company %}{{ request.user.company.name }}{% else %}Zentryc{% endif %} — Live Wallboard
+                            </h5>
+                        </div>
+                        <span class="text-muted fs-12">Real-time metrics · last 24 hours</span>
+                    </div>
+                </div>
+                <div class="d-flex align-items-center gap-3 flex-shrink-0">
+                    <div class="text-end">
+                        <div class="wb-clock" id="wb-clock">--:--:--</div>
+                        <div class="wb-date" id="wb-date"></div>
+                    </div>
+                    <span class="badge bg-secondary" id="ws-status">connecting…</span>
+                </div>
+            </div>
+        </div>
     </div>
 
-    <div class="row g-3 mb-3">
-        <div class="col-md-4"><div class="kpi"><h3>Avg duration</h3><p class="v" data-kpi="avg_duration" style="font-size:48px">—</p></div></div>
-        <div class="col-md-4"><div class="kpi"><h3>Total talk time</h3><p class="v" data-kpi="total_duration" style="font-size:48px">—</p></div></div>
-        <div class="col-md-4"><div class="kpi"><h3>Cost (24h)</h3><p class="v" data-kpi="total_cost" style="font-size:48px">—</p></div></div>
+    <!-- Primary KPI row (same pattern as dashboard / wallboard) -->
+    <div class="row g-2 mb-2">
+        <div class="col-6 col-xl-3">
+            <div class="cc-kpi card border-0 shadow-sm h-100">
+                <div class="card-body">
+                    <div class="d-flex justify-content-between align-items-start">
+                        <div>
+                            <p class="cc-kpi-label mb-1">Calls (24h)</p>
+                            <h4 class="cc-kpi-value mb-0" data-kpi="total">—</h4>
+                            <span class="cc-kpi-sub" data-kpi-sub="answered">— answered</span>
+                        </div>
+                        <span class="cc-kpi-icon bg-primary-subtle text-primary"><i class="ri-phone-line"></i></span>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="col-6 col-xl-3">
+            <div class="cc-kpi card border-0 shadow-sm h-100">
+                <div class="card-body">
+                    <div class="d-flex justify-content-between align-items-start">
+                        <div>
+                            <p class="cc-kpi-label mb-1">Answer rate</p>
+                            <h4 class="cc-kpi-value mb-0 text-success" data-kpi="answer_rate">—</h4>
+                        </div>
+                        <span class="cc-kpi-icon bg-success-subtle text-success"><i class="ri-check-double-line"></i></span>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="col-6 col-xl-3">
+            <div class="cc-kpi card border-0 shadow-sm h-100">
+                <div class="card-body">
+                    <div class="d-flex justify-content-between align-items-start">
+                        <div>
+                            <p class="cc-kpi-label mb-1">Missed</p>
+                            <h4 class="cc-kpi-value mb-0 text-warning" data-kpi="missed">—</h4>
+                        </div>
+                        <span class="cc-kpi-icon bg-warning-subtle text-warning"><i class="ri-close-circle-line"></i></span>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="col-6 col-xl-3">
+            <div class="cc-kpi card border-0 shadow-sm h-100">
+                <div class="card-body">
+                    <div class="d-flex justify-content-between align-items-start">
+                        <div>
+                            <p class="cc-kpi-label mb-1">In progress</p>
+                            <h4 class="cc-kpi-value mb-0 text-danger" data-kpi="in_progress">—</h4>
+                        </div>
+                        <span class="cc-kpi-icon bg-danger-subtle text-danger"><i class="ri-loader-4-line"></i></span>
+                    </div>
+                </div>
+            </div>
+        </div>
     </div>
 
-    <div class="recent">
-        <h3 style="font-size:14px;color:#94a3b8;text-transform:uppercase;margin-bottom:12px">Recent calls</h3>
-        <div id="recent-calls"></div>
+    <!-- Secondary KPI row -->
+    <div class="row g-2 mb-2">
+        <div class="col-md-4">
+            <div class="cc-kpi card border-0 shadow-sm h-100">
+                <div class="card-body">
+                    <div class="d-flex justify-content-between align-items-start">
+                        <div>
+                            <p class="cc-kpi-label mb-1">Avg duration</p>
+                            <h4 class="cc-kpi-value mb-0" data-kpi="avg_duration" style="font-size:clamp(1.25rem,2.5vw,2rem)">—</h4>
+                        </div>
+                        <span class="cc-kpi-icon bg-info-subtle text-info"><i class="ri-timer-line"></i></span>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-4">
+            <div class="cc-kpi card border-0 shadow-sm h-100">
+                <div class="card-body">
+                    <div class="d-flex justify-content-between align-items-start">
+                        <div>
+                            <p class="cc-kpi-label mb-1">Total talk time</p>
+                            <h4 class="cc-kpi-value mb-0" data-kpi="total_duration" style="font-size:clamp(1.25rem,2.5vw,2rem)">—</h4>
+                        </div>
+                        <span class="cc-kpi-icon bg-primary-subtle text-primary"><i class="ri-time-line"></i></span>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-4">
+            <div class="cc-kpi card border-0 shadow-sm h-100">
+                <div class="card-body">
+                    <div class="d-flex justify-content-between align-items-start">
+                        <div>
+                            <p class="cc-kpi-label mb-1">Cost (24h)</p>
+                            <h4 class="cc-kpi-value mb-0" data-kpi="total_cost" style="font-size:clamp(1.25rem,2.5vw,2rem)">—</h4>
+                            <span class="cc-kpi-sub">SAR</span>
+                        </div>
+                        <span class="cc-kpi-icon bg-success-subtle text-success"><i class="ri-money-dollar-circle-line"></i></span>
+                    </div>
+                </div>
+            </div>
+        </div>
     </div>
 
+    <!-- Recent calls + hourly chart -->
+    <div class="row g-2">
+        <div class="col-lg-7">
+            <div class="card border-0 shadow-sm h-100">
+                <div class="card-header d-flex justify-content-between align-items-center">
+                    <h6 class="mb-0"><i class="ri-history-line me-1 text-primary"></i>Recent calls</h6>
+                    <span class="fs-12 text-muted" id="recent-count">—</span>
+                </div>
+                <div class="card-body p-0" style="max-height:320px;overflow:auto">
+                    <table class="table table-sm table-hover cc-table mb-0 align-middle">
+                        <thead class="table-light">
+                            <tr>
+                                <th class="ps-3">Time</th>
+                                <th>From → To</th>
+                                <th class="text-end pe-3">Duration</th>
+                            </tr>
+                        </thead>
+                        <tbody id="recent-calls">
+                            <tr><td colspan="3" class="text-center text-muted py-4">No data yet…</td></tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+        <div class="col-lg-5">
+            <div class="card border-0 shadow-sm h-100">
+                <div class="card-header">
+                    <h6 class="mb-0"><i class="ri-bar-chart-grouped-line me-1 text-primary"></i>Hourly volume (24h)</h6>
+                </div>
+                <div class="wb-chart-wrap">
+                    <canvas id="hourly-chart"></canvas>
+                </div>
+            </div>
+        </div>
+    </div>
+
+</div>
+
+<script src="{% static 'libs/bootstrap/dist/js/bootstrap.bundle.min.js' %}"></script>
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
 <script>
-const initial = {{ snapshot_json|safe|default:"{}" }};
-const wsScheme = window.location.protocol === 'https:' ? 'wss' : 'ws';
-const wsUrl = `${wsScheme}://${window.location.host}/ws/wallboard/`;
-const status = document.getElementById('ws-status');
+(function () {
+    const initial = {{ snapshot_json|safe|default:"{}" }};
+    const wsScheme = window.location.protocol === 'https:' ? 'wss' : 'ws';
+    const wsUrl = `${wsScheme}://${window.location.host}/ws/wallboard/`;
+    const status = document.getElementById('ws-status');
+    let chart;
 
-function fmt(s) {
-    if (!s) return '0s';
-    const h = Math.floor(s / 3600), m = Math.floor((s % 3600) / 60);
-    if (h) return `${h}h ${m}m`;
-    if (m) return `${m}m`;
-    return `${s}s`;
-}
+    /* Velzon / dashboard chart palette */
+    const CHART_COLOR = '#405189';
+    const CHART_FILL  = 'rgba(64, 81, 137, 0.15)';
 
-function applySnap(snap) {
-    if (!snap) return;
-    const c = snap.counters || {};
-    document.querySelectorAll('[data-kpi]').forEach(el => {
-        const k = el.dataset.kpi;
-        if (k === 'answer_rate') el.textContent = (c.answer_rate ?? 0) + '%';
-        else if (k === 'total_duration') el.textContent = fmt(c.total_duration ?? 0);
-        else if (k === 'avg_duration')  el.textContent = (c.avg_duration ?? 0) + 's';
-        else if (k === 'total_cost')    el.textContent = c.total_cost ?? '0';
-        else el.textContent = (c[k] ?? 0).toLocaleString();
-    });
-    const html = (snap.recent || []).map(r => `
-        <div class="row-call">
-            <div style="flex:0 0 80px;color:#94a3b8;font-size:12px">${(r.call_time || '').substr(11,5)}</div>
-            <div style="flex:1"><b>${r.caller || '?'}</b> → ${r.callee || '?'}</div>
-            <div style="flex:0 0 80px;text-align:right">${r.duration || 0}s</div>
-        </div>`).join('');
-    document.getElementById('recent-calls').innerHTML = html || '<div class="text-muted py-3">No calls yet.</div>';
-}
+    function fmtDuration(seconds) {
+        if (!seconds) return '0s';
+        const h = Math.floor(seconds / 3600), m = Math.floor((seconds % 3600) / 60), s = seconds % 60;
+        if (h) return `${h}h ${m}m`;
+        if (m) return `${m}m ${s}s`;
+        return `${s}s`;
+    }
 
-function connect() {
-    const ws = new WebSocket(wsUrl);
-    ws.onopen = () => { status.textContent = 'LIVE'; status.className = 'ws-pill pill-live'; };
-    ws.onmessage = (ev) => {
-        const msg = JSON.parse(ev.data);
-        if (msg.type === 'snapshot') applySnap(msg.data);
-        else if (msg.type === 'call.completed') ws.send(JSON.stringify({action: 'refresh'}));
-    };
-    ws.onclose = () => { status.textContent = 'reconnecting'; status.className = 'ws-pill pill-down'; setTimeout(connect, 3000); };
-}
-applySnap(initial);
-connect();
+    function tickClock() {
+        const now = new Date();
+        document.getElementById('wb-clock').textContent = now.toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit', second: '2-digit' });
+        document.getElementById('wb-date').textContent = now.toLocaleDateString('en-GB', { weekday: 'short', day: 'numeric', month: 'short', year: 'numeric' });
+    }
+    tickClock();
+    setInterval(tickClock, 1000);
+
+    function renderHourly(hourly) {
+        const data = hourly || Array(24).fill(0);
+        if (chart) {
+            chart.data.datasets[0].data = data;
+            chart.update('none');
+            return;
+        }
+        const ctx = document.getElementById('hourly-chart').getContext('2d');
+        chart = new Chart(ctx, {
+            type: 'bar',
+            data: {
+                labels: Array.from({length: 24}, (_, i) => String(i).padStart(2, '0') + ':00'),
+                datasets: [{
+                    label: 'Calls',
+                    data: data,
+                    backgroundColor: CHART_FILL,
+                    borderColor: CHART_COLOR,
+                    borderWidth: 1.5,
+                    borderRadius: 4,
+                }],
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: { legend: { display: false } },
+                scales: {
+                    x: { ticks: { font: { size: 10 }, color: '#878a99', maxRotation: 0 }, grid: { display: false } },
+                    y: { ticks: { font: { size: 10 }, color: '#878a99' }, grid: { color: '#f1f3f5' }, beginAtZero: true },
+                },
+            },
+        });
+    }
+
+    function applySnapshot(snap) {
+        if (!snap) return;
+        const c = snap.counters || {};
+
+        document.querySelectorAll('[data-kpi]').forEach(el => {
+            const key = el.dataset.kpi;
+            if (key === 'answer_rate') el.textContent = (c.answer_rate ?? 0) + '%';
+            else if (key === 'avg_duration') el.textContent = (c.avg_duration ?? 0) + 's';
+            else if (key === 'total_duration') el.textContent = fmtDuration(c.total_duration ?? 0);
+            else if (key === 'total_cost') el.textContent = Number(c.total_cost ?? 0).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+            else el.textContent = (c[key] ?? 0).toLocaleString();
+        });
+
+        const answeredEl = document.querySelector('[data-kpi-sub="answered"]');
+        if (answeredEl) answeredEl.textContent = (c.answered ?? 0).toLocaleString() + ' answered';
+
+        const recent = snap.recent || [];
+        document.getElementById('recent-count').textContent = recent.length + ' shown';
+        const tbody = document.getElementById('recent-calls');
+        if (!recent.length) {
+            tbody.innerHTML = '<tr><td colspan="3" class="text-center text-muted py-4">No calls yet.</td></tr>';
+        } else {
+            tbody.innerHTML = recent.map(r => `
+                <tr>
+                    <td class="ps-3"><small class="text-muted">${(r.call_time || '').substr(11, 8) || '—'}</small></td>
+                    <td>
+                        <span class="fw-medium">${r.from_dispname || r.caller || '?'}</span>
+                        <span class="text-muted"> → </span>
+                        <span class="fw-medium">${r.to_dispname || r.callee || '?'}</span>
+                    </td>
+                    <td class="text-end pe-3"><span class="badge bg-light text-dark fw-normal">${r.duration || 0}s</span></td>
+                </tr>`).join('');
+        }
+
+        renderHourly(snap.hourly);
+    }
+
+    function connect() {
+        status.textContent = 'connecting…';
+        status.className = 'badge bg-secondary';
+        const ws = new WebSocket(wsUrl);
+
+        ws.onopen = () => {
+            status.textContent = 'live';
+            status.className = 'badge bg-success';
+        };
+
+        ws.onmessage = (ev) => {
+            const msg = JSON.parse(ev.data);
+            if (msg.type === 'snapshot') applySnapshot(msg.data);
+            else if (msg.type === 'call.completed') ws.send(JSON.stringify({action: 'refresh'}));
+        };
+
+        ws.onclose = () => {
+            status.textContent = 'reconnecting…';
+            status.className = 'badge bg-warning text-dark';
+            setTimeout(connect, 3000);
+        };
+    }
+
+    applySnapshot(initial);
+    connect();
+})();
 </script>
 </body>
 </html>

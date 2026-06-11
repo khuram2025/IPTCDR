@@ -1,0 +1,89 @@
+{% extends 'partials/base.html' %}
+{% block title %}Call #{{ call.id }}{% endblock %}
+
+{% block content %}
+<div class="main-content">
+  <div class="page-content">
+    <div class="container-fluid">
+      <div class="d-flex align-items-center justify-content-between mb-3">
+        <h5 class="mb-0">Call detail <span class="text-muted">#{{ call.id }}</span></h5>
+        <a href="javascript:history.back()" class="btn btn-sm btn-light"><i class="ri-arrow-left-line me-1"></i>Back</a>
+      </div>
+
+      <div class="row g-2 mb-3">
+        <div class="col-lg-7">
+          <div class="card border-0 shadow-sm h-100">
+            <div class="card-header bg-transparent border-0 py-2 px-3"><h6 class="mb-0 fw-semibold">Parties &amp; routing</h6></div>
+            <div class="card-body">
+              <table class="table table-sm mb-0">
+                <tr><th class="text-muted" style="width:38%">From</th><td>{{ call.from_dispname|default:'' }} <span class="text-muted">{{ call.from_no|default:call.caller }}</span> <span class="badge bg-light text-dark">{{ call.from_type }}</span></td></tr>
+                <tr><th class="text-muted">To</th><td>{{ call.to_dispname|default:'' }} <span class="text-muted">{{ call.to_no|default:call.callee }}</span> <span class="badge bg-light text-dark">{{ call.to_type }}</span></td></tr>
+                <tr><th class="text-muted">Final</th><td>{{ call.final_dispname|default:'' }} <span class="text-muted">{{ call.final_dn|default:call.final_number }}</span> <span class="badge bg-light text-dark">{{ call.final_type }}</span></td></tr>
+                <tr><th class="text-muted">Direction</th><td>{{ call.direction|default:'—' }}</td></tr>
+                <tr><th class="text-muted">Category</th><td>{{ call.call_category|default:'—' }}</td></tr>
+                <tr><th class="text-muted">Queue / Agent</th><td>{% if call.queue %}{{ call.queue }}{% else %}—{% endif %} / {% if call.agent %}{{ call.agent }}{% else %}—{% endif %}</td></tr>
+                <tr><th class="text-muted">Disposition</th><td>{{ call.call_disposition|default:'—' }} {% if call.abandoned %}<span class="badge bg-danger-subtle text-danger">abandoned</span>{% endif %}</td></tr>
+                <tr><th class="text-muted">Reason terminated</th><td>{{ call.reason_terminated|default:'—' }}</td></tr>
+                <tr><th class="text-muted">Cost</th><td>{{ call.total_cost|default:'0' }} {{ call.currency|default:'' }} <span class="text-muted fs-12">(rate {{ call.call_rate|default:'0' }})</span></td></tr>
+                <tr><th class="text-muted">Transport</th><td><span class="badge bg-light text-dark">{{ call.ingest_transport|default:'socket' }}</span></td></tr>
+              </table>
+            </div>
+          </div>
+        </div>
+        <div class="col-lg-5">
+          <div class="card border-0 shadow-sm mb-2">
+            <div class="card-header bg-transparent border-0 py-2 px-3"><h6 class="mb-0 fw-semibold">Timeline</h6></div>
+            <div class="card-body">
+              <ul class="list-unstyled mb-2">
+                {% for label, ts in timeline %}
+                <li class="d-flex justify-content-between border-bottom py-1"><span>{{ label }}</span><span class="text-muted">{{ ts|date:"Y-m-d H:i:s" }}</span></li>
+                {% endfor %}
+              </ul>
+              <div class="d-flex justify-content-between"><span class="text-muted">Ring</span><span>{{ call.ring_time|default:'—' }}s</span></div>
+              <div class="d-flex justify-content-between"><span class="text-muted">Wait</span><span>{{ call.wait_time|default:'—' }}s</span></div>
+              <div class="d-flex justify-content-between"><span class="text-muted">Talk (duration)</span><span>{{ call.duration|default:0 }}s</span></div>
+            </div>
+          </div>
+          <div class="card border-0 shadow-sm">
+            <div class="card-header bg-transparent border-0 py-2 px-3"><h6 class="mb-0 fw-semibold">Voice quality (QoS)</h6></div>
+            <div class="card-body">
+              <div class="d-flex justify-content-between"><span class="text-muted">MOS</span><span>{{ call.mos|default:'—' }}</span></div>
+              <div class="d-flex justify-content-between"><span class="text-muted">Jitter</span><span>{{ call.jitter_ms|default:'—' }} ms</span></div>
+              <div class="d-flex justify-content-between"><span class="text-muted">Packet loss</span><span>{{ call.packet_loss_pct|default:'—' }} %</span></div>
+              <div class="d-flex justify-content-between"><span class="text-muted">Latency</span><span>{{ call.latency_ms|default:'—' }} ms</span></div>
+              <p class="text-muted fs-12 mb-0 mt-2">QoS populates from the CUCM CMR / DB-pull feed (P5).</p>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="card border-0 shadow-sm">
+        <div class="card-header bg-transparent border-0 py-2 px-3">
+          <h6 class="mb-0 fw-semibold">Related calls from this caller <span class="text-muted fs-12">(±2h)</span></h6>
+        </div>
+        <div class="card-body p-0">
+          <table class="table table-sm mb-0 align-middle">
+            <thead class="table-light"><tr><th class="ps-3">Time</th><th>To</th><th>Final</th><th>Answered</th><th class="pe-3">Duration</th></tr></thead>
+            <tbody>
+            {% for r in related %}
+              <tr>
+                <td class="ps-3"><a href="{% url 'cdr3cx:call_detail' r.pk %}">{{ r.call_time|date:"H:i:s" }}</a></td>
+                <td>{{ r.to_dispname|default:r.to_no }}</td>
+                <td>{{ r.final_dispname|default:r.final_dn }}</td>
+                <td>{% if r.time_answered %}<span class="text-success">yes</span>{% else %}<span class="text-danger">no</span>{% endif %}</td>
+                <td class="pe-3">{{ r.duration|default:0 }}s</td>
+              </tr>
+            {% empty %}
+              <tr><td colspan="5" class="text-center text-muted py-3">No related calls in the window.</td></tr>
+            {% endfor %}
+            </tbody>
+          </table>
+        </div>
+        {% if not has_correlation %}
+        <div class="px-3 py-2 fs-12 text-muted border-top">Single-leg view — the 3CX socket CDR carries no correlation_id, so multi-leg cradle-to-grave segmentation requires the DB-pull feed (P5). Related calls above are matched by caller + time.</div>
+        {% endif %}
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}

@@ -1,0 +1,188 @@
+{% extends "partials/base.html" %}
+{% load custom_filters %}
+{% load static %}
+{% block title %}Call Details{% endblock title %}
+
+{% block content %}
+<div class="main-content">
+  <div class="page-content">
+    <div class="container-fluid">
+
+      <!-- ===== Header + right-corner time filter ===== -->
+      <div class="card border-0 shadow-sm mb-3">
+        <div class="card-body py-2 px-3">
+          <div class="d-flex flex-wrap align-items-center justify-content-between gap-2">
+            <div class="d-flex align-items-center gap-2 min-w-0">
+              <div class="cc-toolbar-icon cc-toolbar-icon-ipt"><i class="ri-phone-line"></i></div>
+              <div class="min-w-0">
+                <h5 class="mb-0 fw-semibold text-truncate">Call Details</h5>
+                <span class="text-muted fs-12">{{ start_date }} &rarr; {{ end_date }}</span>
+              </div>
+            </div>
+
+            <div class="d-flex flex-wrap align-items-center gap-2">
+              <!-- Quick period buttons (preserve tab/search/per_page) -->
+              <div class="btn-group" role="group" aria-label="Quick date filters">
+                {% for period, label in ipt_periods %}
+                <a href="?time_period={{ period }}&{{ period_qs }}"
+                   class="btn btn-sm {% if time_period == period %}btn-primary{% else %}btn-light{% endif %}">{{ label }}</a>
+                {% endfor %}
+              </div>
+
+              <!-- Custom range -->
+              <form method="get" class="d-flex align-items-center gap-1" id="customRangeForm">
+                <input type="hidden" name="tab" value="{{ tab }}">
+                <input type="hidden" name="per_page" value="{{ per_page }}">
+                {% if search_query %}<input type="hidden" name="search" value="{{ search_query }}">{% endif %}
+                <input type="hidden" name="time_period" id="timePeriodInput" value="custom">
+                <input type="text" class="form-control form-control-sm" style="width:200px" name="custom_date"
+                       id="customDateInput" placeholder="Custom range" value="{{ custom_date_range }}" autocomplete="off">
+                <button type="submit" class="btn btn-sm btn-primary"><i class="ri-filter-3-line"></i></button>
+              </form>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="card">
+        <div class="card-header p-0 border-bottom-0">
+          <!-- ===== Tabs ===== -->
+          <ul class="nav nav-tabs nav-tabs-custom nav-justified mb-0" role="tablist">
+            {% for t in tabs_with_counts %}
+            <li class="nav-item">
+              <a class="nav-link {% if tab == t.key %}active{% endif %}" href="?tab={{ t.key }}&{{ tab_qs }}">
+                <span class="d-none d-md-inline-block">{{ t.label }}</span>
+                <span class="d-md-none">{{ t.label|slice:':3' }}</span>
+                <span class="badge bg-light text-body ms-1">{{ t.count }}</span>
+              </a>
+            </li>
+            {% endfor %}
+          </ul>
+        </div>
+
+        <div class="card-body">
+          <!-- ===== Show N + Search row ===== -->
+          <div class="row align-items-center mb-2">
+            <div class="col-sm-6">
+              <form method="get" class="d-flex align-items-center gap-1">
+                <input type="hidden" name="tab" value="{{ tab }}">
+                <input type="hidden" name="time_period" value="{{ time_period }}">
+                {% if custom_date_range %}<input type="hidden" name="custom_date" value="{{ custom_date_range }}">{% endif %}
+                {% if search_query %}<input type="hidden" name="search" value="{{ search_query }}">{% endif %}
+                <label class="d-flex align-items-center gap-1 mb-0 fs-13 text-muted">Show
+                  <select name="per_page" class="form-select form-select-sm" style="width:auto" onchange="this.form.submit()">
+                    <option value="10" {% if per_page == 10 %}selected{% endif %}>10</option>
+                    <option value="25" {% if per_page == 25 %}selected{% endif %}>25</option>
+                    <option value="50" {% if per_page == 50 %}selected{% endif %}>50</option>
+                    <option value="100" {% if per_page == 100 %}selected{% endif %}>100</option>
+                    <option value="250" {% if per_page == 250 %}selected{% endif %}>250</option>
+                    <option value="500" {% if per_page == 500 %}selected{% endif %}>500</option>
+                  </select>
+                  entries</label>
+              </form>
+            </div>
+            <div class="col-sm-6">
+              <form method="get" class="d-flex justify-content-sm-end">
+                <input type="hidden" name="tab" value="{{ tab }}">
+                <input type="hidden" name="time_period" value="{{ time_period }}">
+                {% if custom_date_range %}<input type="hidden" name="custom_date" value="{{ custom_date_range }}">{% endif %}
+                <input type="hidden" name="per_page" value="{{ per_page }}">
+                <label class="d-flex align-items-center gap-1 mb-0 fs-13 text-muted">Search:
+                  <input type="search" name="search" class="form-control form-control-sm" value="{{ search_query }}" placeholder="caller / number / name"></label>
+              </form>
+            </div>
+          </div>
+
+          <!-- ===== Table ===== -->
+          <div class="table-responsive">
+            <table class="table table-bordered table-hover align-middle mb-0">
+              <thead class="table-light">
+                <tr>
+                  <th style="width:50px">#</th>
+                  <th>Date &amp; Time</th>
+                  <th>Caller</th>
+                  <th>Name</th>
+                  <th>Called Number</th>
+                  <th>Duration</th>
+                  <th>Country</th>
+                  <th class="text-end">Cost (SAR)</th>
+                </tr>
+              </thead>
+              <tbody>
+                {% for record in page_obj %}
+                <tr>
+                  <td>{{ page_obj.start_index|add:forloop.counter0 }}</td>
+                  <td>{{ record.call_time|date:"d M, Y h:i A" }}</td>
+                  <td>{{ record.caller|default:"-" }}</td>
+                  <td class="text-truncate" style="max-width:180px">{{ record.from_dispname|default:"-" }}</td>
+                  <td>{{ record.callee|default:"-" }}</td>
+                  <td>{{ record.duration|format_duration }}</td>
+                  <td>{{ record.country|default:"-" }}</td>
+                  <td class="text-end">{{ record.total_cost|floatformat:2 }}</td>
+                </tr>
+                {% empty %}
+                <tr><td colspan="8" class="text-center text-muted py-4">No calls found for this filter.</td></tr>
+                {% endfor %}
+              </tbody>
+            </table>
+          </div>
+
+          <!-- ===== Footer: info + pagination ===== -->
+          <div class="row align-items-center mt-2">
+            <div class="col-sm-12 col-md-5">
+              <div class="text-muted fs-13">
+                {% if paginator.count %}
+                Showing {{ page_obj.start_index }} to {{ page_obj.end_index }} of {{ paginator.count }} entries
+                {% else %}Showing 0 entries{% endif %}
+              </div>
+            </div>
+            <div class="col-sm-12 col-md-7">
+              <ul class="pagination pagination-sm justify-content-md-end mb-0">
+                {% if page_obj.has_previous %}
+                <li class="page-item"><a class="page-link" href="?{{ pagination_qs }}&page=1">First</a></li>
+                <li class="page-item"><a class="page-link" href="?{{ pagination_qs }}&page={{ page_obj.previous_page_number }}">Prev</a></li>
+                {% else %}
+                <li class="page-item disabled"><span class="page-link">First</span></li>
+                <li class="page-item disabled"><span class="page-link">Prev</span></li>
+                {% endif %}
+
+                {% for num in paginator.page_range %}
+                  {% if num >= page_obj.number|add:'-3' and num <= page_obj.number|add:'3' %}
+                    {% if num == page_obj.number %}
+                    <li class="page-item active"><span class="page-link">{{ num }}</span></li>
+                    {% else %}
+                    <li class="page-item"><a class="page-link" href="?{{ pagination_qs }}&page={{ num }}">{{ num }}</a></li>
+                    {% endif %}
+                  {% endif %}
+                {% endfor %}
+
+                {% if page_obj.has_next %}
+                <li class="page-item"><a class="page-link" href="?{{ pagination_qs }}&page={{ page_obj.next_page_number }}">Next</a></li>
+                <li class="page-item"><a class="page-link" href="?{{ pagination_qs }}&page={{ paginator.num_pages }}">Last</a></li>
+                {% else %}
+                <li class="page-item disabled"><span class="page-link">Next</span></li>
+                <li class="page-item disabled"><span class="page-link">Last</span></li>
+                {% endif %}
+              </ul>
+            </div>
+          </div>
+
+        </div>
+      </div>
+    </div>
+  </div>
+  {% block footer %}{% include "partials/footer.html" %}{% endblock footer %}
+</div>
+{% endblock content %}
+
+{% block extra_js %}
+<script>
+(function () {
+  // flatpickr for custom range; switching to custom is implicit (time_period hidden = 'custom')
+  var input = document.getElementById('customDateInput');
+  if (input && window.flatpickr) {
+    flatpickr(input, { mode: 'range', dateFormat: 'd M, Y' });
+  }
+})();
+</script>
+{% endblock extra_js %}

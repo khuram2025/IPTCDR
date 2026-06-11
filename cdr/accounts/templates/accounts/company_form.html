@@ -7,8 +7,19 @@
       <div class="card">
         <div class="card-header"><strong>{{ form.instance.pk|yesno:"Edit Company,Add Company" }}</strong></div>
         <div class="card-body">
-          <form method="post">{% csrf_token %}
+          <form method="post" id="company-form">{% csrf_token %}
             {{ form.as_p }}
+
+            <div class="d-flex align-items-center flex-wrap gap-2 mt-3 mb-2">
+              <button type="button" id="test-conn-btn" class="btn btn-outline-info">
+                <i class="ri-plug-line align-bottom"></i> Test Connection
+              </button>
+              <span id="test-conn-status" class="align-middle"></span>
+            </div>
+            <small class="text-muted d-block mb-3">
+              Tests the 3CX XAPI URL / username / password entered above. You can test before saving.
+            </small>
+
             <button type="submit" class="btn btn-primary">Save</button>
             <a href="{% url 'accounts:superadmin_dashboard' %}" class="btn btn-secondary">Cancel</a>
           </form>
@@ -18,3 +29,54 @@
   </div>
 </div>
 {% endblock content %}
+
+{% block extra_js %}
+<script>
+(function () {
+  var btn = document.getElementById('test-conn-btn');
+  var out = document.getElementById('test-conn-status');
+  if (!btn || !out) return;
+
+  {% if form.instance.pk %}
+  var TEST_URL = "{% url 'accounts:company_test_connection' form.instance.pk %}";
+  {% else %}
+  var TEST_URL = "{% url 'accounts:company_test_connection_new' %}";
+  {% endif %}
+
+  function val(id) { var el = document.getElementById(id); return el ? el.value : ''; }
+
+  btn.addEventListener('click', function () {
+    var form = document.getElementById('company-form');
+    var csrf = form ? (form.querySelector('[name=csrfmiddlewaretoken]') || {}).value : '';
+    var data = new FormData();
+    data.append('pbx_api_url', val('id_pbx_api_url'));
+    data.append('pbx_api_user', val('id_pbx_api_user'));
+    data.append('pbx_api_password', val('id_pbx_api_password'));
+    data.append('csrfmiddlewaretoken', csrf || '');
+
+    btn.disabled = true;
+    out.className = 'align-middle text-muted';
+    out.innerHTML = '<span class="spinner-border spinner-border-sm"></span> Testing…';
+
+    fetch(TEST_URL, {
+      method: 'POST',
+      body: data,
+      headers: { 'X-Requested-With': 'XMLHttpRequest' },
+      credentials: 'same-origin'
+    })
+      .then(function (r) { return r.json(); })
+      .then(function (d) {
+        out.className = 'align-middle fw-medium ' + (d.ok ? 'text-success' : 'text-danger');
+        out.innerHTML = (d.ok
+          ? '<i class="ri-checkbox-circle-fill align-bottom"></i> '
+          : '<i class="ri-error-warning-fill align-bottom"></i> ') + (d.message || '');
+      })
+      .catch(function (e) {
+        out.className = 'align-middle text-danger';
+        out.textContent = 'Test failed (could not reach server): ' + e;
+      })
+      .finally(function () { btn.disabled = false; });
+  });
+})();
+</script>
+{% endblock extra_js %}

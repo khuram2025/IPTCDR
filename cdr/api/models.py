@@ -113,6 +113,7 @@ class WebhookSubscription(models.Model):
         ('invoice.issued',     'Invoice issued'),
         ('invoice.paid',       'Invoice paid'),
         ('invoice.failed',     'Invoice payment failed'),
+        ('survey.completed',   'Survey response completed'),
     ]
 
     company = models.ForeignKey(

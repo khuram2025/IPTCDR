@@ -19,21 +19,31 @@ BASE_DIR = Path(__file__).resolve().parent.parent
 # See https://docs.djangoproject.com/en/5.0/howto/deployment/checklist/
 
 # SECURITY WARNING: keep the secret key used in production secret!
-SECRET_KEY = 'django-insecure-fme&i9jk17a680#6d+_^w*j+pe_^=$zvt_@i7n*s9q1_8k%bjs'
+SECRET_KEY = os.getenv(
+    'DJANGO_SECRET_KEY',
+    'django-insecure-fme&i9jk17a680#6d+_^w*j+pe_^=$zvt_@i7n*s9q1_8k%bjs',
+)
 
 # SECURITY WARNING: don't run with debug turned on in production!
-DEBUG = True
+DEBUG = os.getenv('DJANGO_DEBUG', 'False').lower() in ('1', 'true', 'yes')
 
-ALLOWED_HOSTS = ['52.7.101.147', 'iptportal.channab.com', '*']
+ALLOWED_HOSTS = [
+    h.strip()
+    for h in os.getenv(
+        'DJANGO_ALLOWED_HOSTS',
+        '52.7.101.147,46.202.159.119,iptportal.channab.com,ipportal.channab.com,connect.zentryc.com,localhost,127.0.0.1',
+    ).split(',')
+    if h.strip()
+]
 
 CSRF_TRUSTED_ORIGINS = [
     'https://iptportal.channab.com',
-    
+    'https://ipportal.channab.com',
+    'https://connect.zentryc.com',
 ]
-CSRF_TRUSTED_ORIGINS = [
-    'https://iptportal.channab.com',
-    
-]
+
+USE_X_FORWARDED_HOST = True
+SECURE_PROXY_SSL_HEADER = ('HTTP_X_FORWARDED_PROTO', 'https')
 
 
 # Application definition
@@ -60,7 +70,9 @@ INSTALLED_APPS = [
     'api',
     'channels',
     'realtime',
+    'acd',
     'security',
+    'surveys',
 ]
 
 # ---------------------------------------------------------------------------
@@ -68,11 +80,17 @@ INSTALLED_APPS = [
 # ---------------------------------------------------------------------------
 ASGI_APPLICATION = 'cdr.asgi.application'
 
-# In-memory channel layer for dev/test. Swap to channels_redis in production:
-#   CHANNEL_LAYERS = {'default': {'BACKEND': 'channels_redis.core.RedisChannelLayer',
-#                                 'CONFIG': {'hosts': [(REDIS_HOST, 6379)]}}}
+# Redis-backed channel layer for cross-process WebSocket fan-out.
+# Required so signal handlers (which may run in any worker / Celery /
+# socket-server process) can push events to consumers held open by Daphne.
 CHANNEL_LAYERS = {
-    'default': {'BACKEND': 'channels.layers.InMemoryChannelLayer'},
+    'default': {
+        'BACKEND': 'channels_redis.core.RedisChannelLayer',
+        'CONFIG': {
+            'hosts': [(os.getenv('REDIS_HOST', '127.0.0.1'),
+                       int(os.getenv('REDIS_PORT', '6379')))],
+        },
+    },
 }
 
 # ---------------------------------------------------------------------------
@@ -125,8 +143,13 @@ EMAIL_USE_TLS = os.getenv('EMAIL_USE_TLS', 'True').lower() == 'true'
 EMAIL_USE_SSL = os.getenv('EMAIL_USE_SSL', 'False').lower() == 'true'
 EMAIL_HOST_USER = os.getenv('EMAIL_HOST_USER', 'no-reply@channab.com')
 EMAIL_HOST_PASSWORD = os.getenv('EMAIL_HOST_PASSWORD', '')  # Set in environment for security
+# Hard socket timeout so a hung SMTP server never blocks a worker/beat task
+# (alerts + scheduled reports send best-effort and must fail fast, not stall).
+EMAIL_TIMEOUT = int(os.getenv('EMAIL_TIMEOUT', '20'))
 
 DEFAULT_FROM_EMAIL = 'no-reply@channab.com'
+# Days to keep generated report files on disk before the retention task prunes them.
+REPORT_RETENTION_DAYS = int(os.getenv('REPORT_RETENTION_DAYS', '30'))
 
 # Redirect URLs
 LOGIN_REDIRECT_URL = '/'
@@ -140,6 +163,7 @@ OTP_VALIDITY_DURATION = 300  # OTP valid for 5 minutes
 MIDDLEWARE = [
     'django.middleware.security.SecurityMiddleware',
     'django.contrib.sessions.middleware.SessionMiddleware',
+    'django.middleware.locale.LocaleMiddleware',  # P3.4 — i18n (en / ar RTL)
     'django.middleware.common.CommonMiddleware',
     'django.middleware.csrf.CsrfViewMiddleware',
     'django.contrib.auth.middleware.AuthenticationMiddleware',
@@ -166,6 +190,7 @@ TEMPLATES = [
             'context_processors': [
                 'django.template.context_processors.debug',
                 'django.template.context_processors.request',
+                'django.template.context_processors.i18n',
                 'django.contrib.auth.context_processors.auth',
                 'django.contrib.messages.context_processors.messages',
             ],
@@ -268,10 +293,10 @@ LOGGING = {
 DATABASES = {
     'default': {
         'ENGINE': 'django.db.backends.postgresql',
-        'NAME': 'cdr',
-        'USER': 'read',
-        'PASSWORD': 'Read@123',
-        'HOST': 'localhost',
+        'NAME': os.getenv('DB_NAME', 'cdr'),
+        'USER': os.getenv('DB_USER', 'read'),
+        'PASSWORD': os.getenv('DB_PASSWORD', 'Read@123'),
+        'HOST': os.getenv('DB_HOST', 'localhost'),
         'PORT': '5432',
         'CONN_MAX_AGE': 0,  # Close connections immediately after use
         'OPTIONS': {
@@ -323,7 +348,102 @@ AUTH_USER_MODEL = 'accounts.CustomUser'
 
 LANGUAGE_CODE = 'en-us'
 
+# P3.4 — supported UI languages; Arabic is RTL and flips the layout direction.
+from django.utils.translation import gettext_lazy as _i18n  # noqa: E402
+LANGUAGES = [('en', _i18n('English')), ('ar', _i18n('Arabic'))]
+LOCALE_PATHS = [os.path.join(BASE_DIR, 'locale')]
+
 TIME_ZONE = 'Asia/Riyadh'
+
+# ---------------------------------------------------------------------------
+# Celery — async worker for enrichment, scheduled reports, alerts
+# ---------------------------------------------------------------------------
+CELERY_BROKER_URL = os.getenv('CELERY_BROKER_URL', 'redis://127.0.0.1:6379/0')
+CELERY_RESULT_BACKEND = os.getenv('CELERY_RESULT_BACKEND', CELERY_BROKER_URL)
+CELERY_ACCEPT_CONTENT = ['json']
+CELERY_TASK_SERIALIZER = 'json'
+CELERY_RESULT_SERIALIZER = 'json'
+CELERY_TIMEZONE = TIME_ZONE
+from celery.schedules import crontab  # noqa: E402
+CELERY_BEAT_SCHEDULE = {
+    'celery-heartbeat-every-5-min': {
+        'task': 'cdr3cx.tasks.heartbeat',
+        'schedule': 300.0,
+    },
+    # Enrich + queue/agent-link newly ingested CDRs (direction IS NULL) off the
+    # hot ingest path. Idempotent; bounded per run.
+    'acd-enrich-pending-every-5-min': {
+        'task': 'acd.tasks.enrich_pending_callrecords',
+        'schedule': 300.0,
+    },
+    # Pull real ACD queue stats (ASA/SLA) from the 3CX XAPI for tenants that have
+    # configured pbx_api_url. Hourly keeps today fresh (default days_back=2).
+    'acd-pull-3cx-queue-stats-hourly': {
+        'task': 'acd.tasks.pull_3cx_queue_stats',
+        'schedule': 3600.0,
+    },
+    # Sync user extensions from the 3CX XAPI into accounts.Extension every 6h
+    # (one-way; idempotent; soft-deactivates extensions removed from the PBX).
+    'acd-sync-3cx-users-6h': {
+        'task': 'acd.tasks.sync_3cx_users',
+        'schedule': 21600.0,
+    },
+    # Evaluate yesterday's real ACD KPIs against ThresholdPolicy and fire tiered
+    # amber/red SLA-breach alerts (P2.6). 08:00 Riyadh — after the hourly pulls
+    # have captured the full prior day. Idempotent (QueueAlert dedups re-runs).
+    'acd-check-queue-sla-breaches-daily': {
+        'task': 'acd.tasks.check_queue_sla_breaches',
+        'schedule': crontab(hour=8, minute=0),
+    },
+    # Generate + deliver due scheduled reports (P3.1). Every 15 min; each report's
+    # own next_run_at (tenant-tz recurrence) gates whether it actually fires.
+    'acd-run-due-scheduled-reports': {
+        'task': 'acd.tasks.run_due_scheduled_reports',
+        'schedule': 900.0,
+    },
+    # Prune generated report files past the retention window (daily 03:30 Riyadh).
+    'acd-purge-old-report-files': {
+        'task': 'acd.tasks.purge_old_report_files',
+        'schedule': crontab(hour=3, minute=30),
+    },
+    # Rebuild the recent daily-rollup window nightly (02:00 Riyadh) so date-range
+    # dashboards stay fast without scanning the full CallRecord table.
+    'acd-rebuild-call-rollups': {
+        'task': 'acd.tasks.rebuild_call_rollups',
+        'schedule': crontab(hour=2, minute=0),
+    },
+    # P4.4 — evaluate the tenant alert-rules engine + escalations every 10 min.
+    # No-ops until an AlertRule exists, so it's inert by default.
+    'notifications-run-alert-rules': {
+        'task': 'acd.tasks.run_alert_rules',
+        'schedule': 600.0,
+    },
+    'surveys-link-unmatched-every-10-min': {
+        'task': 'surveys.tasks.link_unmatched_survey_responses',
+        'schedule': 600.0,
+    },
+    'surveys-daily-rollups-nightly': {
+        'task': 'surveys.tasks.compute_survey_daily_rollups',
+        'schedule': crontab(hour=2, minute=30),
+    },
+}
+
+QUOTA_ALERT_FALLBACK_EMAIL = os.getenv('QUOTA_ALERT_FALLBACK_EMAIL', 'no-reply@channab.com')
+
+# P4.3 — when True, the quota-enforcement task actually blocks/unblocks external
+# calling on the PBX (3CX Users.Internal flag) as balances exhaust/replenish. Kept
+# OFF by default so enabling enforcement is a deliberate, per-deployment decision.
+QUOTA_ENFORCEMENT_ENABLED = os.getenv('QUOTA_ENFORCEMENT_ENABLED', 'False').lower() == 'true'
+
+# Shared cache (Redis db 2 — separate from the Celery broker db 0 and channel
+# layer). Lets the live supervisor wallboard cache one ActiveCalls snapshot across
+# all gunicorn workers so the 3CX XAPI is polled at most once per refresh window.
+CACHES = {
+    'default': {
+        'BACKEND': 'django.core.cache.backends.redis.RedisCache',
+        'LOCATION': os.getenv('CACHE_REDIS_URL', 'redis://127.0.0.1:6379/2'),
+    },
+}
 
 
 USE_I18N = True
@@ -336,6 +456,11 @@ USE_TZ = True
 
 STATIC_URL = '/static/'
 STATIC_ROOT = os.path.join(BASE_DIR, 'static')
+
+# Uploaded media (company logos, etc.). nginx already aliases /media/ -> static/,
+# so MEDIA_ROOT lives under static/ and is served without an nginx change.
+MEDIA_URL = '/media/'
+MEDIA_ROOT = os.path.join(BASE_DIR, 'media')
 
 
 STATICFILES_DIRS = [

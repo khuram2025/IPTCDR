@@ -49,6 +49,25 @@ class Company(models.Model):
     address = models.CharField(max_length=255, null=True, blank=True)
     phone = models.CharField(max_length=20, null=True, blank=True)  # Ensure this field is defined
     listening_port = models.IntegerField(null=True, blank=True)
+    pbx_source_ips = models.CharField(
+        max_length=255, blank=True, default='',
+        verbose_name="Allowed PBX source IP(s)",
+        help_text="Comma-separated IP or CIDR (e.g. 5.42.225.171, 203.0.113.0/24) "
+                  "that may send CDRs to this company's listening port. "
+                  "Leave blank to allow any source (no restriction).",
+    )
+    # 3CX XAPI connection — enables real ACD queue KPIs (DetailedQueueStatistics).
+    pbx_api_url = models.CharField(
+        max_length=255, blank=True, default='', verbose_name="3CX API base URL",
+        help_text="e.g. https://smasco.3cx.ae:5001 — enables real queue ASA/SLA via the 3CX XAPI.",
+    )
+    pbx_api_user = models.CharField(
+        max_length=64, blank=True, default='',
+        help_text="3CX XAPI username (an admin / system-owner extension).",
+    )
+    pbx_api_password = models.CharField(
+        max_length=128, blank=True, default='', help_text="3CX XAPI password.",
+    )
     country_code = models.CharField(
         max_length=2, default='SA',
         help_text="ISO 3166-1 alpha-2 (SA, AE, EG, QA, KW, BH, OM, JO, US, GB, PK, IN)",
@@ -60,9 +79,23 @@ class Company(models.Model):
     )
     vat_number = models.CharField(max_length=32, null=True, blank=True,
                                   help_text="VAT/Tax registration number for invoices")
+    logo = models.ImageField(upload_to='company_logos/', null=True, blank=True,
+                             help_text="Company logo shown in the sidebar and on PDF reports.")
+    survey_enabled = models.BooleanField(
+        default=False,
+        help_text='Enable post-call IVR survey features for this tenant.',
+    )
+    survey_cfd_verified = models.BooleanField(
+        default=False,
+        help_text='Tenant confirmed 3CX Call Flow Designer / Call Flow Apps license.',
+    )
 
     def __str__(self):
         return self.name
+
+    @property
+    def surveys_available(self) -> bool:
+        return self.survey_enabled and self.survey_cfd_verified
 
 class CustomUserManager(BaseUserManager):
     def create_user(self, email, company=None, password=None, **extra_fields):
@@ -134,6 +167,19 @@ class Extension(models.Model):
     email = models.EmailField(blank=True, null=True)
     company = models.ForeignKey('Company', on_delete=models.SET_NULL, null=True, blank=True, related_name='extensions')
     disable_external_call = models.BooleanField(default=False, help_text="If checked, external calls are disabled for this extension.")
+
+    # --- 3CX sync / activity metadata (one-way sync FROM the PBX) -------------
+    pbx_user_id = models.IntegerField(null=True, blank=True, db_index=True,
+                                      help_text="3CX Users.Id (for direct XAPI lookup/PATCH).")
+    display_name = models.CharField(max_length=128, blank=True, default='')
+    mobile = models.CharField(max_length=32, blank=True, default='')
+    outbound_caller_id = models.CharField(max_length=32, blank=True, default='')
+    enabled = models.BooleanField(default=True, help_text="3CX 'Enabled' flag at last sync.")
+    is_registered = models.BooleanField(default=False, help_text="3CX 'IsRegistered' at last sync (phone online).")
+    is_active = models.BooleanField(default=True, db_index=True,
+                                    help_text="Still present in 3CX as of the last sync (soft-delete flag).")
+    last_synced_at = models.DateTimeField(null=True, blank=True)
+    source_pbx = models.CharField(max_length=20, default='3cx')
 
     class Meta:
         unique_together = ('extension', 'company')

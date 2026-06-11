@@ -1,0 +1,132 @@
+{% extends 'public/base.html' %}
+
+{% block structured_data %}
+<script type="application/ld+json">
+{
+  "@context":"https://schema.org",
+  "@type":"SoftwareApplication",
+  "name":"Zentryc",
+  "applicationCategory":"BusinessApplication",
+  "operatingSystem":"Web",
+  "description":"Multi-tenant SaaS for real-time call-center analytics, supervisor wallboards, agent productivity, SLA alerting, automated reporting and telecom billing for 3CX and multi-vendor PBX.",
+  "offers":{"@type":"Offer","priceCurrency":"SAR","price":"0","description":"14-day free trial"},
+  "featureList":["Real-time ACD analytics","Live supervisor wallboard","Agent productivity","Abandonment analytics","SLA breach alerts","Scheduled reports","Telecom billing & invoicing","Quota management","Fraud detection","Multi-vendor PBX support"]
+}
+</script>
+{% endblock %}
+
+{% block body %}
+<!-- HERO -->
+<section class="hero">
+  <div class="wrap sec" style="padding-bottom:64px">
+    <div class="hero-grid">
+      <div>
+        <span class="eyebrow">Cloud call-center intelligence</span>
+        <h1>See what your contact center is <span class="grad-text">really</span> doing.</h1>
+        <p class="lead">Zentryc turns raw 3CX call data into the truth your supervisors can act on — genuine answer rates, speed-of-answer, abandonment and agent occupancy in real time — then automates the reports, alerts and billing around it.</p>
+        <div class="badge-row">
+          <span class="chip"><i class="ri-check-line"></i> Real ACD KPIs, not IVR guesswork</span>
+          <span class="chip"><i class="ri-check-line"></i> Live wallboard</span>
+          <span class="chip"><i class="ri-check-line"></i> Multi-tenant SaaS</span>
+        </div>
+        <div class="hero-cta">
+          <a class="btn btn-primary" href="/contact/">Book a demo <i class="ri-arrow-right-line"></i></a>
+          <a class="btn btn-ghost" href="/features/">Explore features</a>
+        </div>
+      </div>
+      <div>
+        <div class="mock" role="img" aria-label="Zentryc live call-center dashboard preview">
+          <div class="bar"><i></i><i></i><i></i><span style="margin-left:10px;font-size:.78rem;color:var(--muted);font-weight:600">connect.zentryc.com — Live Wallboard</span></div>
+          <div class="body">
+            <div class="kpis">
+              <div class="kpi"><div class="l">Calls waiting</div><div class="v a">3</div></div>
+              <div class="kpi"><div class="l">Answer rate</div><div class="v g">92%</div></div>
+              <div class="kpi"><div class="l">ASA</div><div class="v i">0:18</div></div>
+            </div>
+            <div class="kpis">
+              <div class="kpi"><div class="l">Abandoned</div><div class="v">7</div></div>
+              <div class="kpi"><div class="l">Longest wait</div><div class="v a">1:24</div></div>
+              <div class="kpi"><div class="l">Agents live</div><div class="v g">18</div></div>
+            </div>
+            <div class="bars" aria-hidden="true">
+              <span style="height:40%"></span><span style="height:62%"></span><span style="height:55%"></span>
+              <span style="height:78%"></span><span style="height:90%"></span><span style="height:70%"></span>
+              <span style="height:84%"></span><span style="height:58%"></span><span style="height:66%"></span>
+              <span style="height:95%"></span><span style="height:72%"></span><span style="height:48%"></span>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- TRUST STRIP -->
+<section class="soft" style="padding:44px 0;border-top:1px solid var(--line);border-bottom:1px solid var(--line)">
+  <div class="wrap trust">
+    <div><div class="n grad-text">Real-time</div><div class="t">Live wallboard &amp; alerts</div></div>
+    <div><div class="n grad-text">Millions</div><div class="t">of CDRs, sub-second dashboards</div></div>
+    <div><div class="n grad-text">Multi-vendor</div><div class="t">3CX today, Cisco &amp; cloud next</div></div>
+    <div><div class="n grad-text">SaaS</div><div class="t">Multi-tenant &amp; secure</div></div>
+  </div>
+</section>
+
+<!-- FEATURE HIGHLIGHTS -->
+<section class="sec">
+  <div class="wrap">
+    <div class="section-head center">
+      <span class="eyebrow">Everything in one platform</span>
+      <h2>One place for analytics, alerts, reports &amp; billing</h2>
+      <p class="lead">Stop stitching together spreadsheets and PBX exports. Zentryc unifies the entire contact-center and telecom-cost workflow.</p>
+    </div>
+    <div class="cards">
+      <div class="card"><div class="ic"><i class="ri-line-chart-line"></i></div><h3>Real-time ACD analytics</h3><p>Genuine answer rate, speed-of-answer (ASA), service level and abandonment — sourced from the 3CX queue engine, not the misleading IVR auto-answer.</p></div>
+      <div class="card"><div class="ic"><i class="ri-tv-2-line"></i></div><h3>Live supervisor wallboard</h3><p>Calls waiting, longest wait, talking vs connecting and per-queue load — a full-screen, auto-refreshing board for the floor.</p></div>
+      <div class="card"><div class="ic"><i class="ri-team-line"></i></div><h3>Agent productivity</h3><p>Answered vs lost rings, answer rate, AHT and occupancy per agent — each number paired to its target.</p></div>
+      <div class="card"><div class="ic"><i class="ri-notification-3-line"></i></div><h3>SLA breach alerts</h3><p>Tiered amber/red alerts on your own thresholds, delivered by email, SMS or WhatsApp with escalation.</p></div>
+      <div class="card"><div class="ic"><i class="ri-file-chart-line"></i></div><h3>Automated reports</h3><p>Schedule any report as CSV, Excel, PDF or HTML — delivered on a daily, weekly or monthly cadence, in your timezone.</p></div>
+      <div class="card"><div class="ic"><i class="ri-bank-card-line"></i></div><h3>Telecom billing</h3><p>Multi-currency invoices with tax, per-extension quotas and automatic call-blocking when balances run out.</p></div>
+    </div>
+    <div class="center" style="margin-top:36px"><a class="btn btn-ghost" href="/features/">See all features <i class="ri-arrow-right-line"></i></a></div>
+  </div>
+</section>
+
+<!-- HOW IT WORKS -->
+<section class="soft sec">
+  <div class="wrap">
+    <div class="section-head center"><span class="eyebrow">How it works</span><h2>Live in days, not months</h2></div>
+    <div class="steps">
+      <div class="step"><div class="num">1</div><h3>Connect your PBX</h3><p>Point your 3CX call feed and read-only API at Zentryc. Per-tenant IP allow-listing keeps it locked down.</p></div>
+      <div class="step"><div class="num">2</div><h3>We normalize everything</h3><p>Calls, queues and agents are mapped to one vendor-neutral model — so reporting is identical across PBX families.</p></div>
+      <div class="step"><div class="num">3</div><h3>Act in real time</h3><p>Watch the wallboard, get SLA alerts, send scheduled reports and invoice usage — all from one dashboard.</p></div>
+    </div>
+  </div>
+</section>
+
+<!-- PLATFORM MODULES -->
+<section class="sec" id="modules">
+  <div class="wrap">
+    <div class="section-head center"><span class="eyebrow">Platform modules</span><h2>Built for the whole telecom operation</h2></div>
+    <div class="cards">
+      <div class="card"><div class="ic"><i class="ri-phone-line"></i></div><h3>Abandonment intelligence</h3><p>True wait-before-abandon, lost-opportunity counts and which agent the call was ringing — the lost revenue your old reports hid.</p></div>
+      <div class="card"><div class="ic"><i class="ri-shield-check-line"></i></div><h3>Fraud detection</h3><p>Toll-fraud rules over call patterns with incident tracking and instant alerts to your security team.</p></div>
+      <div class="card"><div class="ic"><i class="ri-stack-line"></i></div><h3>Multi-vendor ready</h3><p>A vendor-neutral core: 3CX today, Cisco CUCM and cloud (Teams, Webex, Zoom) on the roadmap — same dashboards.</p></div>
+      <div class="card"><div class="ic"><i class="ri-lock-2-line"></i></div><h3>Enterprise security</h3><p>Role-based access, audit logging, IP allow-lists and per-tenant session controls — multi-tenant by design.</p></div>
+      <div class="card"><div class="ic"><i class="ri-flashlight-line"></i></div><h3>Scale &amp; speed</h3><p>Materialized rollups keep dashboards fast across millions of call records, with background workers for heavy jobs.</p></div>
+      <div class="card"><div class="ic"><i class="ri-global-line"></i></div><h3>Arabic &amp; RTL</h3><p>Full right-to-left layout and localization — purpose-built for KSA and the wider GCC market.</p></div>
+    </div>
+  </div>
+</section>
+
+<!-- CTA -->
+<section class="sec" style="padding-top:0">
+  <div class="wrap">
+    <div class="cta">
+      <h2>Ready to see your real numbers?</h2>
+      <p class="lead" style="margin:0 auto 24px">Book a live demo and we'll show Zentryc running against a real 3CX call center.</p>
+      <a class="btn btn-light" href="/contact/">Book a demo</a>
+      <a class="btn btn-light" href="/pricing/">View pricing</a>
+    </div>
+  </div>
+</section>
+{% endblock %}

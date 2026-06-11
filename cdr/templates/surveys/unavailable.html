@@ -1,0 +1,27 @@
+{% extends 'partials/base.html' %}
+{% block title %}Surveys Unavailable{% endblock %}
+{% block content %}
+<div class="main-content">
+  <div class="page-content">
+    <div class="container-fluid">
+      <div class="row justify-content-center">
+        <div class="col-lg-8">
+          <div class="card border-0 shadow-sm">
+            <div class="card-body p-4 text-center">
+              <i class="ri-survey-line display-4 text-muted mb-3"></i>
+              <h4>Call Surveys Not Available</h4>
+              <p class="text-muted mb-0">
+                {% if message %}{{ message }}{% else %}
+                Post-call IVR surveys require a 3CX Call Flow Designer (CFD) license.
+                Ask your administrator to enable surveys and confirm the CFD license under
+                <a href="{% url 'surveys:settings' %}">Survey Settings</a>.
+                {% endif %}
+              </p>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}

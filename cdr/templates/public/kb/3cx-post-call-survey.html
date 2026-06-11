@@ -1,0 +1,308 @@
+{% extends 'public/base.html' %}
+{% load static %}
+{% block title %}3CX Post-Call Survey Setup (CFD + Zentryc) — Complete Guide | Zentryc{% endblock %}
+{% block meta_description %}{{ article.description }}{% endblock %}
+{% block meta_keywords %}{{ article.keywords }}{% endblock %}
+{% block canonical %}/kb/{{ article.slug }}/{% endblock %}{% block og_url %}/kb/{{ article.slug }}/{% endblock %}
+{% block og_title %}{{ article.title }} | Zentryc Knowledge Base{% endblock %}
+{% block og_description %}{{ article.description }}{% endblock %}
+
+{% block structured_data %}
+<script type="application/ld+json">
+{
+  "@context": "https://schema.org",
+  "@type": "TechArticle",
+  "headline": "{{ article.title|escapejs }}",
+  "description": "{{ article.description|escapejs }}",
+  "image": "https://connect.zentryc.com{% static article.hero_image %}",
+  "author": {"@type": "Organization", "name": "Zentryc"},
+  "publisher": {
+    "@type": "Organization",
+    "name": "Zentryc",
+    "logo": {"@type": "ImageObject", "url": "https://connect.zentryc.com{% static 'images/logo-dark.png' %}"}
+  },
+  "datePublished": "2026-06-10",
+  "dateModified": "2026-06-10",
+  "mainEntityOfPage": "https://connect.zentryc.com/kb/{{ article.slug }}/",
+  "articleSection": "{{ article.category|escapejs }}",
+  "keywords": "{{ article.keywords|escapejs }}"
+}
+</script>
+<script type="application/ld+json">
+{
+  "@context": "https://schema.org",
+  "@type": "HowTo",
+  "name": "Configure 3CX post-call CSAT survey with Zentryc",
+  "description": "Enable surveys in the Zentryc portal, build a 3CX Call Flow Designer app, and POST results to the ingest API.",
+  "totalTime": "PT45M",
+  "tool": [
+    {"@type": "HowToTool", "name": "3CX Call Flow Designer (Windows)"},
+    {"@type": "HowToTool", "name": "Zentryc company admin account"},
+    {"@type": "HowToTool", "name": "3CX Enterprise with Call Flow Apps license"}
+  ],
+  "step": [
+    {"@type": "HowToStep", "name": "Enable survey flags in Zentryc", "text": "Open Settings → Survey Settings, enable both feature flags and save the Post-Call CSAT campaign."},
+    {"@type": "HowToStep", "name": "Copy ingest URL and token", "text": "From Survey Settings, copy the HTTPS ingest URL and X-Survey-Token header value."},
+    {"@type": "HowToStep", "name": "Build CFD Survey app", "text": "Create a Call Flow Designer project with Survey questions tagged solved, rating and comments."},
+    {"@type": "HowToStep", "name": "HTTP POST to Zentryc", "text": "Add a REST/HTTP component that POSTs JSON answers to the ingest endpoint after the survey completes."},
+    {"@type": "HowToStep", "name": "Route queue disconnect to survey", "text": "Configure the queue After-call action to transfer callers to the survey CFD DID."},
+    {"@type": "HowToStep", "name": "Verify end-to-end", "text": "Place a test call, complete the survey, and confirm the response on the Survey Dashboard within seconds."}
+  ]
+}
+</script>
+{% endblock %}
+
+{% block body %}
+<style>
+  .kb-hero-img{border-radius:20px;border:1px solid var(--line);box-shadow:var(--shadow-lg);width:100%;display:block}
+  .kb-layout{display:grid;grid-template-columns:240px 1fr;gap:40px;align-items:start}
+  @media(max-width:960px){.kb-layout{grid-template-columns:1fr}}
+  .kb-toc{position:sticky;top:90px;background:#fff;border:1px solid var(--line);border-radius:14px;padding:20px}
+  .kb-toc h4{margin:0 0 12px;font-size:.85rem;text-transform:uppercase;letter-spacing:.08em;color:var(--muted)}
+  .kb-toc a{display:block;padding:7px 0;font-size:.92rem;color:var(--slate);font-weight:500;border-bottom:1px solid var(--soft2)}
+  .kb-toc a:last-child{border-bottom:0}
+  .kb-toc a:hover{color:var(--indigo)}
+  .kb-prose h2{margin-top:2.2em;margin-bottom:.6em;font-size:1.55rem}
+  .kb-prose h3{margin-top:1.6em;margin-bottom:.5em;font-size:1.15rem}
+  .kb-prose p,.kb-prose li{font-size:1.02rem}
+  .kb-prose ul,.kb-prose ol{padding-left:1.3em;margin:12px 0}
+  .kb-prose li{margin-bottom:8px}
+  .kb-prose pre{background:#0f172a;color:#e2e8f0;padding:18px;border-radius:12px;overflow-x:auto;font-size:.88rem;line-height:1.5}
+  .kb-prose code{background:var(--soft2);padding:2px 7px;border-radius:6px;font-size:.9em}
+  .kb-prose pre code{background:transparent;padding:0}
+  .kb-shot{margin:28px 0;border:1px solid var(--line);border-radius:16px;overflow:hidden;box-shadow:var(--shadow)}
+  .kb-shot figcaption{padding:12px 16px;background:var(--soft);font-size:.88rem;color:var(--muted);border-top:1px solid var(--line)}
+  .kb-shot img{display:block;width:100%}
+  .kb-table-wrap{overflow-x:auto;-webkit-overflow-scrolling:touch;margin:18px 0;border-radius:12px;border:1px solid var(--line)}
+  .kb-table{width:100%;border-collapse:collapse;font-size:.95rem;margin:0;min-width:480px}
+  .kb-table th,.kb-table td{border:1px solid var(--line);padding:10px 14px;text-align:left;vertical-align:top}
+  .kb-table th{background:var(--soft);font-weight:700}
+  @media(max-width:960px){.kb-toc{position:static;margin-bottom:24px}}
+  @media(max-width:600px){.kb-meta{flex-direction:column;gap:8px}.kb-prose h2{font-size:1.35rem}}
+  .kb-callout{border-left:4px solid var(--indigo);background:#eef2ff;padding:16px 18px;border-radius:0 12px 12px 0;margin:20px 0}
+  .kb-meta{display:flex;gap:16px;flex-wrap:wrap;font-size:.9rem;color:var(--muted);margin-top:12px}
+  .kb-breadcrumb{font-size:.9rem;color:var(--muted);margin-bottom:20px}
+  .kb-breadcrumb a{color:var(--indigo);font-weight:600}
+</style>
+
+<!-- Hero with live screenshot -->
+<section class="hero">
+  <div class="wrap sec" style="padding-bottom:36px">
+    <p class="kb-breadcrumb"><a href="/kb/">Knowledge Base</a> / {{ article.category }}</p>
+    <div class="hero-grid">
+      <div>
+        <span class="eyebrow">{{ article.category }}</span>
+        <h1>3CX Post-Call Survey — complete setup guide</h1>
+        <p class="lead">Collect genuine customer satisfaction (CSAT) after agent calls using the native <strong>3CX Call Flow Designer Survey component</strong>, then stream results into Zentryc for dashboards, per-agent scores, scheduled reports and webhook alerts.</p>
+        <div class="kb-meta">
+          <span><i class="ri-time-line"></i> {{ article.read_minutes }} min read</span>
+          <span><i class="ri-calendar-line"></i> Updated Jun 2026</span>
+          <span><i class="ri-user-settings-line"></i> Company admin + PBX engineer</span>
+        </div>
+      </div>
+      <div>
+        <img class="kb-hero-img" src="{% static article.hero_image %}?v=4" width="1440" height="900"
+             alt="Zentryc Survey Dashboard showing CSAT metrics, response volume and satisfaction scores">
+      </div>
+    </div>
+  </div>
+</section>
+
+<section class="sec soft" style="padding-top:32px">
+  <div class="wrap kb-layout">
+    <aside class="kb-toc">
+      <h4>On this page</h4>
+      <a href="#overview">Overview</a>
+      <a href="#prerequisites">Prerequisites</a>
+      <a href="#portal-setup">Portal setup</a>
+      <a href="#cfd-project">CFD project</a>
+      <a href="#http-ingest">HTTP ingest</a>
+      <a href="#queue-trigger">Queue trigger</a>
+      <a href="#verify">Verify E2E</a>
+      <a href="#dashboard">Dashboard &amp; reports</a>
+      <a href="#troubleshooting">Troubleshooting</a>
+      <a href="#api-reference">API reference</a>
+    </aside>
+
+    <article class="kb-prose">
+      <h2 id="overview">Overview</h2>
+      <p>Post-call surveys let callers rate their experience immediately after speaking with an agent. Unlike IVR-only satisfaction prompts, this pattern uses 3CX's dedicated <a href="https://www.3cx.com/docs/cfd-survey-component/" rel="noopener" target="_blank">CFD Survey component</a> so you capture structured answers (yes/no, 1–5 scale, voice comment) and POST them to Zentryc in real time.</p>
+      <p>Once ingested, responses appear on the <strong>Survey Dashboard</strong>, link automatically to the originating call when possible, roll up into agent and queue CSAT tiles, and can trigger <code>survey.completed</code> webhooks or scheduled <code>survey_summary</code> reports.</p>
+
+      <div class="kb-callout">
+        <strong>Where to find Survey Settings:</strong> In the Zentryc portal, open the sidebar <strong>Settings</strong> section (not Contact Center) → <strong>Survey Settings</strong>. Company admins and superadmins only.
+      </div>
+
+      <h2 id="prerequisites">Prerequisites</h2>
+      <ul>
+        <li><strong>3CX Enterprise</strong> with <strong>Call Flow Apps</strong> / Call Flow Designer license</li>
+        <li><strong>Zentryc tenant</strong> with surveys provisioned (<code>survey_enabled</code> and <code>survey_cfd_verified</code> — your account manager enables these)</li>
+        <li><strong>HTTPS connectivity</strong> from the 3CX PBX host to <code>https://connect.zentryc.com</code></li>
+        <li><strong>Windows PC</strong> with 3CX Call Flow Designer installed to build and export the survey app</li>
+        <li><strong>Company admin</strong> login on Zentryc to configure campaigns and copy the ingest token</li>
+      </ul>
+
+      <h2 id="portal-setup">Step 1 — Zentryc portal setup</h2>
+      <ol>
+        <li>Sign in to <a href="/accounts/login/">connect.zentryc.com</a> as a <strong>company admin</strong>.</li>
+        <li>Open <strong>Settings</strong> → <strong>Survey Settings</strong> in the left sidebar.</li>
+        <li>Under <strong>Tenant Feature Flags</strong>, enable both:
+          <ul>
+            <li><strong>Survey enabled</strong> — turns on survey menus and ingest for your tenant</li>
+            <li><strong>CFD verified</strong> — confirms your 3CX estate has Call Flow Designer; required for the sidebar to show survey pages</li>
+          </ul>
+        </li>
+        <li>Click <strong>Save Flags</strong>.</li>
+        <li>In <strong>Campaign &amp; Questions</strong>, configure the default <strong>Post-Call CSAT</strong> campaign. Question <strong>tags must match</strong> your CFD Survey component (see table below).</li>
+        <li>Click <strong>Save Campaign</strong>.</li>
+        <li>From the <strong>CFD Integration</strong> card, copy:
+          <ul>
+            <li><strong>Ingest URL</strong> — <code>https://connect.zentryc.com/api/v1/survey-responses/ingest/</code></li>
+            <li><strong>X-Survey-Token</strong> — unique per campaign; treat as a secret</li>
+            <li><strong>Campaign slug</strong> — typically <code>post-call-csat</code></li>
+          </ul>
+        </li>
+      </ol>
+
+      <figure class="kb-shot">
+        <img src="{% static 'images/kb/survey-settings.png' %}?v=4" alt="Zentryc Survey Settings page with feature flags, ingest URL, token and campaign configuration" loading="lazy">
+        <figcaption>Survey Settings (Settings → Survey Settings): enable flags, copy ingest credentials and define questions that match CFD tags.</figcaption>
+      </figure>
+
+      <figure class="kb-shot">
+        <img src="{% static 'images/kb/sidebar-settings-menu.png' %}?v=4" alt="Zentryc sidebar with Settings expanded showing Survey Settings under Users and Roles" loading="lazy">
+        <figcaption>Survey Settings lives under the Settings section alongside Users, Roles and API Docs.</figcaption>
+      </figure>
+
+      <h3>Recommended question mapping</h3>
+      <div class="kb-table-wrap"><table class="kb-table">
+        <thead><tr><th>Order</th><th>Type</th><th>Tag</th><th>Prompt (example)</th></tr></thead>
+        <tbody>
+          <tr><td>1</td><td>Yes/No</td><td><code>solved</code></td><td>Have we resolved the issue? Press 1 for yes, 2 for no.</td></tr>
+          <tr><td>2</td><td>Range 1–5</td><td><code>rating</code></td><td>Rate the attention received, 1 to 5.</td></tr>
+          <tr><td>3</td><td>Recording</td><td><code>comments</code></td><td>Leave a comment; press # when finished.</td></tr>
+        </tbody>
+      </table></div>
+
+      <h2 id="cfd-project">Step 2 — Build the CFD project</h2>
+      <p>Reference: <a href="https://www.3cx.com/docs/cfd-survey-component/" rel="noopener" target="_blank">3CX CFD Survey component documentation</a>.</p>
+      <h3>A. Create the survey flow</h3>
+      <ol>
+        <li>On Windows, open <strong>3CX Call Flow Designer</strong>.</li>
+        <li><strong>File → New → Callflow Project</strong> — name it <code>ZentrycPostCallSurvey</code>.</li>
+        <li>Drag a <strong>Survey</strong> component onto the canvas; rename it <code>CustomerFeedback</code>.</li>
+        <li>Configure the three questions with tags <code>solved</code>, <code>rating</code> and <code>comments</code> exactly as in the portal.</li>
+        <li>Add an output field: name <code>caller</code>, value <code>session.ani</code>.</li>
+      </ol>
+
+      <h3>B. Parse survey results (if needed)</h3>
+      <p>The Survey component outputs a CSV <code>Result</code> string. If your HTTP body needs individual variables, add <strong>Execute C# Code</strong> blocks per the 3CX docs to split values into <code>GetSolvedResponse</code>, <code>GetRatingResponse</code> and <code>GetRecordingResponse</code> return values.</p>
+
+      <h2 id="http-ingest">Step 3 — HTTP POST to Zentryc</h2>
+      <p>After the survey completes, add a <strong>Web Service REST</strong> or <strong>HTTP Request</strong> component:</p>
+      <div class="kb-table-wrap"><table class="kb-table">
+        <thead><tr><th>Setting</th><th>Value</th></tr></thead>
+        <tbody>
+          <tr><td>Method</td><td><code>POST</code></td></tr>
+          <tr><td>URL</td><td><code>https://connect.zentryc.com/api/v1/survey-responses/ingest/</code></td></tr>
+          <tr><td>Header</td><td><code>Content-Type: application/json</code></td></tr>
+          <tr><td>Header</td><td><code>X-Survey-Token: &lt;token from Survey Settings&gt;</code></td></tr>
+        </tbody>
+      </table></div>
+
+      <p>Body (Expression Editor):</p>
+      <pre><code>{
+  "campaign_slug": "post-call-csat",
+  "caller": "{{session.ani}}",
+  "agent_dn": "{{session.variable.agent_dn}}",
+  "queue_dn": "{{session.variable.queue_dn}}",
+  "answers": [
+    {"tag": "solved", "value": "{{GetSolvedResponse.ReturnValue}}"},
+    {"tag": "rating", "value": "{{GetRatingResponse.ReturnValue}}"},
+    {"tag": "comments", "value": "{{GetRecordingResponse.ReturnValue}}"}
+  ]
+}</code></pre>
+
+      <div class="kb-callout">
+        <strong>Tip — better call linking:</strong> Pass <code>agent_dn</code> and <code>queue_dn</code> from your queue disconnect script when the call ends. Zentryc matches responses to CDR records within a configurable time window; agent/queue context dramatically improves match confidence.
+      </div>
+
+      <h3>Deploy the CFD app</h3>
+      <ol>
+        <li><strong>Build → Build All</strong> — produces <code>ZentrycPostCallSurvey.zip</code>.</li>
+        <li>3CX Management Console → <strong>Advanced</strong> → <strong>Call Flow Apps</strong> → Add or Update.</li>
+        <li>Assign a <strong>DID or extension</strong> to the app — this is the number queues will transfer to after calls.</li>
+      </ol>
+
+      <h2 id="queue-trigger">Step 4 — Trigger survey after agent calls</h2>
+      <div class="kb-table-wrap"><table class="kb-table">
+        <thead><tr><th>Pattern</th><th>Configuration</th></tr></thead>
+        <tbody>
+          <tr><td><strong>Queue disconnect (recommended)</strong></td><td>Queue → <em>After call</em> → Transfer to survey CFD DID/extension</td></tr>
+          <tr><td><strong>IVR opt-in</strong></td><td>IVR menu option routes caller to the survey DID</td></tr>
+          <tr><td><strong>Outbound callback</strong></td><td>Custom CFD entry with same ingest POST block</td></tr>
+        </tbody>
+      </table></div>
+      <p>Ensure the queue script sets <code>session.variable.agent_dn</code> and <code>session.variable.queue_dn</code> before transfer when your 3CX version supports session variables on disconnect.</p>
+
+      <h2 id="verify">Step 5 — Verify end-to-end</h2>
+      <ol>
+        <li>Place a test call through the queue; when the agent hangs up, complete all survey prompts.</li>
+        <li>Open <strong>Contact Center → Survey Dashboard</strong> — the response should appear within ~2 seconds.</li>
+        <li>Open <strong>Survey Responses</strong> → click the row → check <strong>match confidence</strong> (exact, heuristic or unmatched).</li>
+        <li>Optional API test with <code>curl</code>:</li>
+      </ol>
+      <pre><code>curl -X POST 'https://connect.zentryc.com/api/v1/survey-responses/ingest/' \
+  -H 'Content-Type: application/json' \
+  -H 'X-Survey-Token: YOUR_TOKEN' \
+  -d '{"campaign_slug":"post-call-csat","caller":"966501234567","answers":[{"tag":"rating","value":"5"}]}'</code></pre>
+      <p>A successful ingest returns HTTP <strong>201 Created</strong>. Duplicate submissions for the same caller and timestamp are idempotent (HTTP 200).</p>
+
+      <figure class="kb-shot">
+        <img src="{% static 'images/kb/survey-dashboard.png' %}?v=4" alt="Zentryc Survey Dashboard with CSAT score, response count and trend charts" loading="lazy">
+        <figcaption>Survey Dashboard — live CSAT, response volume and satisfaction breakdown after your first test call.</figcaption>
+      </figure>
+
+      <figure class="kb-shot">
+        <img src="{% static 'images/kb/survey-responses.png' %}?v=4" alt="Zentryc Survey Responses list with caller, rating and call link status" loading="lazy">
+        <figcaption>Survey Responses — every ingest with caller, answers, campaign and call-link status.</figcaption>
+      </figure>
+
+      <h2 id="dashboard">Dashboard, reports &amp; alerts</h2>
+      <ul>
+        <li><strong>Survey Dashboard</strong> — CSAT score, response volume, solved rate and trends (Contact Center menu).</li>
+        <li><strong>Agent &amp; queue detail pages</strong> — CSAT tiles when surveys are linked to calls.</li>
+        <li><strong>Scheduled reports</strong> — report type <code>survey_summary</code> in Call Center → Reports.</li>
+        <li><strong>Webhooks</strong> — subscribe to <code>survey.completed</code> for CRM or ticketing integrations.</li>
+        <li><strong>Alerts</strong> — optional CSAT threshold rules via the notification engine (<code>survey_csat</code> source).</li>
+      </ul>
+
+      <h2 id="troubleshooting">Troubleshooting</h2>
+      <div class="kb-table-wrap"><table class="kb-table">
+        <thead><tr><th>Symptom</th><th>Likely cause &amp; fix</th></tr></thead>
+        <tbody>
+          <tr><td>HTTP 401 on ingest</td><td>Wrong or missing <code>X-Survey-Token</code>. Copy fresh token from Survey Settings; update CFD app.</td></tr>
+          <tr><td>HTTP 403 on ingest</td><td>Survey flags disabled or campaign not <code>license_verified</code>. Enable both flags and save campaign.</td></tr>
+          <tr><td>No Survey menu in portal</td><td>Both <code>survey_enabled</code> and <code>survey_cfd_verified</code> must be true for the tenant.</td></tr>
+          <tr><td>Responses show "unmatched"</td><td>Pass <code>agent_dn</code>/<code>queue_dn</code>; widen <code>match_window_minutes</code> on the campaign.</td></tr>
+          <tr><td>Duplicate responses in CFD logs</td><td>Ingest is idempotent — safe to retry; same caller+time returns 200 without duplicate rows.</td></tr>
+          <tr><td>CFD POST fails SSL</td><td>Ensure PBX can reach connect.zentryc.com on 443; check firewall allow-list.</td></tr>
+          <tr><td>Tags mismatch</td><td>Portal question tags must exactly equal CFD Survey tags (<code>solved</code>, <code>rating</code>, <code>comments</code>).</td></tr>
+        </tbody>
+      </table></div>
+
+      <h2 id="api-reference">API reference (read access)</h2>
+      <p>Authenticated API clients with <code>read:surveys</code> scope can query:</p>
+      <ul>
+        <li><code>GET /api/v1/survey-campaigns/</code> — list campaigns</li>
+        <li><code>GET /api/v1/survey-responses/</code> — paginated responses</li>
+        <li><code>GET /api/v1/survey-metrics/</code> — aggregated CSAT metrics</li>
+      </ul>
+      <p>See <a href="/api/docs/" target="_blank" rel="noopener">API Docs</a> in the portal for OpenAPI details and token scopes.</p>
+
+      <hr style="margin:48px 0;border:0;border-top:1px solid var(--line)">
+      <p><a href="/kb/">← Back to Knowledge Base</a> · <a href="/contact/">Book a demo</a> · <a href="/features/">Explore Zentryc features</a></p>
+    </article>
+  </div>
+</section>
+{% endblock %}

@@ -105,7 +105,7 @@ class SMTPSettingsAdmin(admin.ModelAdmin):
 
 @admin.register(Company)
 class CompanyAdmin(admin.ModelAdmin):
-    list_display = ('name', 'address', 'phone', 'listening_port')
+    list_display = ('name', 'address', 'phone', 'listening_port', 'pbx_source_ips', 'pbx_api_url')
     search_fields = ('name', 'address', 'phone')
 
 

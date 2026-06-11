@@ -149,3 +149,98 @@ class FraudIncident(models.Model):
 
     def __str__(self):
         return f"[{self.severity.upper()}] {self.summary}"
+
+
+# ---------------------------------------------------------------------------
+# P4.1 / P4.2 — Invoicing & payments (multi-currency + tax)
+# ---------------------------------------------------------------------------
+class Invoice(models.Model):
+    STATUS_DRAFT = 'draft'
+    STATUS_ISSUED = 'issued'
+    STATUS_PAID = 'paid'
+    STATUS_VOID = 'void'
+    STATUS_CHOICES = [
+        (STATUS_DRAFT, 'Draft'), (STATUS_ISSUED, 'Issued'),
+        (STATUS_PAID, 'Paid'), (STATUS_VOID, 'Void'),
+    ]
+
+    company = models.ForeignKey(
+        'accounts.Company', on_delete=models.CASCADE, related_name='invoices')
+    number = models.CharField(max_length=40, unique=True)
+    period_start = models.DateField()
+    period_end = models.DateField()
+    currency = models.CharField(max_length=3, default='SAR')
+    subtotal = models.DecimalField(max_digits=12, decimal_places=2, default=0)
+    tax_rate_percent = models.DecimalField(max_digits=5, decimal_places=2, default=0)
+    tax_amount = models.DecimalField(max_digits=12, decimal_places=2, default=0)
+    total = models.DecimalField(max_digits=12, decimal_places=2, default=0)
+    status = models.CharField(max_length=10, choices=STATUS_CHOICES, default=STATUS_DRAFT)
+    tax_rule = models.ForeignKey(
+        'TaxRule', null=True, blank=True, on_delete=models.SET_NULL, related_name='invoices')
+    issued_at = models.DateTimeField(null=True, blank=True)
+    due_date = models.DateField(null=True, blank=True)
+    paid_at = models.DateTimeField(null=True, blank=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        unique_together = ('company', 'period_start', 'period_end')
+        ordering = ['-period_start', 'company']
+        indexes = [models.Index(fields=['company', 'status'])]
+
+    def __str__(self):
+        return f"{self.number} — {self.company.name} ({self.status})"
+
+    @property
+    def amount_paid(self):
+        return sum((p.amount for p in self.payments.all()), Decimal('0'))
+
+    @property
+    def balance_due(self):
+        return self.total - self.amount_paid
+
+    def record_payment(self, amount, method='manual', reference=''):
+        """Attach a payment; flip to paid once the balance is covered."""
+        amount = Decimal(str(amount))
+        pay = self.payments.create(
+            amount=amount, currency=self.currency, method=method, reference=reference)
+        if self.balance_due <= Decimal('0') and self.status != self.STATUS_VOID:
+            self.status = self.STATUS_PAID
+            self.paid_at = timezone.now()
+            self.save(update_fields=['status', 'paid_at'])
+        return pay
+
+
+class InvoiceLineItem(models.Model):
+    invoice = models.ForeignKey(Invoice, on_delete=models.CASCADE, related_name='line_items')
+    description = models.CharField(max_length=120)
+    category = models.CharField(max_length=40, blank=True, default='')
+    quantity = models.IntegerField(default=0, help_text='Number of calls')
+    unit = models.CharField(max_length=20, default='calls')
+    amount = models.DecimalField(max_digits=12, decimal_places=2, default=0)
+
+    class Meta:
+        ordering = ['-amount']
+
+    def __str__(self):
+        return f"{self.description}: {self.amount}"
+
+
+class Payment(models.Model):
+    METHOD_CHOICES = [
+        ('manual', 'Manual'), ('card', 'Card'), ('bank', 'Bank transfer'),
+        ('gateway', 'Payment gateway'),
+    ]
+    invoice = models.ForeignKey(Invoice, on_delete=models.CASCADE, related_name='payments')
+    amount = models.DecimalField(max_digits=12, decimal_places=2)
+    currency = models.CharField(max_length=3, default='SAR')
+    method = models.CharField(max_length=12, choices=METHOD_CHOICES, default='manual')
+    reference = models.CharField(max_length=120, blank=True, default='')
+    paid_at = models.DateTimeField(default=timezone.now)
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        ordering = ['-paid_at']
+
+    def __str__(self):
+        return f"{self.amount} {self.currency} for {self.invoice.number}"

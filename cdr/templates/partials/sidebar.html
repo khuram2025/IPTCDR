@@ -1,199 +1,151 @@
 {% load static %}
 {% block sidebar %}
-<!-- ========== App Menu ========== -->
 <div class="app-menu navbar-menu">
-    <!-- LOGO -->
     <div class="navbar-brand-box">
-        <!-- Dark Logo-->
-        <a href="{% url 'cdr3cx:dashboard'%}" class="logo logo-dark">
-            <span class="logo-sm">
-                <span style="font-family: Arial, sans-serif; font-weight: bold; color: white; font-size: 22px; text-shadow: 2px 2px 4px rgba(0,0,0,0.5);">Channab</span>
-            </span>
-            <span class="logo-lg">
-            </span>
+        <a href="{% url 'cdr3cx:dashboard' %}" class="logo logo-dark">
+            <span class="logo-sm">{% if user.company.logo %}<img src="{{ user.company.logo.url }}" alt="logo" style="max-height:26px;max-width:40px;object-fit:contain;">{% else %}<span class="sidebar-brand-text">{{ user.company.name|default:"Zentryc"|slice:":2"|upper }}</span>{% endif %}</span>
+            <span class="logo-lg">{% if user.company.logo %}<img src="{{ user.company.logo.url }}" alt="{{ user.company.name }}" style="max-height:30px;max-width:150px;object-fit:contain;">{% else %}<span class="sidebar-brand-text">{{ user.company.name|default:"Zentryc" }}</span>{% endif %}</span>
         </a>
-        <!-- Light Logo-->
-        <a href="{% url 'cdr3cx:dashboard'%}" class="logo logo-light">
-            <span style="font-family: Arial, sans-serif; font-weight: bold; color: white; font-size: 22px; text-shadow: 2px 2px 4px rgba(0,0,0,0.5);">Channab</span>
-            </span>
+        <a href="{% url 'cdr3cx:dashboard' %}" class="logo logo-light">
+            <span class="logo-sm">{% if user.company.logo %}<img src="{{ user.company.logo.url }}" alt="logo" style="max-height:26px;max-width:40px;object-fit:contain;">{% else %}<span class="sidebar-brand-text">{{ user.company.name|default:"Zentryc"|slice:":2"|upper }}</span>{% endif %}</span>
+            <span class="logo-lg">{% if user.company.logo %}<img src="{{ user.company.logo.url }}" alt="{{ user.company.name }}" style="max-height:30px;max-width:150px;object-fit:contain;">{% else %}<span class="sidebar-brand-text">{{ user.company.name|default:"Zentryc" }}</span>{% endif %}</span>
         </a>
         <button type="button" class="btn btn-sm p-0 fs-20 header-item float-end btn-vertical-sm-hover" id="vertical-hover">
             <i class="ri-record-circle-line"></i>
         </button>
     </div>
 
-    <div class="dropdown sidebar-user m-1 rounded">
-        <!-- User dropdown content remains unchanged -->
-    </div>
-
     <div id="scrollbar">
         <div class="container-fluid">
-            <div id="two-column-menu">
-            </div>
+            {% with cp=request.path %}
             <ul class="navbar-nav" id="navbar-nav">
-                <li class="menu-title"><span data-key="t-menu">Menu</span></li>
+                <li class="menu-title"><span>Menu</span></li>
 
                 {% if user.is_authenticated %}
-                <!-- Menu items for authenticated users -->
                 {% if user.role == 'superadmin' %}
                 <li class="nav-item">
-                    <a href="{% url 'accounts:superadmin_dashboard' %}" class="nav-link menu-link">
-                        <i class="ri-admin-line"></i> <span>Super Admin Dashboard</span>
+                    <a href="{% url 'accounts:superadmin_dashboard' %}" class="nav-link menu-link{% if '/accounts/superadmin' in cp %} active{% endif %}">
+                        <i class="ri-admin-line"></i> <span>Super Admin</span>
                     </a>
                 </li>
                 {% endif %}
+
+                {# ===== Overview ===== #}
                 <li class="nav-item">
-                    <a class="nav-link menu-link" href="#sidebarDashboards" data-bs-toggle="collapse" role="button" aria-expanded="false" aria-controls="sidebarDashboards">
-                        <i class="ri-dashboard-2-line"></i> <span data-key="t-dashboards">Dashboards</span>
+                    <a href="{% url 'cdr3cx:dashboard' %}" class="nav-link menu-link{% if cp == '/dashboard/' %} active{% endif %}">
+                        <i class="ri-dashboard-2-line"></i> <span>Overview</span>
                     </a>
-                    <div class="collapse menu-dropdown" id="sidebarDashboards">
+                </li>
+
+                {# ===== Call Details ===== #}
+                {% with t=request.GET.tab %}
+                <li class="nav-item">
+                    <a class="nav-link menu-link{% if cp == '/all_calls/' or cp == '/outgoing/' or cp == '/incoming/' or cp == '/outgoing_international/' or '/international-calls/' in cp or '/top-extensions' in cp or '/caller-calls/' in cp or cp == '/summary/' %} active{% endif %}" href="#sidebarAnalytics" data-bs-toggle="collapse" role="button"
+                       aria-expanded="{% if cp == '/all_calls/' or cp == '/outgoing/' or cp == '/incoming/' or cp == '/outgoing_international/' or '/international-calls/' in cp or '/top-extensions' in cp or '/caller-calls/' in cp or cp == '/summary/' %}true{% else %}false{% endif %}" aria-controls="sidebarAnalytics">
+                        <i class="ri-pulse-line"></i> <span>Call Details</span>
+                    </a>
+                    <div class="collapse menu-dropdown{% if cp == '/all_calls/' or cp == '/outgoing/' or cp == '/incoming/' or cp == '/outgoing_international/' or '/international-calls/' in cp or '/top-extensions' in cp or '/caller-calls/' in cp or cp == '/summary/' %} show{% endif %}" id="sidebarAnalytics">
                         <ul class="nav nav-sm flex-column">
-                            <li class="nav-item">
-                                <a href="{% url 'cdr3cx:dashboard'%}" class="nav-link" data-key="t-analytics"> Analytics </a>
-                            </li>
-                            <li class="nav-item">
-                                <a href="{% url 'realtime:wallboard'%}" class="nav-link" data-key="t-wallboard"> Live Wallboard </a>
-                            </li>
-                            <li class="nav-item">
-                                <a href="{% url 'realtime:heatmap'%}" class="nav-link" data-key="t-heatmap"> Volume Heatmap </a>
-                            </li>
-                            <li class="nav-item">
-                                <a href="{% url 'cdr3cx:top_extensions'%}" class="nav-link" data-key="t-extensions"> Reports </a>
-                            </li>
-                            <li class="nav-item">
-                                <a href="{% url 'cdr3cx:outgoing' %}" class="nav-link" data-key="t-Local Call"> Local Call </a>
-                            </li>
-                            <li class="nav-item">
-                                <a href="{% url 'cdr3cx:incoming' %}" class="nav-link" data-key="t-Mobile Calls"> Incoming Calls </a>
-                            </li>
-                            <li class="nav-item">
-                                <a href="{% url 'cdr3cx:outgoing_international' %}" class="nav-link" data-key="t-International Calls"> International Calls </a>
-                            </li>
+                            <li class="nav-item"><a href="{% url 'cdr3cx:all_calls' %}" class="nav-link{% if cp == '/all_calls/' or cp == '/incoming/' or cp == '/outgoing/' or cp == '/outgoing_international/' %} active{% endif %}">All Calls</a></li>
+                            <li class="nav-item"><a href="{% url 'cdr3cx:top_extensions' %}" class="nav-link{% if '/top-extensions' in cp or '/caller-calls/' in cp %} active{% endif %}">Top Extensions</a></li>
+                            <li class="nav-item"><a href="{% url 'cdr3cx:callrecord_summary' %}" class="nav-link{% if cp == '/summary/' %} active{% endif %}">Call Summary</a></li>
+                        </ul>
+                    </div>
+                </li>
+                {% endwith %}
+
+                {# ===== Contact Center (incl. real-time) ===== #}
+                <li class="nav-item">
+                    <a class="nav-link menu-link{% if '/call-center/' in cp or '/realtime/' in cp or '/heatmap' in cp %} active{% endif %}" href="#sidebarContactCenter" data-bs-toggle="collapse" role="button"
+                       aria-expanded="{% if '/call-center/' in cp or '/realtime/' in cp or '/heatmap' in cp %}true{% else %}false{% endif %}" aria-controls="sidebarContactCenter">
+                        <i class="ri-customer-service-2-line"></i> <span>Contact Center</span>
+                    </a>
+                    <div class="collapse menu-dropdown{% if '/call-center/' in cp or '/realtime/' in cp or '/heatmap' in cp %} show{% endif %}" id="sidebarContactCenter">
+                        <ul class="nav nav-sm flex-column">
+                            <li class="nav-item"><a href="{% url 'cdr3cx:call_center_dashboard' %}" class="nav-link{% if cp == '/call-center/' %} active{% endif %}">Dashboard</a></li>
+                            <li class="nav-item"><a href="{% url 'cdr3cx:missed_calls_details' %}" class="nav-link{% if cp == '/call-center/missed-calls/' %} active{% endif %}">Missed Calls</a></li>
+                            <li class="nav-item"><a href="{% url 'cdr3cx:call_back_tracking' %}" class="nav-link{% if cp == '/call-center/call-back-tracking/' %} active{% endif %}">Call Back Tracking</a></li>
+                            <li class="nav-item"><a href="{% url 'realtime:wallboard' %}" class="nav-link{% if cp == '/realtime/wallboard/' %} active{% endif %}">Live Wallboard</a></li>
+                            <li class="nav-item"><a href="{% url 'realtime:wallboard_projection' %}" class="nav-link{% if cp == '/realtime/wallboard/projection/' %} active{% endif %}">Projection</a></li>
+                            <li class="nav-item"><a href="{% url 'realtime:heatmap' %}" class="nav-link{% if '/heatmap' in cp %} active{% endif %}">Volume Heatmap</a></li>
+                            <li class="nav-item"><a href="{% url 'cdr3cx:report_catalog' %}" class="nav-link{% if '/call-center/reports/catalog' in cp %} active{% endif %}">Report Catalog</a></li>
+                            <li class="nav-item"><a href="{% url 'cdr3cx:report_list' %}" class="nav-link{% if cp == '/call-center/reports/' %} active{% endif %}">Scheduled Reports</a></li>
+                            {% if user.company.surveys_available %}
+                            <li class="nav-item"><a href="{% url 'surveys:dashboard' %}" class="nav-link{% if cp == '/call-center/surveys/' %} active{% endif %}">Survey Dashboard</a></li>
+                            <li class="nav-item"><a href="{% url 'surveys:responses' %}" class="nav-link{% if cp == '/call-center/surveys/responses/' %} active{% endif %}">Survey Responses</a></li>
+                            {% endif %}
                         </ul>
                     </div>
                 </li>
 
-                <!-- Billing Menu - Only for Company Admins and Super Admins -->
                 {% if user.role == 'company_admin' or user.role == 'superadmin' %}
+                <li class="menu-title mt-2"><span>Administration</span></li>
+
                 <li class="nav-item">
-                    <a class="nav-link menu-link" href="#sidebarBilling" data-bs-toggle="collapse" role="button" aria-expanded="false" aria-controls="sidebarBilling">
-                        <i class="ri-money-dollar-circle-line"></i> <span data-key="t-billing">Billing</span>
+                    <a class="nav-link menu-link{% if '/quotas' in cp or '/extensions' in cp or '/callpatterns' in cp or '/billing/' in cp %} active{% endif %}" href="#sidebarBilling" data-bs-toggle="collapse" role="button"
+                       aria-expanded="{% if '/quotas' in cp or '/extensions' in cp or '/callpatterns' in cp or '/billing/' in cp %}true{% else %}false{% endif %}" aria-controls="sidebarBilling">
+                        <i class="ri-money-dollar-circle-line"></i> <span>Billing</span>
                     </a>
-                    <div class="collapse menu-dropdown" id="sidebarBilling">
+                    <div class="collapse menu-dropdown{% if '/quotas' in cp or '/extensions' in cp or '/callpatterns' in cp or '/billing/' in cp %} show{% endif %}" id="sidebarBilling">
                         <ul class="nav nav-sm flex-column">
-                            <li class="nav-item">
-                                <a href="{% url 'cdr3cx:quota_list' %}" class="nav-link" data-key="t-quota"> Quota </a>
-                            </li>
-                            <li class="nav-item">
-                                <a href="{% url 'cdr3cx:assign_quota' %}" class="nav-link" data-key="t-assign-quota"> Assign Quota </a>
-                            </li>
-                            <li class="nav-item">
-                                <a href="{% url 'cdr3cx:quota_usage' %}" class="nav-link" data-key="t-quota-usage"> Quota Usage </a>
-                            </li>
-                            <li class="nav-item">
-                                <a href="{% url 'cdr3cx:callpattern-list' %}" class="nav-link" data-key="t-calling-rules"> Calling Rules </a>
-                            </li>
-                            <li class="nav-item">
-                                <a href="{% url 'billing:fraud_incidents' %}" class="nav-link" data-key="t-fraud-incidents"> Fraud Incidents </a>
-                            </li>
-                            <li class="nav-item">
-                                <a href="{% url 'security:audit_log' %}" class="nav-link" data-key="t-audit-log"> Audit Log </a>
-                            </li>
+                            <li class="nav-item"><a href="{% url 'cdr3cx:quota_list' %}" class="nav-link{% if cp == '/quotas/' %} active{% endif %}">Quota</a></li>
+                            <li class="nav-item"><a href="{% url 'cdr3cx:assign_quota' %}" class="nav-link{% if cp == '/quotas/assign/' %} active{% endif %}">Assign Quota</a></li>
+                            <li class="nav-item"><a href="{% url 'cdr3cx:quota_usage' %}" class="nav-link{% if cp == '/quotas/usage/' %} active{% endif %}">Quota Usage</a></li>
+                            <li class="nav-item"><a href="{% url 'cdr3cx:extension_list' %}" class="nav-link{% if '/extensions' in cp %} active{% endif %}">Extensions</a></li>
+                            <li class="nav-item"><a href="{% url 'cdr3cx:callpattern-list' %}" class="nav-link{% if '/callpatterns' in cp %} active{% endif %}">Calling Rules</a></li>
+                            <li class="nav-item"><a href="{% url 'billing:fraud_incidents' %}" class="nav-link{% if cp == '/billing/fraud-incidents/' %} active{% endif %}">Fraud Incidents</a></li>
+                            <li class="nav-item"><a href="{% url 'billing:free_fraud_audit' %}" class="nav-link{% if cp == '/billing/free-fraud-audit/' %} active{% endif %}">Fraud Audit</a></li>
+                        </ul>
+                    </div>
+                </li>
+
+                <li class="nav-item">
+                    <a class="nav-link menu-link{% if '/security/' in cp or '/notifications/' in cp %} active{% endif %}" href="#sidebarSecurity" data-bs-toggle="collapse" role="button"
+                       aria-expanded="{% if '/security/' in cp or '/notifications/' in cp %}true{% else %}false{% endif %}" aria-controls="sidebarSecurity">
+                        <i class="ri-shield-check-line"></i> <span>Security</span>
+                    </a>
+                    <div class="collapse menu-dropdown{% if '/security/' in cp or '/notifications/' in cp %} show{% endif %}" id="sidebarSecurity">
+                        <ul class="nav nav-sm flex-column">
+                            <li class="nav-item"><a href="{% url 'security:audit_log' %}" class="nav-link{% if cp == '/security/audit-log/' %} active{% endif %}">Audit Log</a></li>
+                            <li class="nav-item"><a href="{% url 'notifications:notification_list' %}" class="nav-link{% if '/notifications/' in cp %} active{% endif %}">Notifications</a></li>
+                        </ul>
+                    </div>
+                </li>
+
+                <li class="nav-item">
+                    <a class="nav-link menu-link{% if '/accounts/company-admin' in cp or '/accounts/roles' in cp or cp == '/call-center/surveys/settings/' %} active{% endif %}" href="#sidebarSettings" data-bs-toggle="collapse" role="button"
+                       aria-expanded="{% if '/accounts/company-admin' in cp or '/accounts/roles' in cp or cp == '/call-center/surveys/settings/' %}true{% else %}false{% endif %}" aria-controls="sidebarSettings">
+                        <i class="ri-settings-3-line"></i> <span>Settings</span>
+                    </a>
+                    <div class="collapse menu-dropdown{% if '/accounts/company-admin' in cp or '/accounts/roles' in cp or cp == '/call-center/surveys/settings/' %} show{% endif %}" id="sidebarSettings">
+                        <ul class="nav nav-sm flex-column">
+                            <li class="nav-item"><a href="{% url 'accounts:company_admin_dashboard' %}" class="nav-link{% if '/accounts/company-admin' in cp %} active{% endif %}">Users</a></li>
+                            <li class="nav-item"><a href="{% url 'accounts:role_list' %}" class="nav-link{% if '/accounts/roles' in cp %} active{% endif %}">Roles</a></li>
+                            {% if user.role == 'company_admin' or user.role == 'superadmin' %}
+                            <li class="nav-item"><a href="{% url 'surveys:settings' %}" class="nav-link{% if cp == '/call-center/surveys/settings/' %} active{% endif %}">Survey Settings</a></li>
+                            {% endif %}
+                            <li class="nav-item"><a href="/api/docs/" target="_blank" rel="noopener" class="nav-link">API Docs</a></li>
+                            <li class="nav-item"><a href="{% url 'cdr3cx:kb_index' %}" target="_blank" rel="noopener" class="nav-link">Knowledge Base</a></li>
                         </ul>
                     </div>
                 </li>
                 {% endif %}
-                {% endif %}
-
-                <!-- Call Center Menu (visible to all users) -->
-                <li class="nav-item">
-                    <a class="nav-link menu-link" href="#sidebarCallCenter" data-bs-toggle="collapse" role="button" aria-expanded="false" aria-controls="sidebarCallCenter">
-                        <i class="ri-customer-service-line"></i> <span data-key="t-call-center">Call Center</span>
-                    </a>
-                    <div class="collapse menu-dropdown" id="sidebarCallCenter">
-                        <ul class="nav nav-sm flex-column">
-                            <li class="nav-item">
-                                <a href="{% url 'cdr3cx:call_center_dashboard' %}" class="nav-link" data-key="t-call-center-dashboard"> Dashboard </a>
-                            </li>
-                            <li class="nav-item">
-                                <a href="{% url 'cdr3cx:missed_calls_details' %}" class="nav-link" data-key="t-missed-calls"> Missed Calls </a>
-                            </li>
-                            <li class="nav-item">
-                                <a href="{% url 'cdr3cx:call_back_tracking' %}" class="nav-link" data-key="t-call-back-tracking"> Call Back Tracking </a>
-                            </li>
-                        </ul>
-                    </div>
-                </li>
-
-                <!-- Sales Calls Menu (visible to all users) -->
-                <li class="nav-item">
-                    <a class="nav-link menu-link" href="#sidebarSalesCalls" data-bs-toggle="collapse" role="button" aria-expanded="false" aria-controls="sidebarSalesCalls">
-                        <i class="ri-phone-line"></i> <span data-key="t-sales-calls">Sales Calls</span>
-                    </a>
-                    <div class="collapse menu-dropdown" id="sidebarSalesCalls">
-                        <ul class="nav nav-sm flex-column">
-                            <li class="nav-item">
-                                <a href="{% url 'cdr3cx:sales_reports' %}" class="nav-link" data-key="t-sales-reports"> Sales Reports </a>
-                            </li>
-                            <!-- Add more sales-related links here if needed -->
-                        </ul>
-                    </div>
-                </li>
-
-                <!-- Settings Menu - Only for Company Admins and Super Admins -->
-                {% if user.role == 'company_admin' or user.role == 'superadmin' %}
-                <li class="nav-item">
-                    <a class="nav-link menu-link" href="#sidebarSettings" data-bs-toggle="collapse" role="button" aria-expanded="false" aria-controls="sidebarSettings">
-                        <i class="ri-settings-line"></i> <span data-key="t-settings">Settings</span>
-                    </a>
-                    <div class="collapse menu-dropdown" id="sidebarSettings">
-                        <ul class="nav nav-sm flex-column">
-                            <li class="nav-item">
-                                <a href="{% url 'accounts:company_admin_dashboard' %}" class="nav-link" data-key="t-users"> Users </a>
-                            </li>
-                            <li class="nav-item">
-                                <a href="{% url 'accounts:role_list' %}" class="nav-link" data-key="t-roles"> Roles </a>
-                            </li>
-                        </ul>
-                    </div>
-                </li>
                 {% endif %}
             </ul>
+            {% endwith %}
         </div>
     </div>
     <div class="sidebar-background"></div>
 </div>
-<!-- Left Sidebar End -->
-<!-- Vertical Overlay-->
 <div class="vertical-overlay"></div>
 
-<script>
-    document.addEventListener('DOMContentLoaded', function () {
-        const sidebarLinks = document.querySelectorAll('.navbar-nav .nav-link');
-
-        sidebarLinks.forEach(link => {
-            link.addEventListener('click', function (e) {
-                e.preventDefault();
-                const href = this.getAttribute('href');
-                if (href.startsWith('#')) {
-                    // It's a dropdown toggle, don't navigate
-                    return;
-                }
-                window.location.href = href;
-            });
-        });
-
-        // Handle dropdown toggles
-        const dropdownToggles = document.querySelectorAll('.navbar-nav .menu-link[data-bs-toggle="collapse"]');
-        dropdownToggles.forEach(toggle => {
-            toggle.addEventListener('click', function (e) {
-                e.preventDefault();
-                const target = document.querySelector(this.getAttribute('href'));
-                if (target) {
-                    target.classList.toggle('show');
-                }
-            });
-        });
-    });
-</script>
+<style>
+.sidebar-brand-text {
+  font-family: Arial, sans-serif;
+  font-weight: 700;
+  color: #fff;
+  font-size: 1.25rem;
+  text-shadow: 1px 1px 3px rgba(0,0,0,.3);
+}
+</style>
 {% endblock sidebar %}

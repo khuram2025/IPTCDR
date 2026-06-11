@@ -1,0 +1,49 @@
+{% extends 'partials/base.html' %}
+{% block title %}Report Catalog{% endblock %}
+
+{% block content %}
+<div class="main-content">
+  <div class="page-content">
+    <div class="container-fluid">
+      <div class="d-flex align-items-center justify-content-between mb-3">
+        <div>
+          <h5 class="mb-0">Report Catalog</h5>
+          <span class="text-muted fs-13">Pick a report, choose a window and format, and download — or schedule it.</span>
+        </div>
+        <a href="{% url 'cdr3cx:report_list' %}" class="btn btn-sm btn-light">Scheduled reports</a>
+      </div>
+
+      <div class="row g-3">
+        {% for c in catalog %}
+        <div class="col-md-6 col-xl-4">
+          <div class="card border-0 shadow-sm h-100">
+            <div class="card-body d-flex flex-column">
+              <h6 class="fw-semibold mb-1">{{ c.label }}</h6>
+              <p class="text-muted fs-13 flex-grow-1">{{ c.description }}</p>
+              <form method="get" action="{% url 'cdr3cx:report_generate_now' %}" class="row g-1 align-items-end">
+                <input type="hidden" name="type" value="{{ c.key }}">
+                <div class="col-6">
+                  <label class="form-label fs-12 mb-1">Window</label>
+                  <select name="window" class="form-select form-select-sm">
+                    {% for key, label in windows.items %}<option value="{{ key }}">{{ label }}</option>{% endfor %}
+                  </select>
+                </div>
+                <div class="col-3">
+                  <label class="form-label fs-12 mb-1">Fmt</label>
+                  <select name="format" class="form-select form-select-sm">
+                    {% for f in formats %}<option value="{{ f }}">{{ f|upper }}</option>{% endfor %}
+                  </select>
+                </div>
+                <div class="col-3">
+                  <button class="btn btn-outline-primary btn-sm w-100" title="Generate"><i class="ri-download-2-line"></i></button>
+                </div>
+              </form>
+            </div>
+          </div>
+        </div>
+        {% endfor %}
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}

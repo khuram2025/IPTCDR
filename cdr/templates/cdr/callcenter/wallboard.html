@@ -1,0 +1,155 @@
+{% load static %}<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>ACD Wallboard — {{ company_name }}</title>
+  <style>
+    :root{
+      --bg:#0b1020; --panel:#141b30; --panel2:#1b2440; --ink:#e9eefb; --muted:#8a97b8;
+      --green:#19c37d; --amber:#f5b301; --red:#ff4d4f; --blue:#4c8dff; --line:#26324f;
+    }
+    *{box-sizing:border-box}
+    body{margin:0;background:var(--bg);color:var(--ink);
+      font-family:-apple-system,Segoe UI,Roboto,Helvetica,Arial,sans-serif;}
+    .wrap{padding:18px 22px;min-height:100vh;}
+    header{display:flex;align-items:center;justify-content:space-between;margin-bottom:16px;}
+    header h1{font-size:22px;margin:0;font-weight:700;letter-spacing:.3px;}
+    header .meta{display:flex;align-items:center;gap:18px;color:var(--muted);font-size:14px;}
+    #conn{display:inline-flex;align-items:center;gap:7px;font-weight:600;}
+    #conn .dot{width:10px;height:10px;border-radius:50%;background:var(--green);}
+    #conn.stale .dot{background:var(--amber);} #conn.down .dot{background:var(--red);}
+    #clock{font-variant-numeric:tabular-nums;font-size:18px;color:var(--ink);font-weight:600;}
+    .tiles{display:grid;grid-template-columns:repeat(6,1fr);gap:14px;margin-bottom:16px;}
+    .tile{background:var(--panel);border:1px solid var(--line);border-radius:14px;padding:16px 18px;}
+    .tile .label{color:var(--muted);font-size:13px;text-transform:uppercase;letter-spacing:.5px;}
+    .tile .val{font-size:46px;font-weight:800;line-height:1.1;margin-top:6px;font-variant-numeric:tabular-nums;}
+    .tile .sub{color:var(--muted);font-size:13px;margin-top:2px;}
+    .val.green{color:var(--green)} .val.amber{color:var(--amber)} .val.red{color:var(--red)} .val.blue{color:var(--blue)}
+    .cols{display:grid;grid-template-columns:1.1fr 1fr;gap:14px;}
+    .card{background:var(--panel);border:1px solid var(--line);border-radius:14px;overflow:hidden;}
+    .card h2{font-size:14px;margin:0;padding:13px 16px;border-bottom:1px solid var(--line);
+      color:var(--muted);text-transform:uppercase;letter-spacing:.5px;font-weight:700;}
+    table{width:100%;border-collapse:collapse;}
+    th,td{padding:10px 16px;text-align:left;font-size:15px;border-bottom:1px solid var(--line);}
+    th{color:var(--muted);font-size:12px;text-transform:uppercase;letter-spacing:.4px;}
+    td.num,th.num{text-align:right;font-variant-numeric:tabular-nums;}
+    tr:last-child td{border-bottom:none;}
+    .pill{display:inline-block;padding:2px 9px;border-radius:999px;font-size:12px;font-weight:700;}
+    .pill.talk{background:rgba(25,195,125,.16);color:var(--green);}
+    .pill.wait{background:rgba(245,179,1,.16);color:var(--amber);}
+    .badge{display:inline-block;padding:2px 10px;border-radius:8px;font-weight:800;font-size:14px;}
+    .badge.red{background:var(--red);color:#fff;} .badge.amber{background:var(--amber);color:#222;}
+    .badge.zero{background:var(--panel2);color:var(--muted);}
+    .empty{padding:22px 16px;color:var(--muted);font-size:14px;text-align:center;}
+    .ago{color:var(--muted);font-size:12px;}
+  </style>
+</head>
+<body>
+  <div class="wrap">
+    <header>
+      <h1>ACD Wallboard · <span style="color:var(--muted)">{{ company_name }}</span></h1>
+      <div class="meta">
+        <span id="conn"><span class="dot"></span><span id="connText">live</span></span>
+        <span id="updated" class="ago"></span>
+        <span id="clock"></span>
+      </div>
+    </header>
+
+    <div class="tiles">
+      <div class="tile"><div class="label">Calls Waiting</div><div id="t-waiting" class="val green">0</div><div class="sub" id="t-waiting-sub">in queue now</div></div>
+      <div class="tile"><div class="label">Talking</div><div id="t-talking" class="val blue">0</div><div class="sub">active conversations</div></div>
+      <div class="tile"><div class="label">Longest Wait</div><div id="t-longest" class="val green">—</div><div class="sub">current</div></div>
+      <div class="tile"><div class="label">Answered Today</div><div id="t-answered" class="val">0</div><div class="sub" id="t-answerrate">—</div></div>
+      <div class="tile"><div class="label">Abandoned Today</div><div id="t-abandoned" class="val">0</div><div class="sub">callers gave up</div></div>
+      <div class="tile"><div class="label">Open SLA Alerts</div><div id="t-alerts" class="val">—</div><div class="sub">today + yesterday</div></div>
+    </div>
+
+    <div class="cols">
+      <div class="card">
+        <h2>Queues — live</h2>
+        <table>
+          <thead><tr><th>Queue</th><th class="num">Waiting</th><th class="num">Calls today</th><th class="num">Answered</th><th class="num">Abandoned</th><th class="num">Answer %</th></tr></thead>
+          <tbody id="queues"><tr><td class="empty" colspan="6">Loading…</td></tr></tbody>
+        </table>
+      </div>
+      <div class="card">
+        <h2>Active calls now</h2>
+        <table>
+          <thead><tr><th>Status</th><th>From → To</th><th class="num">Duration</th></tr></thead>
+          <tbody id="calls"><tr><td class="empty" colspan="3">Loading…</td></tr></tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    const DATA_URL = "{% url 'cdr3cx:wallboard_data' %}";
+    const AMBER = 90, RED = 120;          // wait thresholds (seconds), match ThresholdPolicy
+    const esc = s => (s||'').replace(/[&<>"]/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+    const fmt = s => { if(s==null) return '—'; s=Math.max(0,Math.floor(s)); const m=Math.floor(s/60),x=s%60;
+                       return (m>=60?Math.floor(m/60)+':'+String(m%60).padStart(2,'0'):m)+':'+String(x).padStart(2,'0'); };
+    const waitClass = s => s==null?'green':(s>=RED?'red':(s>=AMBER?'amber':'green'));
+
+    function tickClock(){ document.getElementById('clock').textContent = new Date().toLocaleTimeString(); }
+    setInterval(tickClock, 1000); tickClock();
+
+    function setConn(state, text){
+      const c=document.getElementById('conn'); c.className=state;
+      document.getElementById('connText').textContent=text;
+    }
+
+    function render(d){
+      const L=d.live||{}, T=d.today||{}, A=d.alerts||{red:0,amber:0};
+      // waiting
+      const waiting = (L.calls||[]).filter(c=>c.waiting).length;
+      const wEl=document.getElementById('t-waiting');
+      wEl.textContent=waiting; wEl.className='val '+(waiting>=5?'red':(waiting>=1?'amber':'green'));
+      document.getElementById('t-waiting-sub').textContent = (L.connecting||0)+' connecting · '+(L.active_total||0)+' active';
+      document.getElementById('t-talking').textContent = L.talking||0;
+      const lEl=document.getElementById('t-longest');
+      lEl.textContent=L.longest_wait_formatted||'—'; lEl.className='val '+waitClass(L.longest_wait_seconds);
+      // today
+      document.getElementById('t-answered').textContent = T.answered||0;
+      document.getElementById('t-answerrate').textContent = (T.answer_rate==null?'—':T.answer_rate+'% answered · ASA '+(T.asa_formatted||'—'));
+      document.getElementById('t-abandoned').textContent = T.abandoned_today||0;
+      const aEl=document.getElementById('t-alerts');
+      aEl.innerHTML = (A.red?'<span class="badge red">'+A.red+' red</span> ':'')
+                    + (A.amber?'<span class="badge amber">'+A.amber+' amber</span>':'')
+                    + ((!A.red&&!A.amber)?'<span class="badge zero">none</span>':'');
+      // queues
+      const qb=document.getElementById('queues');
+      qb.innerHTML = (d.per_queue&&d.per_queue.length) ? d.per_queue.map(q=>{
+        const ar = q.answer_rate_today==null?'—':q.answer_rate_today+'%';
+        const wc = q.waiting_now>=5?'red':(q.waiting_now>=1?'amber':'');
+        return '<tr><td>'+esc(q.name)+' <span class="ago">('+esc(q.dn)+')</span></td>'
+          +'<td class="num"><span class="val '+(wc||'')+'" style="font-size:16px">'+q.waiting_now+'</span></td>'
+          +'<td class="num">'+q.calls_today+'</td><td class="num">'+q.answered_today+'</td>'
+          +'<td class="num">'+q.abandoned_today+'</td><td class="num">'+ar+'</td></tr>';
+      }).join('') : '<tr><td class="empty" colspan="6">No ACD queues configured</td></tr>';
+      // calls
+      const cb=document.getElementById('calls');
+      cb.innerHTML = (L.calls&&L.calls.length) ? L.calls.map(c=>{
+        const pill = c.waiting?'<span class="pill wait">'+esc(c.status||'Waiting')+'</span>'
+                              :'<span class="pill talk">'+esc(c.status||'Talking')+'</span>';
+        return '<tr><td>'+pill+'</td><td>'+esc(c.caller)+' <span class="ago">→</span> '+esc(c.callee)
+          +'</td><td class="num">'+esc(c.age_formatted)+'</td></tr>';
+      }).join('') : '<tr><td class="empty" colspan="3">No active calls</td></tr>';
+      // connection state
+      if(!d.ok){ setConn('down', d.error||'PBX unreachable'); }
+      else setConn('', 'live');
+      document.getElementById('updated').textContent = 'updated '+new Date().toLocaleTimeString();
+    }
+
+    let fails=0;
+    async function poll(){
+      try{
+        const r=await fetch(DATA_URL,{headers:{'X-Requested-With':'fetch'}});
+        if(!r.ok) throw new Error('HTTP '+r.status);
+        render(await r.json()); fails=0;
+      }catch(e){ fails++; if(fails>=2) setConn('stale','reconnecting…'); }
+    }
+    poll(); setInterval(poll, 5000);
+  </script>
+</body>
+</html>

@@ -12,6 +12,37 @@
     <div class="container-fluid">
       <h4 class="fs-16 mb-1">Welcome, Company Admin!</h4>
       <p class="text-muted mb-3">Manage users in your company.</p>
+
+      {% if messages %}{% for m in messages %}
+      <div class="alert alert-{{ m.tags }} alert-dismissible fade show" role="alert">{{ m }}<button type="button" class="btn-close" data-bs-dismiss="alert"></button></div>
+      {% endfor %}{% endif %}
+
+      <div class="row mb-4">
+        <div class="col-12 col-lg-6">
+          <div class="card">
+            <div class="card-header"><span class="fw-bold">Company Branding</span> <span class="text-muted fs-12">shown in the sidebar &amp; on reports</span></div>
+            <div class="card-body">
+              <form method="post" enctype="multipart/form-data">
+                {% csrf_token %}
+                <div class="mb-3">
+                  <label class="form-label">Company Name</label>
+                  {{ branding_form.name }}
+                </div>
+                <div class="mb-3">
+                  <label class="form-label">Logo</label>
+                  {% if company.logo %}
+                  <div class="mb-2"><img src="{{ company.logo.url }}" alt="{{ company.name }}" style="max-height:48px;max-width:200px;object-fit:contain;background:#2a3142;padding:6px 10px;border-radius:6px;"></div>
+                  {% endif %}
+                  {{ branding_form.logo }}
+                  <div class="form-text">PNG or JPG (transparent PNG looks best). Replaces &ldquo;Zentryc&rdquo; in the sidebar.</div>
+                </div>
+                <button type="submit" name="save_branding" value="1" class="btn btn-primary btn-sm">Save Branding</button>
+              </form>
+            </div>
+          </div>
+        </div>
+      </div>
+
       <div class="row mb-4">
         <div class="col-12">
           <div class="card">

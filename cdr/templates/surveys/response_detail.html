@@ -1,0 +1,61 @@
+{% extends 'partials/base.html' %}
+{% block title %}Survey Response{% endblock %}
+{% block content %}
+<div class="main-content">
+  <div class="page-content">
+    <div class="container-fluid">
+      <div class="mb-3">
+        <a href="{% url 'surveys:responses' %}" class="btn btn-sm btn-light"><i class="ri-arrow-left-line"></i> Back</a>
+      </div>
+      <div class="row g-3">
+        <div class="col-lg-6">
+          <div class="card border-0 shadow-sm">
+            <div class="card-header bg-transparent"><h5 class="mb-0">Survey Response</h5></div>
+            <div class="card-body">
+              <dl class="row mb-0">
+                <dt class="col-sm-4">Caller</dt><dd class="col-sm-8">{{ response.caller }}</dd>
+                <dt class="col-sm-4">Completed</dt><dd class="col-sm-8">{{ response.completed_at }}</dd>
+                <dt class="col-sm-4">Campaign</dt><dd class="col-sm-8">{{ response.campaign.name }}</dd>
+                <dt class="col-sm-4">Match</dt><dd class="col-sm-8">{{ response.get_match_confidence_display }}</dd>
+                <dt class="col-sm-4">Agent</dt><dd class="col-sm-8">{% if response.agent %}{{ response.agent.display_name }}{% else %}—{% endif %}</dd>
+                <dt class="col-sm-4">Queue</dt><dd class="col-sm-8">{% if response.queue %}{{ response.queue.name }}{% else %}—{% endif %}</dd>
+              </dl>
+            </div>
+          </div>
+        </div>
+        <div class="col-lg-6">
+          <div class="card border-0 shadow-sm">
+            <div class="card-header bg-transparent"><h5 class="mb-0">Answers</h5></div>
+            <ul class="list-group list-group-flush">
+              {% for a in response.answers.all %}
+              <li class="list-group-item d-flex justify-content-between">
+                <span><strong>{{ a.tag }}</strong>{% if a.question and a.question.prompt_text %}<br><small class="text-muted">{{ a.question.prompt_text }}</small>{% endif %}</span>
+                <span>
+                  {% if a.recording_path %}<code class="small">{{ a.recording_path }}</code>
+                  {% elif a.value_bool != None %}{{ a.value_bool|yesno:"Yes,No" }}
+                  {% elif a.value_numeric != None %}{{ a.value_numeric }}
+                  {% else %}{{ a.value_text }}{% endif %}
+                </span>
+              </li>
+              {% endfor %}
+            </ul>
+          </div>
+        </div>
+        {% if response.call_record %}
+        <div class="col-12">
+          <div class="card border-0 shadow-sm">
+            <div class="card-header bg-transparent d-flex justify-content-between">
+              <h5 class="mb-0">Linked Call</h5>
+              <a href="{% url 'cdr3cx:call_detail' response.call_record.pk %}" class="btn btn-sm btn-primary">Open Call Detail</a>
+            </div>
+            <div class="card-body">
+              <p class="mb-0">{{ response.call_record.caller }} → {{ response.call_record.callee }} at {{ response.call_record.call_time }}</p>
+            </div>
+          </div>
+        </div>
+        {% endif %}
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}

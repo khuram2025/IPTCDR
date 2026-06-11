@@ -1,4 +1,5 @@
 import os
+import json
 import logging
 from django.db.models.functions import Length
 from django.db.models.functions import TruncDate, TruncWeek, TruncMonth
@@ -8,6 +9,63 @@ from django.http import HttpResponse
 from django.utils.dateparse import parse_datetime
 from django.utils import timezone
 from datetime import datetime, timedelta
+
+IPT_PERIODS = [
+    ('today', 'Today'),
+    ('7d', '7D'),
+    ('1m', '1M'),
+    ('6m', '6M'),
+    ('1y', '1Y'),
+]
+
+DATE_FILTER_MAP = {
+    'today': 'today',
+    '7d': '7d',
+    '1m': '1M',
+    '6m': '6M',
+    '1y': '1Y',
+    'custom': 'custom',
+}
+
+
+def _ipt_date_range_label(time_period, start_date, end_date, custom_date_range):
+    labels = {
+        'today': 'Today',
+        '7d': 'Last 7 days',
+        '1m': 'Last 30 days',
+        '6m': 'Last 6 months',
+        '1y': 'Last year',
+    }
+    if time_period in labels:
+        return labels[time_period]
+    if custom_date_range:
+        return custom_date_range
+    return f"{start_date.strftime('%d %b %Y')} – {end_date.strftime('%d %b %Y')}"
+
+
+def _ipt_filter_context(time_period, custom_date_range, start_date, end_date, **extra):
+    date_range_label = _ipt_date_range_label(time_period, start_date, end_date, custom_date_range)
+    filter_params = {'time_period': time_period}
+    if custom_date_range:
+        filter_params['custom_date'] = custom_date_range
+    drill_params = {'date_filter': DATE_FILTER_MAP.get(time_period, '1M')}
+    if custom_date_range:
+        drill_params['custom_date'] = custom_date_range
+    ctx = {
+        'time_period': time_period,
+        'custom_date_range': custom_date_range,
+        'start_date': start_date.strftime('%Y-%m-%d'),
+        'end_date': end_date.strftime('%Y-%m-%d'),
+        'date_range_label': date_range_label,
+        'ipt_periods': IPT_PERIODS,
+        'filter_qs': urlencode(filter_params),
+        'drill_qs': urlencode(drill_params),
+        'date_filter': DATE_FILTER_MAP.get(time_period, '1M'),
+    }
+    ctx.update(extra)
+    return ctx
+
+
 from collections import Counter
 from .project_numbers import COUNTRY_CODES
 from .models import CallRecord, UserQuota
@@ -219,7 +277,8 @@ from django.db.models.functions import Length
 
 @login_required
 def dashboard(request):
-    now = timezone.now()
+    # Use local (Asia/Riyadh) time so "today" starts at local midnight, not UTC midnight.
+    now = timezone.localtime(timezone.now())
     time_period = request.GET.get('time_period', 'today')
     custom_date_range = request.GET.get('custom_date', '')
 
@@ -251,62 +310,50 @@ def dashboard(request):
 
     
     total_calls = call_records.count()
-    total_external_calls = call_records.filter(
-        Q(callee__regex=r'^\d{10}$') |
-        Q(callee__regex=r'^\+966\d{9}$') |
-        Q(callee__regex=r'^00966\d{9}$')
-    ).count()
-    total_international_calls = call_records.annotate(
-        callee_length=Length('callee')
-    ).filter(
-        (
-            Q(callee__startswith='+') |
-            Q(callee__startswith='00')
-        ) & ~(
-            Q(callee__startswith='+966') |
-            Q(callee__startswith='00966')
-        ) & Q(callee_length__gt=11)
-    ).count()
-    total_national_mobile_calls = call_records.annotate(callee_length=Length('callee')).filter(callee__startswith='05', callee_length=10).count()
-    total_national_calls = call_records.annotate(callee_length=Length('callee')).filter(callee__startswith='0', callee_length=9).count()
-    total_local_calls = call_records.annotate(callee_length=Length('callee')).filter(
-        callee_length__gt=4
-    ).exclude(
-        (
-            Q(callee__startswith='+') |
-            Q(callee__startswith='00')
-        ) & ~(
-            Q(callee__startswith='+966') |
-            Q(callee__startswith='00966')
-        ) & Q(callee_length__gt=11)
-    ).count()
+
+    # ----- Direction-aware, non-overlapping call buckets -----
+    # Two CDR schemas coexist in the data: the legacy 3CX socket feed
+    # ('Line'/'LineSet') and the newer vendor-neutral feed
+    # ('provider'/'extension'/'external_line'). Detect direction in a way that
+    # works for both so the buckets form a clean partition (they sum to total):
+    #   inbound  -> call arrived from a trunk/provider, or tagged direction=inbound
+    #   outbound -> a call to an external number that is NOT inbound
+    #   internal -> everything else (extension-to-extension, IVR, voicemail...)
+    _annotated = call_records.annotate(callee_length=Length('callee'))
+
+    # Inbound: legacy 'Line' or vendor-neutral 'provider' on the originating
+    # side, or an explicit inbound direction tag from the new ingestion.
+    inbound_q = Q(from_type__in=['Line', 'provider']) | Q(direction='inbound')
+
+    # An external (dialled-out) number: long enough to be a real PSTN number.
+    # Keying off the callee rather than to_type also captures rows where
+    # to_type was left 'unknown' by the feed but the number is clearly external.
+    international_pattern = (
+        (Q(callee__startswith='+') | Q(callee__startswith='00'))
+        & ~(Q(callee__startswith='+966') | Q(callee__startswith='00966'))
+        & Q(callee_length__gt=11)
+    )
+    external_q = Q(callee_length__gt=4)
+
+    # Outbound legs only (exclude anything already counted as inbound).
+    international_q = ~inbound_q & international_pattern
+    local_q = ~inbound_q & external_q & ~international_pattern
+
+    # Incoming card: real inbound calls.
+    total_incoming_calls = _annotated.filter(inbound_q).count()
+    incoming_call_cost = _annotated.filter(inbound_q).aggregate(Sum('total_cost'))['total_cost__sum'] or 0
+
+    total_international_calls = _annotated.filter(international_q).count()
+    international_call_cost = _annotated.filter(international_q).aggregate(Sum('total_cost'))['total_cost__sum'] or 0
+
+    total_local_calls = _annotated.filter(local_q).count()
+    local_call_cost = _annotated.filter(local_q).aggregate(Sum('total_cost'))['total_cost__sum'] or 0
+
+    # Internal = everything that is neither inbound nor an outbound external call.
+    total_internal_calls = _annotated.exclude(inbound_q).exclude(international_q).exclude(local_q).count()
 
     # Calculate costs after filtering by time period
     total_call_cost = call_records.aggregate(Sum('total_cost'))['total_cost__sum'] or 0
-
-    local_call_cost = call_records.annotate(callee_length=Length('callee')).filter(
-        callee_length__gt=4
-    ).exclude(
-        (
-            Q(callee__startswith='+') |
-            Q(callee__startswith='00')
-        ) & ~(
-            Q(callee__startswith='+966') |
-            Q(callee__startswith='00966')
-        ) & Q(callee_length__gt=11)
-    ).aggregate(Sum('total_cost'))['total_cost__sum'] or 0
-
-    international_call_cost = call_records.annotate(
-        callee_length=Length('callee')
-    ).filter(
-        (
-            Q(callee__startswith='+') |
-            Q(callee__startswith='00')
-        ) & ~(
-            Q(callee__startswith='+966') |
-            Q(callee__startswith='00966')
-        ) & Q(callee_length__gt=11)
-    ).aggregate(Sum('total_cost'))['total_cost__sum'] or 0
 
     # Calculate top talking countries
     countries = [record.country for record in call_records if record.country not in ('Unknown', 'Internal Company Call')]
@@ -336,16 +383,18 @@ def dashboard(request):
     else:
         caller_stats = caller_stats.order_by('-total_calls')  # Default sorting
     chart_time_period = request.GET.get('chart_time_period', '1M')
-    call_stats = get_call_stats(CallRecord.objects, chart_time_period)
+    company_qs = CallRecord.objects.filter(company=request.user.company)
+    call_stats = get_call_stats(company_qs, chart_time_period)
+    call_stats_json = json.dumps(list(call_stats), default=str)
+    recent_activity = call_records.order_by('-call_time')[:10]
 
     context = {
         'call_records': call_records,
         'total_calls': total_calls,
-        'total_external_calls': total_external_calls,
+        'total_incoming_calls': total_incoming_calls,
         'total_international_calls': total_international_calls,
-        'total_national_mobile_calls': total_national_mobile_calls,
-        'total_national_calls': total_national_calls,
         'total_local_calls': total_local_calls,
+        'total_internal_calls': total_internal_calls,
         'top_talking_countries': top_talking_countries,
         'time_period': time_period,
         'custom_date_range': custom_date_range,
@@ -355,17 +404,86 @@ def dashboard(request):
         'total_call_cost': total_call_cost,
         'local_call_cost': local_call_cost,
         'international_call_cost': international_call_cost,
+        'incoming_call_cost': incoming_call_cost,
         'sort_by': sort_by,
-
+        'call_stats_json': call_stats_json,
+        'recent_activity': recent_activity,
+        'start_date': start_date.strftime('%Y-%m-%d'),
+        'end_date': end_date.strftime('%Y-%m-%d'),
     }
+    # ===== Whole-company status band (dashboard upgrade) =====
+    from acd.kpi import real_queue_kpis, format_seconds
+    from accounts.models import Extension
+    from acd.models import QueueAlert
+    from billing.models import FraudIncident
+    from django.db.models import F
+
+    _company = request.user.company
+
+    # A) Contact Center health from the real 3CX XAPI data (same window)
+    cc = real_queue_kpis(_company, start_date, end_date)
+    cc['asa_fmt'] = format_seconds(cc.get('asa_seconds'))
+
+    # B) Extensions status (from the one-way 3CX sync)
+    _ext = Extension.objects.filter(company=_company)
+    ext_total = _ext.filter(is_active=True).count()
+    ext_online = _ext.filter(is_active=True, is_registered=True).count()
+    ext_blocked = _ext.filter(is_active=True, disable_external_call=True).count()
+    ext_last_synced = _ext.order_by('-last_synced_at').values_list('last_synced_at', flat=True).first()
+
+    # C) Billing & quota
+    _today0 = now.replace(hour=0, minute=0, second=0, microsecond=0)
+    _month0 = now.replace(day=1, hour=0, minute=0, second=0, microsecond=0)
+    spend_today = CallRecord.objects.filter(company=_company, call_time__gte=_today0).aggregate(s=Sum('total_cost'))['s'] or 0
+    spend_month = CallRecord.objects.filter(company=_company, call_time__gte=_month0).aggregate(s=Sum('total_cost'))['s'] or 0
+    _uq = UserQuota.objects.filter(extension__company=_company, quota__isnull=False)
+    quota_blocked = _uq.filter(is_blocked=True).count()
+    quota_low = _uq.annotate(rem=F('total_amount') - F('used_amount')).filter(rem__lt=10, rem__gte=0).count()
+    top_spenders = list(
+        call_records.values('caller', 'from_dispname')
+        .annotate(cost=Coalesce(Sum('total_cost'), Value(0, output_field=DecimalField())),
+                  calls=Count('id'))
+        .exclude(caller__isnull=True).exclude(caller='')
+        .order_by('-cost')[:5]
+    )
+
+    # D) Alerts & ingestion health
+    _alert_since = (now - timedelta(days=7)).date()
+    _alerts = QueueAlert.objects.filter(queue__company=_company, stat_date__gte=_alert_since)
+    alerts_red = _alerts.filter(severity='red').count()
+    alerts_amber = _alerts.filter(severity='amber').count()
+    fraud_open = FraudIncident.objects.filter(company=_company, status='open').count()
+    last_cdr = CallRecord.objects.filter(company=_company).order_by('-call_time').values_list('call_time', flat=True).first()
+    ingest_ok = bool(last_cdr and (now - last_cdr).total_seconds() < 3600)
+
+    context.update({
+        'cc': cc,
+        'ext_total': ext_total, 'ext_online': ext_online, 'ext_blocked': ext_blocked,
+        'ext_last_synced': ext_last_synced,
+        'spend_today': spend_today, 'spend_month': spend_month,
+        'quota_blocked': quota_blocked, 'quota_low': quota_low, 'top_spenders': top_spenders,
+        'alerts_red': alerts_red, 'alerts_amber': alerts_amber, 'fraud_open': fraud_open,
+        'last_cdr': last_cdr, 'ingest_ok': ingest_ok,
+    })
+
+    context.update(_ipt_filter_context(
+        time_period, custom_date_range, start_date, end_date,
+        toolbar_title='Telecom Analytics',
+        filter_base_url='',
+        reset_url='',
+    ))
+    from django.urls import reverse
+    context['filter_base_url'] = reverse('cdr3cx:dashboard')
+    context['reset_url'] = reverse('cdr3cx:dashboard')
     return render(request, 'cdr/dashboard.html', context)
 
 
+@login_required
 def update_call_stats(request):
     chart_time_period = request.GET.get('chart_time_period', '1M')
     logging.info(f"Updating call stats for period: {chart_time_period}")
-    
-    call_stats = get_call_stats(CallRecord.objects, chart_time_period)
+    qs = CallRecord.objects.filter(company=request.user.company) if request.user.company else CallRecord.objects.none()
+    call_stats = get_call_stats(qs, chart_time_period)
     logging.info(f"Call stats result: {call_stats}")
     
     return JsonResponse(call_stats, safe=False)
@@ -403,142 +521,144 @@ def update_country(request, record_id):
         record.country = country
         record.save()
     return redirect('dashboard')
+# ---- Shared, dual-schema call-direction filters (legacy 'Line' + vendor-neutral 'provider') ----
+def _call_direction_qs():
+    """Return (inbound_q, international_pattern, external_q). Requires the queryset
+    to be annotated with callee_length=Length('callee')."""
+    inbound_q = Q(from_type__in=['Line', 'provider']) | Q(direction='inbound')
+    international_pattern = (
+        (Q(callee__startswith='+') | Q(callee__startswith='00'))
+        & ~(Q(callee__startswith='+966') | Q(callee__startswith='00966'))
+        & Q(callee_length__gt=11)
+    )
+    external_q = Q(callee_length__gt=4)
+    return inbound_q, international_pattern, external_q
+
+
+# Tab key -> human label, in display order. 'all' first.
+CALL_DETAIL_TABS = [
+    ('all', 'All Calls'),
+    ('incoming', 'Incoming'),
+    ('outgoing', 'Outgoing'),
+    ('local', 'Local'),
+    ('international', 'International'),
+]
+
+
+def _tab_filter(tab):
+    """Return a Q object for the given tab (queryset must be annotated with callee_length)."""
+    inbound_q, international_pattern, external_q = _call_direction_qs()
+    if tab == 'incoming':
+        return inbound_q
+    if tab == 'outgoing':
+        return ~inbound_q & external_q
+    if tab == 'local':
+        return ~inbound_q & external_q & ~international_pattern
+    if tab == 'international':
+        return ~inbound_q & international_pattern
+    return Q()  # 'all'
+
+
 @login_required
 def all_calls_view(request):
-    search_query = request.GET.get('search', '')
-    per_page = request.GET.get('per_page', 100)
+    # ----- Tab -----
+    valid_tabs = [t for t, _ in CALL_DETAIL_TABS]
+    tab = request.GET.get('tab', 'all')
+    if tab not in valid_tabs:
+        tab = 'all'
 
-    # Ensure per_page is an integer, defaulting to 100 if not a valid integer
+    # ----- Rows per page (default 100) -----
     try:
-        per_page = int(per_page)
-    except ValueError:
+        per_page = int(request.GET.get('per_page', 100))
+    except (ValueError, TypeError):
+        per_page = 100
+    if per_page not in (10, 25, 50, 100, 250, 500):
         per_page = 100
 
-    # Check if user has a company assigned
-    if not request.user.company:
-        call_records = CallRecord.objects.none()
-    else:
-        call_records = CallRecord.objects.filter(company=request.user.company)
+    search_query = request.GET.get('search', '').strip()
 
-    if search_query:
-        call_records = call_records.filter(caller__icontains=search_query) | call_records.filter(callee__icontains=search_query)
-
-    paginator = Paginator(call_records, per_page)
-    page_number = request.GET.get('page')
-    page_obj = paginator.get_page(page_number)
-
-    return render(request, 'cdr/all_calls1.html', {'page_obj': page_obj, 'paginator': paginator, 'search_query': search_query, 'per_page': per_page})
-
-
-@login_required
-def outgoingExtCalls(request):
-    search_query = request.GET.get('search', '')
-    per_page = request.GET.get('per_page', 100)
-
-    # Ensure per_page is an integer, defaulting to 100 if not a valid integer
-    try:
-        per_page = int(per_page)
-    except ValueError:
-        per_page = 100
-
-    # Debug logging to identify the issue
-    import logging
-    logger = logging.getLogger(__name__)
-    logger.info(f"User: {request.user.email}, Company: {request.user.company.name if request.user.company else 'NO COMPANY'}")
-    
-    # Check if user has a company assigned
-    if not request.user.company:
-        logger.error(f"User {request.user.email} has no company assigned!")
-        # Return empty queryset if no company
-        call_records = CallRecord.objects.none()
-    else:
-        call_records = CallRecord.objects.filter(company=request.user.company).filter(Q(to_type="LineSet") | Q(to_type="Line"))
-
-    if search_query:
-        call_records = call_records.filter(caller__icontains=search_query) | call_records.filter(callee__icontains=search_query)
-
-    paginator = Paginator(call_records, per_page)
-    page_number = request.GET.get('page')
-    page_obj = paginator.get_page(page_number)
-
-    return render(request, 'cdr/outgoingExtCalls.html', {'page_obj': page_obj, 'paginator': paginator, 'search_query': search_query, 'per_page': per_page})
-@login_required
-def incomingCalls(request):
-    search_query = request.GET.get('search', '')
-    per_page = request.GET.get('per_page', 100)
-
-    # Ensure per_page is an integer, defaulting to 100 if not a valid integer
-    try:
-        per_page = int(per_page)
-    except ValueError:
-        per_page = 100
-
-    # Check if user has a company assigned
-    if not request.user.company:
-        call_records = CallRecord.objects.none()
-    else:
-        call_records = CallRecord.objects.filter(company=request.user.company, from_type="Line")
-
-    if search_query:
-        call_records = call_records.filter(Q(caller__icontains=search_query) | Q(callee__icontains=search_query))
-
-    paginator = Paginator(call_records, per_page)
-    page_number = request.GET.get('page')
-    page_obj = paginator.get_page(page_number)
-
-    return render(request, 'cdr/incomingCalls.html', {'page_obj': page_obj, 'paginator': paginator, 'search_query': search_query, 'per_page': per_page})
-@login_required
-def outgoingInternationalCalls(request):
-    search_query = request.GET.get('search', '')
-    per_page = request.GET.get('per_page', 100)
-    time_period = request.GET.get('time_period', '7d')
-    custom_date_range = request.GET.get('custom_date', '')
-
-    try:
-        per_page = int(per_page)
-    except ValueError:
-        per_page = 100
-
+    # ----- Date range (default 'today', local tz) -----
     start_date, end_date, time_period, custom_date_range = get_date_range(request)
 
-    call_records = CallRecord.objects.filter(company=request.user.company).filter(
-        Q(callee__regex=r'^\+[^9]') | 
-        Q(callee__regex=r'^\+9[0-8]') | 
-        Q(callee__regex=r'^00[^9]') | 
-        Q(callee__regex=r'^009[0-8]'),
-        call_time__range=[start_date, end_date],
-        duration__isnull=False
-    ).exclude(
-        Q(callee__startswith='+966') | Q(callee__startswith='00966')
-    )
+    # ----- Base queryset: company + date window -----
+    if not getattr(request.user, 'company', None):
+        base_qs = CallRecord.objects.none()
+    else:
+        base_qs = CallRecord.objects.filter(
+            company=request.user.company,
+            call_time__range=[start_date, end_date],
+        )
+    base_qs = base_qs.annotate(callee_length=Length('callee'))
 
     if search_query:
-        call_records = call_records.filter(Q(caller__icontains=search_query) | Q(callee__icontains=search_query))
+        base_qs = base_qs.filter(
+            Q(caller__icontains=search_query)
+            | Q(callee__icontains=search_query)
+            | Q(from_dispname__icontains=search_query)
+        )
 
-    # Calculate summary data
-    summary = call_records.aggregate(
-        total_calls=Count('id'),
-        total_duration=Sum('duration'),
-        total_cost=Sum('total_cost')
-    )
+    # ----- Per-tab counts (badges) on the same date+search window -----
+    tabs_with_counts = [
+        {'key': t, 'label': label, 'count': base_qs.filter(_tab_filter(t)).count()}
+        for t, label in CALL_DETAIL_TABS
+    ]
 
-    paginator = Paginator(call_records, per_page)
-    page_number = request.GET.get('page')
-    page_obj = paginator.get_page(page_number)
+    # ----- Apply selected tab + order + paginate -----
+    records = base_qs.filter(_tab_filter(tab)).order_by('-call_time')
+    paginator = Paginator(records, per_page)
+    page_obj = paginator.get_page(request.GET.get('page'))
+
+    # ----- Query strings for links that must preserve other params -----
+    def _qs(exclude):
+        params = request.GET.copy()
+        for key in exclude:
+            params.pop(key, None)
+        return params.urlencode()
 
     context = {
         'page_obj': page_obj,
         'paginator': paginator,
         'search_query': search_query,
         'per_page': per_page,
+        'tab': tab,
+        'tabs_with_counts': tabs_with_counts,
         'time_period': time_period,
         'custom_date_range': custom_date_range,
-        'total_calls': summary['total_calls'],
-        'total_duration': summary['total_duration'] // 60 if summary['total_duration'] else 0,  # Convert seconds to minutes
-        'total_cost': summary['total_cost'] or 0,
+        'ipt_periods': IPT_PERIODS,
+        'start_date': start_date.strftime('%Y-%m-%d'),
+        'end_date': end_date.strftime('%Y-%m-%d'),
+        # link helpers
+        'pagination_qs': _qs(['page']),                       # keep all but page
+        'tab_qs': _qs(['page', 'tab']),                       # keep all but page+tab
+        'period_qs': _qs(['page', 'time_period', 'custom_date']),  # keep all but page+period
     }
+    return render(request, 'cdr/call_details.html', context)
 
-    return render(request, 'cdr/outgoingInternationalCalls.html', context)
+
+# The standalone Incoming / Outgoing / International list pages were merged into the
+# unified Call Details page (all_calls_view) as tabs. These now redirect there,
+# preserving the time filter, custom range and search so old links/bookmarks keep working.
+def _redirect_to_call_details(request, tab):
+    from django.urls import reverse
+    params = request.GET.copy()
+    params['tab'] = tab
+    params.pop('page', None)  # land on page 1 of the tab
+    return redirect(f"{reverse('cdr3cx:all_calls')}?{params.urlencode()}")
+
+
+@login_required
+def outgoingExtCalls(request):
+    return _redirect_to_call_details(request, 'outgoing')
+
+
+@login_required
+def incomingCalls(request):
+    return _redirect_to_call_details(request, 'incoming')
+
+
+@login_required
+def outgoingInternationalCalls(request):
+    return _redirect_to_call_details(request, 'international')
 @login_required
 def local_calls_view(request):
     call_records = CallRecord.objects.annotate(callee_length=Length('callee')).filter(company=request.user.company, callee_length=4)
@@ -558,7 +678,7 @@ def landing_page(request):
     No authentication required - SEO optimized
     """
     context = {
-        'meta_title': '3CX Billing Software | Advanced Call Control & Analytics | Channab',
+        'meta_title': '3CX Billing Software | Advanced Call Control & Analytics | Zentryc',
         'meta_description': 'Professional 3CX billing software with real-time call analytics, quota management, and comprehensive reporting. Streamline your telecommunications billing today.',
         'meta_keywords': '3CX billing, call control software, telecommunications billing, call analytics, VoIP billing, PBX billing system',
         'page_title': '3CX Billing & Call Control Software',
@@ -699,6 +819,7 @@ from django.db.models import Sum, Count
 from django.utils import timezone
 from dateutil.relativedelta import relativedelta
 
+@login_required
 def caller_calls_view(request, caller_number):
     search_query = request.GET.get('search', '')
     per_page = request.GET.get('per_page', 100)
@@ -906,26 +1027,74 @@ def caller_calls_view(request, caller_number):
 from django.db.models import Count, Sum
 from django.db.models.functions import Substr
 
+@login_required
 def call_record_summary_view(request):
-    # Grouping records by category and pattern prefix
-    summary = CallRecord.objects.annotate(
-        pattern_prefix=Substr('callee', 1, 3)  # Adjust the substring length to match your pattern
+    if not request.user.company:
+        return render(request, 'cdr/call_record_summary.html', {'error': 'No company assigned'})
+
+    now = timezone.now()
+    time_period = request.GET.get('time_period', '1m')
+    custom_date_range = request.GET.get('custom_date', '')
+    if time_period == 'today':
+        start_date = now.replace(hour=0, minute=0, second=0, microsecond=0)
+        end_date = now
+    elif time_period == '7d':
+        start_date = now - timedelta(days=7)
+        end_date = now
+    elif time_period == '1m':
+        start_date = now - timedelta(days=30)
+        end_date = now
+    elif time_period == '6m':
+        start_date = now - timedelta(days=182)
+        end_date = now
+    elif time_period == '1y':
+        start_date = now - timedelta(days=365)
+        end_date = now
+    elif time_period == 'custom' and custom_date_range:
+        start_date_str, end_date_str = custom_date_range.split(' to ', 1)
+        start_date = timezone.make_aware(datetime.strptime(start_date_str.strip(), '%d %b, %Y'))
+        end_date = timezone.make_aware(
+            datetime.strptime(end_date_str.strip(), '%d %b, %Y').replace(hour=23, minute=59, second=59)
+        )
+    else:
+        start_date = now - timedelta(days=30)
+        end_date = now
+        time_period = '1m'
+
+    base_qs = CallRecord.objects.filter(
+        company=request.user.company,
+        call_time__range=[start_date, end_date],
+    )
+    summary = base_qs.annotate(
+        pattern_prefix=Substr('callee', 1, 3)
     ).values(
-        'call_category',
-        'pattern_prefix'
+        'call_category', 'pattern_prefix'
     ).annotate(
         count=Count('id'),
         total_cost=Sum('total_cost')
     ).order_by('call_category', 'pattern_prefix')
 
+    total_count = base_qs.count()
+    total_cost = base_qs.aggregate(Sum('total_cost'))['total_cost__sum'] or 0
+
+    from django.urls import reverse
     context = {
         'summary': summary,
+        'total_count': total_count,
+        'total_cost': total_cost,
     }
-    return render(request, "cdr/call_record_summary.html", context)
+    context.update(_ipt_filter_context(
+        time_period, custom_date_range, start_date, end_date,
+        toolbar_title='Call Summary',
+        filter_base_url=reverse('cdr3cx:callrecord_summary'),
+        reset_url=reverse('cdr3cx:callrecord_summary'),
+    ))
+    return render(request, 'cdr/call_record_summary.html', context)
 
 
 from django.core.mail import send_mail
 from django.conf import settings
+from cdr3cx.notification_utils import resolve_extension_alert_email
 from decimal import Decimal
 
 def check_balance_and_send_email():
@@ -957,7 +1126,8 @@ def check_balance_and_send_email():
                 Your System
                 """
                 from_email = settings.DEFAULT_FROM_EMAIL
-                recipient_list = ['khuram2025@gmail.com']  # Add any other recipients here
+                recipient = resolve_extension_alert_email(user_quota.extension)
+                recipient_list = [recipient] if recipient else []
 
                 # Send email
                 send_mail(

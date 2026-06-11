@@ -27,8 +27,8 @@ def build(company, *, hours: int = 24) -> dict:
     # Top-level counters
     counts = qs.aggregate(
         total=Count('id'),
-        answered=Count('id', filter=~Q(reason_terminated='NoAnswer') & ~Q(duration=None)),
-        missed=Count('id', filter=Q(reason_terminated='NoAnswer')),
+        answered=Count('id', filter=Q(time_answered__isnull=False)),
+        missed=Count('id', filter=Q(time_answered__isnull=True)),
         total_duration=Sum('duration'),
         total_cost=Sum('total_cost'),
         avg_duration=Avg('duration'),

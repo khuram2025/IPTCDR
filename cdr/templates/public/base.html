@@ -1,0 +1,247 @@
+{% load static %}<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta http-equiv="X-UA-Compatible" content="IE=edge">
+
+  <title>{% block title %}Zentryc — Cloud Call-Center Analytics & Telecom Billing{% endblock %}</title>
+  <meta name="description" content="{% block meta_description %}Zentryc is a multi-tenant SaaS platform for real-time call-center analytics, supervisor wallboards, agent productivity, SLA alerting, automated reporting and telecom billing for 3CX and multi-vendor PBX environments.{% endblock %}">
+  <meta name="keywords" content="{% block meta_keywords %}call center analytics, 3CX reporting, supervisor wallboard, ACD KPIs, ASA, abandonment rate, agent productivity, SLA alerts, telecom billing, VoIP billing, call accounting, fraud detection, multi-tenant SaaS{% endblock %}">
+  <meta name="author" content="Zentryc">
+  <meta name="robots" content="index, follow">
+  <link rel="canonical" href="https://connect.zentryc.com{% block canonical %}/{% endblock %}">
+
+  <!-- Open Graph -->
+  <meta property="og:site_name" content="Zentryc">
+  <meta property="og:type" content="website">
+  <meta property="og:title" content="{% block og_title %}Zentryc — Cloud Call-Center Analytics & Telecom Billing{% endblock %}">
+  <meta property="og:description" content="{% block og_description %}Real-time ACD analytics, live wallboards, agent productivity, SLA alerts, automated reports and billing — one SaaS platform for 3CX and beyond.{% endblock %}">
+  <meta property="og:url" content="https://connect.zentryc.com{% block og_url %}/{% endblock %}">
+  <meta property="og:image" content="https://connect.zentryc.com{% static 'images/logo-dark.png' %}">
+  <!-- Twitter -->
+  <meta name="twitter:card" content="summary_large_image">
+  <meta name="twitter:title" content="{% block tw_title %}Zentryc — Call-Center Analytics & Telecom Billing{% endblock %}">
+  <meta name="twitter:description" content="Real-time ACD analytics, wallboards, SLA alerts, reports and billing for 3CX and multi-vendor PBX.">
+
+  <link rel="icon" href="{% static 'images/favicon.ico' %}">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
+  <link href="https://cdn.jsdelivr.net/npm/remixicon@4.2.0/fonts/remixicon.css" rel="stylesheet">
+
+  <script type="application/ld+json">
+  {
+    "@context": "https://schema.org",
+    "@type": "Organization",
+    "name": "Zentryc",
+    "url": "https://connect.zentryc.com",
+    "logo": "https://connect.zentryc.com{% static 'images/logo-dark.png' %}",
+    "description": "Multi-tenant SaaS for call-center analytics and telecom billing.",
+    "sameAs": []
+  }
+  </script>
+  {% block structured_data %}{% endblock %}
+
+  <style>
+    :root{
+      --indigo:#4f46e5; --violet:#7c3aed; --cyan:#06b6d4; --ink:#0f172a;
+      --slate:#475569; --muted:#64748b; --line:#e2e8f0; --bg:#ffffff;
+      --soft:#f8fafc; --soft2:#f1f5f9; --green:#10b981; --amber:#f59e0b;
+      --radius:16px; --grad:linear-gradient(135deg,#4f46e5 0%,#7c3aed 55%,#06b6d4 130%);
+      --shadow:0 10px 30px -12px rgba(15,23,42,.18); --shadow-lg:0 24px 60px -20px rgba(79,70,229,.45);
+    }
+    *{box-sizing:border-box} html{scroll-behavior:smooth}
+    body{margin:0;font-family:'Inter',-apple-system,Segoe UI,Roboto,Arial,sans-serif;
+      color:var(--ink);background:var(--bg);line-height:1.6;-webkit-font-smoothing:antialiased;}
+    a{color:inherit;text-decoration:none}
+    img{max-width:100%}
+    .wrap{max-width:1160px;margin:0 auto;padding:0 22px}
+    .sec{padding:84px 0}
+    h1,h2,h3{line-height:1.15;letter-spacing:-.02em;margin:0 0 .4em}
+    h1{font-size:clamp(2.2rem,5vw,3.6rem);font-weight:900}
+    h2{font-size:clamp(1.7rem,3.5vw,2.5rem);font-weight:800}
+    h3{font-size:1.18rem;font-weight:700}
+    p{color:var(--slate)}
+    .eyebrow{display:inline-block;font-weight:700;font-size:.8rem;letter-spacing:.12em;
+      text-transform:uppercase;color:var(--indigo);background:#eef2ff;padding:6px 13px;border-radius:999px;margin-bottom:16px}
+    .lead{font-size:1.15rem;color:var(--slate);max-width:640px}
+    .center{text-align:center} .center .lead{margin-left:auto;margin-right:auto}
+    .grad-text{background:var(--grad);-webkit-background-clip:text;background-clip:text;color:transparent}
+
+    /* buttons */
+    .btn{display:inline-flex;align-items:center;gap:8px;font-weight:600;font-size:.97rem;
+      padding:13px 24px;border-radius:12px;border:1px solid transparent;cursor:pointer;transition:.18s;}
+    .btn-primary{background:var(--grad);color:#fff;box-shadow:var(--shadow-lg)}
+    .btn-primary:hover{transform:translateY(-2px);filter:brightness(1.05)}
+    .btn-ghost{background:#fff;color:var(--ink);border-color:var(--line)}
+    .btn-ghost:hover{border-color:var(--indigo);color:var(--indigo)}
+    .btn-light{background:rgba(255,255,255,.14);color:#fff;border-color:rgba(255,255,255,.28)}
+    .btn-light:hover{background:rgba(255,255,255,.24)}
+
+    /* nav */
+    header.nav{position:sticky;top:0;z-index:50;background:rgba(255,255,255,.85);
+      backdrop-filter:saturate(180%) blur(12px);border-bottom:1px solid var(--line)}
+    .nav-in{display:flex;align-items:center;justify-content:space-between;height:70px}
+    .brand{display:flex;align-items:center;gap:10px;font-weight:900;font-size:1.32rem;letter-spacing:-.03em}
+    .brand .dot{width:30px;height:30px;border-radius:9px;background:var(--grad);display:inline-flex;
+      align-items:center;justify-content:center;color:#fff;font-weight:900;box-shadow:var(--shadow-lg)}
+    .nav-links{display:flex;align-items:center;gap:30px}
+    .nav-links a.link{font-weight:600;color:var(--slate);font-size:.96rem}
+    .nav-links a.link:hover{color:var(--indigo)}
+    .nav-cta{display:flex;align-items:center;gap:12px}
+    .menu-btn{display:none;background:none;border:0;font-size:1.6rem;cursor:pointer;color:var(--ink)}
+    @media(max-width:880px){
+      .nav-links{display:none} .menu-btn{display:block}
+      .nav-links.open{display:flex;position:absolute;top:70px;left:0;right:0;background:#fff;
+        flex-direction:column;gap:14px;padding:20px 22px;border-bottom:1px solid var(--line)}
+    }
+
+    /* hero */
+    .hero{position:relative;overflow:hidden;background:
+      radial-gradient(1100px 500px at 80% -10%,rgba(124,58,237,.16),transparent),
+      radial-gradient(900px 500px at 0% 10%,rgba(6,182,212,.12),transparent);}
+    .hero-grid{display:grid;grid-template-columns:1.05fr .95fr;gap:50px;align-items:center}
+    @media(max-width:920px){.hero-grid{grid-template-columns:1fr;gap:34px}}
+    .badge-row{display:flex;gap:10px;flex-wrap:wrap;margin:22px 0 26px}
+    .chip{font-size:.82rem;font-weight:600;color:var(--slate);background:#fff;border:1px solid var(--line);
+      padding:7px 13px;border-radius:999px;display:inline-flex;gap:7px;align-items:center}
+    .chip svg{color:var(--green)}
+    .hero-cta{display:flex;gap:14px;flex-wrap:wrap;margin-top:8px}
+    /* hero mock dashboard */
+    .mock{background:#fff;border:1px solid var(--line);border-radius:20px;box-shadow:var(--shadow-lg);overflow:hidden}
+    .mock .bar{display:flex;gap:6px;padding:13px 16px;background:var(--soft);border-bottom:1px solid var(--line)}
+    .mock .bar i{width:11px;height:11px;border-radius:50%;background:#cbd5e1}
+    .mock .body{padding:18px}
+    .kpis{display:grid;grid-template-columns:repeat(3,1fr);gap:12px;margin-bottom:14px}
+    .kpi{background:var(--soft);border:1px solid var(--line);border-radius:12px;padding:13px}
+    .kpi .l{font-size:.7rem;text-transform:uppercase;letter-spacing:.06em;color:var(--muted);font-weight:700}
+    .kpi .v{font-size:1.5rem;font-weight:800;margin-top:3px}
+    .kpi .v.g{color:var(--green)} .kpi .v.a{color:var(--amber)} .kpi .v.i{color:var(--indigo)}
+    .bars{display:flex;align-items:flex-end;gap:8px;height:96px;padding:10px;background:var(--soft);border-radius:12px}
+    .bars span{flex:1;border-radius:6px 6px 0 0;background:var(--grad);opacity:.85}
+
+    /* trust strip */
+    .trust{display:grid;grid-template-columns:repeat(4,1fr);gap:24px;text-align:center}
+    @media(max-width:760px){.trust{grid-template-columns:repeat(2,1fr);gap:18px}}
+    .trust .n{font-size:2.1rem;font-weight:900}
+    .trust .t{color:var(--muted);font-weight:600;font-size:.92rem}
+
+    /* feature cards */
+    .cards{display:grid;grid-template-columns:repeat(3,1fr);gap:22px}
+    @media(max-width:920px){.cards{grid-template-columns:repeat(2,1fr)}}
+    @media(max-width:600px){.cards{grid-template-columns:1fr}}
+    .card{background:#fff;border:1px solid var(--line);border-radius:var(--radius);padding:26px;
+      transition:.2s;height:100%}
+    .card:hover{transform:translateY(-4px);box-shadow:var(--shadow);border-color:#c7d2fe}
+    .ic{width:50px;height:50px;border-radius:13px;background:#eef2ff;color:var(--indigo);
+      display:flex;align-items:center;justify-content:center;margin-bottom:16px;font-size:24px}
+    .ic svg{width:24px;height:24px}
+    .chip i{color:var(--green)} .btn i{font-size:1.05em}
+    .card h3{margin-bottom:8px} .card p{font-size:.96rem;margin:0}
+
+    /* alt section */
+    .soft{background:var(--soft)}
+    .dark{background:linear-gradient(160deg,#0f172a,#1e1b4b 70%);color:#fff}
+    .dark h2,.dark h3{color:#fff} .dark p{color:#cbd5e1}
+    .dark .eyebrow{background:rgba(255,255,255,.1);color:#c4b5fd}
+
+    /* steps */
+    .steps{display:grid;grid-template-columns:repeat(3,1fr);gap:24px}
+    @media(max-width:820px){.steps{grid-template-columns:1fr}}
+    .step{position:relative;padding:26px;border-radius:var(--radius);background:#fff;border:1px solid var(--line)}
+    .step .num{width:40px;height:40px;border-radius:11px;background:var(--grad);color:#fff;font-weight:800;
+      display:flex;align-items:center;justify-content:center;margin-bottom:14px}
+
+    /* list */
+    .ticks{list-style:none;padding:0;margin:18px 0 0;display:grid;gap:12px}
+    .ticks li{display:flex;gap:11px;align-items:flex-start;color:var(--slate);font-weight:500}
+    .ticks li svg{flex:none;color:var(--green);margin-top:3px}
+
+    /* CTA band */
+    .cta{border-radius:24px;padding:54px;text-align:center;background:var(--grad);color:#fff;box-shadow:var(--shadow-lg)}
+    .cta h2{color:#fff} .cta p{color:rgba(255,255,255,.9)}
+
+    /* footer */
+    footer.ft{background:#0b1220;color:#94a3b8;padding:60px 0 30px}
+    .ft-grid{display:grid;grid-template-columns:1.4fr 1fr 1fr 1fr;gap:32px}
+    @media(max-width:820px){.ft-grid{grid-template-columns:1fr 1fr}}
+    footer.ft h4{color:#fff;font-size:.95rem;margin:0 0 14px;letter-spacing:.02em}
+    footer.ft a{display:block;color:#94a3b8;padding:5px 0;font-size:.92rem}
+    footer.ft a:hover{color:#fff}
+    .ft-bot{border-top:1px solid #1e293b;margin-top:40px;padding-top:22px;display:flex;
+      justify-content:space-between;gap:14px;flex-wrap:wrap;font-size:.86rem}
+    .ft-brand{color:#fff;font-weight:900;font-size:1.3rem;display:flex;align-items:center;gap:10px;margin-bottom:12px}
+
+    /* pricing */
+    .price-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:24px;align-items:stretch}
+    @media(max-width:900px){.price-grid{grid-template-columns:1fr}}
+    .plan{background:#fff;border:1px solid var(--line);border-radius:20px;padding:32px;display:flex;flex-direction:column}
+    .plan.hot{border:2px solid var(--indigo);box-shadow:var(--shadow-lg);position:relative}
+    .plan.hot:before{content:'Most popular';position:absolute;top:-13px;left:50%;transform:translateX(-50%);
+      background:var(--grad);color:#fff;font-size:.72rem;font-weight:700;padding:5px 14px;border-radius:999px;letter-spacing:.05em}
+    .plan .pname{font-weight:800;font-size:1.15rem}
+    .plan .pprice{font-size:2.6rem;font-weight:900;margin:10px 0 2px}
+    .plan .pprice small{font-size:.95rem;font-weight:600;color:var(--muted)}
+    .section-head{max-width:680px;margin:0 auto 50px}
+  </style>
+</head>
+<body>
+  <header class="nav">
+    <div class="wrap nav-in">
+      <a href="/" class="brand"><span class="dot">Z</span>Zentryc</a>
+      <nav class="nav-links" id="navlinks">
+        <a class="link" href="/features/">Features</a>
+        <a class="link" href="/#modules">Platform</a>
+        <a class="link" href="/pricing/">Pricing</a>
+        <a class="link" href="/about/">About</a>
+        <a class="link" href="/kb/">Knowledge Base</a>
+        <a class="link" href="/contact/">Contact</a>
+      </nav>
+      <div class="nav-cta">
+        <a class="link" href="/accounts/login/" style="font-weight:600">Sign in</a>
+        <a class="btn btn-primary" href="/contact/">Book a demo</a>
+        <button class="menu-btn" onclick="document.getElementById('navlinks').classList.toggle('open')">&#9776;</button>
+      </div>
+    </div>
+  </header>
+
+  {% block body %}{% endblock %}
+
+  <footer class="ft">
+    <div class="wrap">
+      <div class="ft-grid">
+        <div>
+          <div class="ft-brand"><span class="dot" style="width:30px;height:30px;border-radius:9px;background:var(--grad);display:inline-flex;align-items:center;justify-content:center">Z</span>Zentryc</div>
+          <p style="max-width:320px">Cloud call-center intelligence and telecom billing for 3CX and multi-vendor PBX estates. Built for contact centers that need the truth, in real time.</p>
+        </div>
+        <div>
+          <h4>Product</h4>
+          <a href="/features/">Features</a>
+          <a href="/#modules">Platform modules</a>
+          <a href="/pricing/">Pricing</a>
+          <a href="/kb/">Knowledge Base</a>
+          <a href="/accounts/login/">Sign in</a>
+        </div>
+        <div>
+          <h4>Solutions</h4>
+          <a href="/features/#analytics">Call-center analytics</a>
+          <a href="/features/#realtime">Live wallboards</a>
+          <a href="/features/#billing">Telecom billing</a>
+          <a href="/features/#security">Security &amp; compliance</a>
+        </div>
+        <div>
+          <h4>Company</h4>
+          <a href="/about/">About us</a>
+          <a href="/contact/">Contact</a>
+          <a href="/contact/">Book a demo</a>
+        </div>
+      </div>
+      <div class="ft-bot">
+        <span>© {% now "Y" %} Zentryc. All rights reserved.</span>
+        <span>Real-time ACD analytics · SLA alerting · Telecom billing · Multi-tenant SaaS</span>
+      </div>
+    </div>
+  </footer>
+</body>
+</html>

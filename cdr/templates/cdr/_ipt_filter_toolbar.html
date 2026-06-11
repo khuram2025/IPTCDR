@@ -1,0 +1,71 @@
+{% load static %}
+<div class="cc-toolbar card border-0 shadow-sm mb-3">
+  <div class="card-body py-2 px-3">
+    <div class="d-flex flex-wrap align-items-center justify-content-between gap-2">
+      <div class="d-flex align-items-center gap-2 min-w-0">
+        <div class="cc-toolbar-icon cc-toolbar-icon-ipt">
+          <i class="ri-pulse-line"></i>
+        </div>
+        <div class="min-w-0">
+          <h5 class="mb-0 fw-semibold text-truncate">{{ toolbar_title|default:"Telecom Analytics" }}</h5>
+          <span class="text-muted fs-12">{{ date_range_label }}</span>
+        </div>
+      </div>
+
+      <form id="iptFilterForm" method="get" action="{{ filter_action|default:'' }}" class="d-flex flex-wrap align-items-center gap-2">
+        <div class="btn-group cc-period-group" role="group" aria-label="Quick date filters">
+          {% for period, label in ipt_periods %}
+          <a href="{{ filter_base_url }}?time_period={{ period }}"
+             class="btn btn-sm text-decoration-none {% if time_period == period %}btn-primary{% else %}btn-light{% endif %}">{{ label }}</a>
+          {% endfor %}
+        </div>
+
+        <div class="cc-date-range cc-date-range-wide">
+          <input type="text" class="form-control form-control-sm" name="custom_date" id="customDateInput"
+                 placeholder="Custom range" value="{{ custom_date_range }}" aria-label="Custom date range">
+        </div>
+
+        <input type="hidden" name="time_period" id="timePeriodInput" value="{{ time_period|default:'today' }}">
+        {% if sort_by %}<input type="hidden" name="sort_by" value="{{ sort_by }}">{% endif %}
+
+        <div class="d-flex gap-1">
+          <button type="submit" class="btn btn-primary btn-sm px-3">
+            <i class="ri-filter-3-line me-1"></i>Apply
+          </button>
+          <a href="{{ reset_url }}" class="btn btn-light btn-sm" title="Reset"><i class="ri-restart-line"></i></a>
+        </div>
+      </form>
+
+      {% if show_nav_links %}
+      <div class="d-flex flex-wrap gap-1">
+        <a href="{% url 'cdr3cx:call_center_dashboard' %}" class="btn btn-soft-info btn-sm"><i class="ri-customer-service-2-line me-1"></i>Call Center</a>
+      </div>
+      {% endif %}
+    </div>
+  </div>
+</div>
+
+<script>
+(function () {
+  const form = document.getElementById('iptFilterForm');
+  const periodInput = document.getElementById('timePeriodInput');
+  const customInput = document.getElementById('customDateInput');
+  if (!form) return;
+  form.addEventListener('submit', function () {
+    if (customInput && customInput.value && customInput.value.includes(' to ')) {
+      periodInput.value = 'custom';
+    }
+  });
+  if (customInput && window.flatpickr) {
+    flatpickr(customInput, {
+      mode: 'range',
+      dateFormat: 'd M, Y',
+      onChange: function (selectedDates) {
+        if (selectedDates.length === 2) {
+          periodInput.value = 'custom';
+        }
+      }
+    });
+  }
+})();
+</script>

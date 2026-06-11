@@ -1,21 +1,84 @@
-<h1>Call Record Summary</h1>
-<table>
-  <thead>
-    <tr>
-      <th>Call Category</th>
-      <th>Matching Pattern</th>
-      <th>Number of Calls</th>
-      <th>Total Cost</th>
-    </tr>
-  </thead>
-  <tbody>
-    {% for record in summary %}
-    <tr>
-      <td>{{ record.call_category }}</td>
-      <td>{{ record.pattern_prefix }}xxxxxxxxx</td>
-      <td>{{ record.count }}</td>
-      <td>{{ record.total_cost }}</td>
-    </tr>
-    {% endfor %}
-  </tbody>
-</table>
+{% extends 'partials/base.html' %}
+{% load static %}
+
+{% block title %}Call Summary{% endblock %}
+
+{% block extra_css %}
+<link rel="stylesheet" href="{% static 'css/callcenter-dashboard.css' %}">
+<link rel="stylesheet" href="{% static 'css/ipt-dashboard.css' %}">
+{% endblock %}
+
+{% block content %}
+<div class="main-content">
+  <div class="page-content">
+    <div class="container-fluid cc-dashboard">
+
+      {% if error %}
+      <div class="alert alert-danger border-0 shadow-sm">{{ error }}</div>
+      {% else %}
+
+      {% include 'cdr/_ipt_filter_toolbar.html' with filter_action=filter_base_url %}
+
+      <div class="row g-2 mb-3">
+        <div class="col-md-4">
+          <div class="cc-kpi card border-0 shadow-sm h-100">
+            <div class="card-body py-2 px-3">
+              <p class="cc-kpi-label mb-1">Total Calls</p>
+              <h4 class="cc-kpi-value mb-0">{{ total_count|floatformat:0 }}</h4>
+              <span class="cc-kpi-sub">{{ date_range_label }}</span>
+            </div>
+          </div>
+        </div>
+        <div class="col-md-4">
+          <div class="cc-kpi card border-0 shadow-sm h-100">
+            <div class="card-body py-2 px-3">
+              <p class="cc-kpi-label mb-1">Total Cost</p>
+              <h4 class="cc-kpi-value mb-0">{{ total_cost|floatformat:2 }} SAR</h4>
+              <span class="cc-kpi-sub">All categories</span>
+            </div>
+          </div>
+        </div>
+        <div class="col-md-4 d-flex align-items-center justify-content-md-end">
+          <a href="{% url 'cdr3cx:dashboard' %}?{{ filter_qs }}" class="btn btn-soft-primary btn-sm">
+            <i class="ri-arrow-left-line me-1"></i>Back to Overview
+          </a>
+        </div>
+      </div>
+
+      <div class="card border-0 shadow-sm">
+        <div class="card-header bg-transparent border-0 py-2 px-3">
+          <h6 class="mb-0 fw-semibold">Calls by Category &amp; Pattern</h6>
+        </div>
+        <div class="card-body p-0">
+          <div class="table-responsive">
+            <table class="table table-sm table-hover cc-table mb-0 align-middle">
+              <thead>
+                <tr>
+                  <th>Category</th>
+                  <th>Pattern</th>
+                  <th class="text-end">Calls</th>
+                  <th class="text-end">Cost (SAR)</th>
+                </tr>
+              </thead>
+              <tbody>
+                {% for record in summary %}
+                <tr>
+                  <td class="fw-medium">{{ record.call_category|default:"—" }}</td>
+                  <td class="text-muted fs-12">{{ record.pattern_prefix }}xxxxxxxxx</td>
+                  <td class="text-end">{{ record.count }}</td>
+                  <td class="text-end fw-medium">{{ record.total_cost|floatformat:2 }}</td>
+                </tr>
+                {% empty %}
+                <tr><td colspan="4" class="text-center text-muted py-4">No summary data for this period</td></tr>
+                {% endfor %}
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+
+      {% endif %}
+    </div>
+  </div>
+</div>
+{% endblock %}

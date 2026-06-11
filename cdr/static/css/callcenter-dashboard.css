@@ -1,0 +1,198 @@
+/* Call Center Dashboard — compact professional layout */
+.cc-dashboard {
+  --cc-accent: #405189;
+  --cc-radius: 0.5rem;
+}
+
+.cc-toolbar {
+  border-radius: var(--cc-radius);
+  background: linear-gradient(135deg, #fff 0%, #f8f9fc 100%);
+}
+
+.cc-toolbar-icon {
+  width: 36px;
+  height: 36px;
+  border-radius: 8px;
+  background: var(--cc-accent);
+  color: #fff;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 1.1rem;
+  flex-shrink: 0;
+}
+
+.cc-period-group .btn {
+  font-size: 0.75rem;
+  font-weight: 500;
+  padding: 0.25rem 0.65rem;
+  border: 1px solid #e9ebec;
+}
+
+.cc-period-group .btn-light {
+  background: #fff;
+  color: #495057;
+}
+
+.cc-period-group .btn-light:hover {
+  background: #f3f6f9;
+  border-color: #d0d5dd;
+}
+
+.cc-period-group .btn-primary {
+  box-shadow: 0 1px 2px rgba(64, 81, 137, 0.25);
+}
+
+.cc-date-range input[type="date"] {
+  width: 130px;
+  font-size: 0.75rem;
+  border-color: #e9ebec;
+}
+
+@media (max-width: 991.98px) {
+  .cc-toolbar .card-body > .d-flex {
+    flex-direction: column;
+    align-items: stretch !important;
+  }
+  .cc-date-range {
+    width: 100%;
+  }
+  .cc-date-range input[type="date"] {
+    flex: 1;
+    width: auto;
+  }
+}
+
+/* KPI tiles */
+.cc-kpi {
+  border-radius: var(--cc-radius);
+  transition: transform 0.15s ease, box-shadow 0.15s ease;
+}
+
+.cc-kpi:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 0.25rem 0.75rem rgba(0, 0, 0, 0.06) !important;
+}
+
+.cc-kpi-label {
+  font-size: 0.68rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: #878a99;
+  margin: 0;
+}
+
+.cc-kpi-value {
+  font-size: 1.35rem;
+  font-weight: 700;
+  line-height: 1.2;
+  color: #212529;
+}
+
+.cc-kpi-sub {
+  font-size: 0.68rem;
+  color: #878a99;
+}
+
+.cc-kpi-icon {
+  width: 32px;
+  height: 32px;
+  border-radius: 8px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 1rem;
+}
+
+.cc-kpi-good { border-left: 3px solid #0ab39c !important; }
+.cc-kpi-warn { border-left: 3px solid #f7b84b !important; }
+.cc-kpi-bad  { border-left: 3px solid #f06548 !important; }
+
+/* Charts */
+.cc-chart-wrap {
+  position: relative;
+  height: 240px;
+}
+
+.cc-chart-sm {
+  height: 240px;
+}
+
+/* Tables */
+.cc-table thead th {
+  font-size: 0.68rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+  color: #878a99;
+  background: #f8f9fa;
+  border-bottom: 1px solid #e9ebec;
+  padding: 0.5rem 0.75rem;
+  white-space: nowrap;
+}
+
+.cc-table tbody td {
+  padding: 0.45rem 0.75rem;
+  font-size: 0.8125rem;
+  border-bottom: 1px solid #f1f3f5;
+  vertical-align: middle;
+}
+
+.cc-table tbody tr:last-child td {
+  border-bottom: none;
+}
+
+.cc-table tbody tr:hover {
+  background-color: #f8f9fc;
+}
+
+.cc-mini-progress {
+  height: 4px;
+  background: #eef0f4;
+  min-width: 48px;
+}
+
+.cc-avatar {
+  width: 26px;
+  height: 26px;
+  border-radius: 50%;
+  background: rgba(64, 81, 137, 0.1);
+  color: var(--cc-accent);
+  font-size: 0.7rem;
+  font-weight: 700;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+.cc-agent-strip {
+  border-radius: var(--cc-radius);
+}
+
+.cc-agent-avatar-lg {
+  width: 44px;
+  height: 44px;
+  border-radius: 50%;
+  background: rgba(64, 81, 137, 0.12);
+  color: var(--cc-accent);
+  font-size: 1rem;
+  font-weight: 700;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+/* Tighter page padding on this view */
+.cc-dashboard .page-content {
+  padding-bottom: 1rem;
+}
+
+@media (min-width: 1400px) {
+  .col-xxl {
+    flex: 0 0 auto;
+    width: 12.5%;
+  }
+}

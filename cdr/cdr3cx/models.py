@@ -14,8 +14,24 @@ from phonenumbers import geocoder, NumberParseException
 import re
 from django.core.mail import send_mail
 from django.conf import settings
+from .notification_utils import resolve_extension_alert_email
 
 from accounts.models import Company, Extension
+
+
+def _enqueue_quota_enforcement(extension_id):
+    """Best-effort enqueue of the PBX block/unblock task (P4.3). Falls back to a
+    synchronous call if the broker is unavailable; never propagates errors into the
+    ingest transaction."""
+    try:
+        from cdr3cx.tasks import enforce_quota_state
+        try:
+            enforce_quota_state.delay(extension_id)
+        except Exception:
+            enforce_quota_state(extension_id)
+    except Exception as e:
+        logger.warning("quota enforcement enqueue failed for ext %s: %s", extension_id, e)
+
 
 class CallPattern(models.Model):
     CALL_TYPE_CHOICES = [
@@ -56,27 +72,8 @@ class CallPattern(models.Model):
 
 @receiver(post_save, sender=CallPattern)
 def apply_pattern_to_call_records(sender, instance, **kwargs):
-    # Fetch all call records that match the pattern and have to_type as 'Line'
-    matching_records = CallRecord.objects.filter(
-        company=instance.company,
-        callee__startswith=instance.pattern.replace('x', ''),
-        to_type='Line'
-    )
-
-    # Calculate the cost for each matching record
-    for record in matching_records:
-        # Convert duration to minutes, rounding up to the next whole minute if there are extra seconds
-        duration_minutes = (record.duration + 59) // 60  # Adding 59 ensures rounding up to the next whole minute
-
-        # Assign the call category and rate per minute
-        record.call_category = instance.call_type
-        record.call_rate = instance.rate_per_min
-
-        # Calculate the total cost
-        record.total_cost = duration_minutes * instance.rate_per_min
-
-        # Save the record with the updated values
-        record.save()
+    from cdr3cx.tasks import reapply_call_pattern
+    reapply_call_pattern.delay(instance.pk)
 
 import logging
 logger = logging.getLogger(__name__)
@@ -138,6 +135,41 @@ class CallRecord(models.Model):
     to_dispname = models.CharField(max_length=50, null=True, blank=True)
     final_dispname = models.CharField(max_length=50, null=True, blank=True)
 
+
+    # ACD / canonical analytics columns (P1 — nullable, backfilled async)
+    DIRECTION_CHOICES = [
+        ('inbound', 'Inbound'),
+        ('outbound', 'Outbound'),
+        ('internal', 'Internal'),
+        ('unknown', 'Unknown'),
+    ]
+    INGEST_TRANSPORT_CHOICES = [
+        ('socket', 'Legacy Socket'),
+        ('db_pull', '3CX DB Pull'),
+        ('csv', 'CSV Import'),
+        ('api', 'REST API'),
+    ]
+
+    direction = models.CharField(
+        max_length=16, choices=DIRECTION_CHOICES, null=True, blank=True, db_index=True,
+    )
+    ring_time = models.IntegerField(null=True, blank=True, help_text='Ring time in seconds')
+    wait_time = models.IntegerField(null=True, blank=True, help_text='Queue wait in seconds')
+    hold_time = models.IntegerField(null=True, blank=True, help_text='Hold time in seconds')
+    wrap_time = models.IntegerField(null=True, blank=True, help_text='After-call work in seconds')
+    abandoned = models.BooleanField(null=True, blank=True, db_index=True)
+    call_disposition = models.CharField(max_length=50, null=True, blank=True, db_index=True)
+    queue = models.ForeignKey(
+        'acd.Queue', null=True, blank=True, on_delete=models.SET_NULL, related_name='call_records',
+    )
+    agent = models.ForeignKey(
+        'acd.Agent', null=True, blank=True, on_delete=models.SET_NULL, related_name='call_records',
+    )
+    currency = models.CharField(max_length=3, default='SAR', blank=True)
+    ingest_transport = models.CharField(
+        max_length=16, choices=INGEST_TRANSPORT_CHOICES, default='socket', blank=True,
+    )
+
     call_category = models.CharField(max_length=20, null=True, blank=True, choices=CallPattern.CALL_TYPE_CHOICES)
     call_rate = models.DecimalField(max_digits=5, decimal_places=2, default=0.00, help_text="Rate per minute in SAR")
     total_cost = models.DecimalField(max_digits=10, decimal_places=2, default=0.00, help_text="Total cost of the call")
@@ -192,68 +224,48 @@ class CallRecord(models.Model):
 
    
     def save(self, *args, **kwargs):
-            logger.info("--- Starting save process for CallRecord ---")
-            print("--- Starting save process for CallRecord ---")  # Console output
-            logger.info(f"Initial state: caller={self.caller}, callee={self.callee}, duration={self.duration}, total_cost={self.total_cost}")
-            print(f"Initial state: caller={self.caller}, callee={self.callee}, duration={self.duration}, total_cost={self.total_cost}")  # Console output
-            
-            is_new_record = not self.pk
-            
-            try:
-                with transaction.atomic():
-                    if is_new_record:
-                        old_total_cost = Decimal('0.00')
-                        logger.info("This is a new CallRecord")
-                        print("This is a new CallRecord")  # Console output
-                    else:
-                        old_record = CallRecord.objects.get(pk=self.pk)
-                        old_total_cost = old_record.total_cost
-                        logger.info(f"This is an existing CallRecord. Old total cost: {old_total_cost}")
-                        print(f"This is an existing CallRecord. Old total cost: {old_total_cost}")  # Console output
+        # P0.7: per-record print() storm removed; verbose tracing demoted to
+        # logger.debug so production (root logger at INFO) stays quiet while the
+        # detail remains available by raising the log level.
+        logger.debug("CallRecord.save start: caller=%s callee=%s duration=%s",
+                     self.caller, self.callee, self.duration)
+        is_new_record = not self.pk
+        try:
+            with transaction.atomic():
+                if is_new_record:
+                    old_total_cost = Decimal('0.00')
+                else:
+                    old_record = CallRecord.objects.get(pk=self.pk)
+                    old_total_cost = old_record.total_cost
 
-                    # Determine and save the country for international calls
-                    logger.info(f"Before determining country, Caller: {self.caller}, Callee: {self.callee}")
-                    print(f"Before determining country, Caller: {self.caller}, Callee: {self.callee}")
-                    self.country = get_country_from_number(self.callee)
-                    logger.info(f"Determined country for callee number: {self.country}")
-                    print(f"Determined country for callee number: {self.country}")  # Console output
+                # Determine the country for international calls
+                self.country = get_country_from_number(self.callee)
+                # Categorize and cost the call
+                self.categorize_call()
+                self.calculate_total_cost()
+                logger.debug("CallRecord.save costing: old=%s new=%s",
+                             old_total_cost, self.total_cost)
 
-                    # Categorize the call
-                    logger.info("Categorizing call...")
-                    print("Categorizing call...")  # Console output
-                    self.categorize_call()
+                super().save(*args, **kwargs)
 
-                    logger.info("Calculating total cost...")
-                    print("Calculating total cost...")  # Console output
-                    self.calculate_total_cost()
-                    logger.info(f"After cost calculation: old_total_cost={old_total_cost}, new_total_cost={self.total_cost}")
-                    print(f"After cost calculation: old_total_cost={old_total_cost}, new_total_cost={self.total_cost}")  # Console output
-
-                    # Save the record
-                    logger.info("Calling super().save()")
-                    print("Calling super().save()")  # Console output
-                    super().save(*args, **kwargs)
-
-                    # Update quota
-                    logger.info("Updating user quota...")
-                    print("Updating user quota...")  # Console output
-                    self.update_user_quota(old_total_cost)
-
-            except Exception as e:
-                logger.error(f"Error during save: {str(e)}")
-                print(f"Error during save: {str(e)}")  # Console output
-                raise  # Re-raise the exception after logging
-            
-            logger.info("--- Finished save process for CallRecord ---")
-            print("--- Finished save process for CallRecord ---")  # Console output
+                # Update quota (row-locked inside this same transaction)
+                self.update_user_quota(old_total_cost)
+        except Exception as e:
+            logger.error("Error during CallRecord.save: %s", e)
+            raise  # Re-raise after logging
+        logger.debug("CallRecord.save done id=%s", self.pk)
 
     def update_user_quota(self, old_total_cost):
         logger.info(f"Starting update_user_quota with old_total_cost={old_total_cost}")
         try:
             extension = Extension.objects.get(extension=self.caller, company=self.company)
-            logger.info(f"Found extension: {extension}")
-            user_quota = UserQuota.objects.get(extension=extension)
-            logger.info(f"Found UserQuota: current total_amount = {user_quota.total_amount}, used_amount = {user_quota.used_amount}")
+            logger.debug("Found extension: %s", extension)
+            # P0.7: lock the quota row for the duration of this transaction so
+            # concurrent CDR inserts for the same extension cannot race on the
+            # balance (save() already wraps this call in transaction.atomic()).
+            user_quota = UserQuota.objects.select_for_update().get(extension=extension)
+            logger.debug("UserQuota before: total=%s used=%s",
+                         user_quota.total_amount, user_quota.used_amount)
             
             user_quota.check_and_reset_if_needed()
             logger.info(f"After check_and_reset_if_needed: total_amount = {user_quota.total_amount}, used_amount = {user_quota.used_amount}")
@@ -269,6 +281,14 @@ class CallRecord(models.Model):
                 logger.info(f"Added {abs(amount_to_deduct)} to quota due to cost reduction. New balance: {user_quota.total_amount - user_quota.used_amount}")
             else:
                 logger.info("No change in total cost, quota remains the same.")
+
+            # P4.3 — if the exhausted/replenished state changed, enforce it on the
+            # PBX asynchronously *after commit* so the hot ingest path never makes a
+            # network call. Idempotent: the task no-ops when state already matches.
+            if user_quota.should_block() != user_quota.is_blocked:
+                ext_id = user_quota.extension_id
+                transaction.on_commit(
+                    lambda: _enqueue_quota_enforcement(ext_id))
         except Extension.DoesNotExist:
             logger.warning(f"Warning: No extension found for {self.caller}")
         except UserQuota.DoesNotExist:
@@ -310,6 +330,10 @@ class UserQuota(models.Model):
     total_amount = models.DecimalField(max_digits=10, decimal_places=2, default=0)
     used_amount = models.DecimalField(max_digits=10, decimal_places=2, default=0)
     last_reset = models.DateTimeField(default=timezone.now)
+    # P4.3 — enforcement state: True once external calls have been blocked on the
+    # PBX for this extension because its balance was exhausted. Lets the enforcement
+    # task act only on transitions (idempotent) and the UI show who is blocked.
+    is_blocked = models.BooleanField(default=False)
 
     def __str__(self):
         return f"Quota for {self.extension}"
@@ -317,6 +341,11 @@ class UserQuota(models.Model):
     @property
     def remaining_balance(self):
         return self.total_amount - self.used_amount
+
+    def should_block(self):
+        """True when this extension's external calling should be blocked: it has a
+        quota assigned and the balance is exhausted (used >= total)."""
+        return bool(self.quota) and self.remaining_balance <= Decimal('0')
 
     def reset_quota(self):
         if self.quota:
@@ -367,8 +396,7 @@ class UserQuota(models.Model):
             'remaining_balance': self.remaining_balance,
             'quota_amount': self.quota.amount,
         })
-        # recipient = self.extension.user.email 
-        recipient = 'khuram2025@gmail.com'  # Assuming each extension has an associated user with an email
+        recipient = resolve_extension_alert_email(self.extension)
 
         # Send the email
         send_mail(

@@ -1,0 +1,84 @@
+{% extends 'partials/base.html' %}
+{% block title %}Survey Settings{% endblock %}
+{% block content %}
+<div class="main-content">
+  <div class="page-content">
+    <div class="container-fluid">
+      <h4 class="mb-3"><i class="ri-settings-3-line me-2"></i>Survey Settings</h4>
+
+      <div class="card border-0 shadow-sm mb-3">
+        <div class="card-header bg-transparent"><h6 class="mb-0">Tenant Feature Flags</h6></div>
+        <div class="card-body">
+          <form method="post">{% csrf_token %}
+            <input type="hidden" name="save_flags" value="1">
+            <div class="form-check mb-2">{{ flags_form.survey_enabled }} <label class="form-check-label">{{ flags_form.survey_enabled.label }}</label></div>
+            <div class="form-check mb-3">{{ flags_form.survey_cfd_verified }} <label class="form-check-label">{{ flags_form.survey_cfd_verified.label }}</label></div>
+            <p class="text-muted small">Surveys are only available when both options are enabled and the tenant has 3CX Call Flow Designer.</p>
+            <button type="submit" class="btn btn-primary btn-sm">Save Flags</button>
+          </form>
+        </div>
+      </div>
+
+      {% if user.company.survey_enabled %}
+      <div class="card border-0 shadow-sm mb-3">
+        <div class="card-header bg-transparent"><h6 class="mb-0">CFD Integration</h6></div>
+        <div class="card-body">
+          {% if campaign %}
+          <p class="mb-1"><strong>Ingest URL</strong></p>
+          <pre class="bg-light p-2 rounded small">{{ ingest_url }}</pre>
+          <p class="mb-1"><strong>Header</strong> <code>X-Survey-Token: {{ campaign.ingest_token }}</code></p>
+          <p class="mb-1"><strong>Campaign slug</strong> <code>{{ campaign.slug }}</code></p>
+          <a href="{% url 'surveys:regenerate_token' campaign.pk %}" class="btn btn-sm btn-outline-warning mt-2" onclick="return confirm('Regenerate token? Update CFD app after.');">Regenerate Token</a>
+          {% else %}
+          <p class="text-muted">Save a campaign below to generate ingest URL and token.</p>
+          {% endif %}
+          <hr>
+          <h6>Sample JSON body (CFD HTTP POST)</h6>
+          <pre class="bg-light p-2 rounded small">{
+  "campaign_slug": "{{ campaign.slug|default:'post-call-csat' }}",
+  "caller": "{{session.ani}}",
+  "agent_dn": "101",
+  "queue_dn": "800",
+  "answers": [
+    {"tag": "solved", "value": "YES"},
+    {"tag": "rating", "value": "5"},
+    {"tag": "comments", "value": "/path/to/recording.wav"}
+  ]
+}</pre>
+          <p class="small text-muted mb-0">Full setup guide (public): <a href="{% url 'cdr3cx:kb_article' '3cx-post-call-survey' %}" target="_blank" rel="noopener">3CX Post-Call Survey — Knowledge Base</a></p>
+        </div>
+      </div>
+
+      <div class="card border-0 shadow-sm">
+        <div class="card-header bg-transparent"><h6 class="mb-0">Campaign & Questions</h6></div>
+        <div class="card-body">
+          <form method="post">{% csrf_token %}
+            <input type="hidden" name="save_campaign" value="1">
+            {% for field in campaign_form %}
+            <div class="mb-2">
+              <label class="form-label">{{ field.label }}</label>
+              {{ field }}
+              {% if field.errors %}<div class="text-danger small">{{ field.errors }}</div>{% endif %}
+            </div>
+            {% endfor %}
+            {% if question_formset %}
+            <hr>
+            <h6>Questions (match CFD Survey tags)</h6>
+            {{ question_formset.management_form }}
+            {% for form in question_formset %}
+            <div class="row g-2 align-items-end mb-2 border-bottom pb-2">
+              {% for f in form.visible_fields %}
+              <div class="col-md-2"><label class="form-label small">{{ f.label }}</label>{{ f }}</div>
+              {% endfor %}
+            </div>
+            {% endfor %}
+            {% endif %}
+            <button type="submit" class="btn btn-primary mt-2">Save Campaign</button>
+          </form>
+        </div>
+      </div>
+      {% endif %}
+    </div>
+  </div>
+</div>
+{% endblock %}

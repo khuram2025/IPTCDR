@@ -3,132 +3,69 @@
 
 {% block title %}Call Back Tracking{% endblock %}
 
+{% block extra_css %}
+<link rel="stylesheet" href="{% static 'css/callcenter-dashboard.css' %}">
+{% endblock %}
+
 {% block content %}
-<!-- ============================================================== -->
-<!-- Start right Content here -->
-<!-- ============================================================== -->
 <div class="main-content">
-    <div class="page-content">
-        <div class="container-fluid">
-        <!-- start page title -->
-        <div class="row">
-            <div class="col-12">
-                <div class="page-title-box d-sm-flex align-items-center justify-content-between">
-                    <h4 class="mb-sm-0">Call Back Tracking</h4>
-                    <div class="page-title-right">
-                        <ol class="breadcrumb m-0">
-                            <li class="breadcrumb-item"><a href="{% url 'cdr3cx:dashboard' %}">Dashboard</a></li>
-                            <li class="breadcrumb-item"><a href="{% url 'cdr3cx:call_center_dashboard' %}">Call Center</a></li>
-                            <li class="breadcrumb-item active">Call Back Tracking</li>
-                        </ol>
-                    </div>
+  <div class="page-content">
+    <div class="container-fluid cc-dashboard">
+
+      {% if error %}
+      <div class="alert alert-danger border-0 shadow-sm" role="alert">{{ error }}</div>
+      {% else %}
+
+      {% include 'cdr/callcenter/_filter_toolbar.html' with filter_action=filter_base_url %}
+
+      <div class="row g-2 mb-3">
+        <div class="col-6 col-md-4">
+          <div class="cc-kpi card border-0 shadow-sm h-100">
+            <div class="card-body py-2 px-3">
+              <div class="d-flex justify-content-between align-items-start">
+                <div>
+                  <p class="cc-kpi-label mb-1">Callbacks Made</p>
+                  <h4 class="cc-kpi-value mb-0">{{ total_missed_with_callbacks|floatformat:0 }}</h4>
                 </div>
+                <span class="cc-kpi-icon bg-primary-subtle text-primary"><i class="ri-phone-back-line"></i></span>
+              </div>
             </div>
+          </div>
         </div>
-        <!-- end page title -->
-
-        {% if error %}
-        <div class="row">
-            <div class="col-12">
-                <div class="alert alert-danger" role="alert">
-                    <strong>Error:</strong> {{ error }}
+        <div class="col-6 col-md-4">
+          <div class="cc-kpi card border-0 shadow-sm h-100">
+            <div class="card-body py-2 px-3">
+              <div class="d-flex justify-content-between align-items-start">
+                <div>
+                  <p class="cc-kpi-label mb-1">Successful</p>
+                  <h4 class="cc-kpi-value mb-0 text-success">{{ successful_callbacks|floatformat:0 }}</h4>
                 </div>
+                <span class="cc-kpi-icon bg-success-subtle text-success"><i class="ri-check-double-line"></i></span>
+              </div>
             </div>
+          </div>
         </div>
-        {% else %}
-
-        <!-- Date Range Filter -->
-        <div class="row mb-3">
-            <div class="col-12">
-                <div class="d-flex align-items-center justify-content-between flex-wrap bg-light p-3 rounded">
-                    <div class="d-flex align-items-center flex-wrap gap-3">
-                        <h5 class="mb-0 text-muted">Filter by Date Range:</h5>
-                        <form method="get" class="d-flex align-items-center gap-3 flex-wrap">
-                            <div class="d-flex align-items-center gap-2">
-                                <label for="start_date" class="form-label mb-0 text-nowrap">From:</label>
-                                <input type="date" class="form-control form-control-sm" id="start_date" name="start_date" value="{{ start_date }}" style="width: 150px;">
-                            </div>
-                            <div class="d-flex align-items-center gap-2">
-                                <label for="end_date" class="form-label mb-0 text-nowrap">To:</label>
-                                <input type="date" class="form-control form-control-sm" id="end_date" name="end_date" value="{{ end_date }}" style="width: 150px;">
-                            </div>
-                            <div class="d-flex gap-2">
-                                <button type="submit" class="btn btn-primary btn-sm">
-                                    <i class="ri-filter-line me-1"></i>Apply Filter
-                                </button>
-                                <a href="{% url 'cdr3cx:call_back_tracking' %}" class="btn btn-outline-secondary btn-sm">
-                                    <i class="ri-refresh-line me-1"></i>Reset
-                                </a>
-                            </div>
-                        </form>
-                    </div>
+        <div class="col-6 col-md-4">
+          <div class="cc-kpi card border-0 shadow-sm h-100">
+            <div class="card-body py-2 px-3">
+              <div class="d-flex justify-content-between align-items-start">
+                <div>
+                  <p class="cc-kpi-label mb-1">Success Rate</p>
+                  <h4 class="cc-kpi-value mb-0">{{ callback_success_rate }}%</h4>
                 </div>
+                <span class="cc-kpi-icon bg-info-subtle text-info"><i class="ri-percent-line"></i></span>
+              </div>
             </div>
+          </div>
         </div>
-
-        <!-- Summary Cards -->
-        <div class="row mb-4">
-            <div class="col-xl-4 col-md-6">
-                <div class="card card-height-100">
-                    <div class="card-body">
-                        <div class="d-flex align-items-center">
-                            <div class="avatar-sm flex-shrink-0">
-                                <span class="avatar-title bg-primary-subtle text-primary rounded-circle fs-3">
-                                    <i class="ri-phone-back-line"></i>
-                                </span>
-                            </div>
-                            <div class="flex-grow-1 ms-3">
-                                <p class="text-uppercase fw-semibold fs-12 text-muted mb-1">Callbacks Made</p>
-                                <h4 class="mb-0">{{ total_missed_with_callbacks|floatformat:0 }}</h4>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-            </div>
-
-            <div class="col-xl-4 col-md-6">
-                <div class="card card-height-100">
-                    <div class="card-body">
-                        <div class="d-flex align-items-center">
-                            <div class="avatar-sm flex-shrink-0">
-                                <span class="avatar-title bg-success-subtle text-success rounded-circle fs-3">
-                                    <i class="ri-check-double-line"></i>
-                                </span>
-                            </div>
-                            <div class="flex-grow-1 ms-3">
-                                <p class="text-uppercase fw-semibold fs-12 text-muted mb-1">Successful Callbacks</p>
-                                <h4 class="mb-0">{{ successful_callbacks|floatformat:0 }}</h4>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-            </div>
-
-            <div class="col-xl-4 col-md-6">
-                <div class="card card-height-100">
-                    <div class="card-body">
-                        <div class="d-flex align-items-center">
-                            <div class="avatar-sm flex-shrink-0">
-                                <span class="avatar-title bg-info-subtle text-info rounded-circle fs-3">
-                                    <i class="ri-percent-line"></i>
-                                </span>
-                            </div>
-                            <div class="flex-grow-1 ms-3">
-                                <p class="text-uppercase fw-semibold fs-12 text-muted mb-1">Success Rate</p>
-                                <h4 class="mb-0">{{ callback_success_rate }}%</h4>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-            </div>
-        </div>
+      </div>
 
         <!-- Agent Performance and Callback Details -->
         <div class="row">
             <div class="col-xl-4">
-                <div class="card">
-                    <div class="card-header d-flex justify-content-between align-items-center">
-                        <h4 class="card-title mb-0">Agent Callback Performance</h4>
+                <div class="card border-0 shadow-sm">
+                    <div class="card-header bg-transparent border-0 py-2 px-3 d-flex justify-content-between align-items-center">
+                        <h6 class="mb-0 fw-semibold">Agent Callback Performance</h6>
                         {% if selected_agent %}
                         <a href="?start_date={{ start_date }}&end_date={{ end_date }}" class="btn btn-sm btn-outline-secondary">
                             <i class="ri-close-line"></i> Clear Filter
@@ -183,9 +120,9 @@
             </div>
 
             <div class="col-xl-8">
-                <div class="card">
-                    <div class="card-header">
-                        <h4 class="card-title mb-0">
+                <div class="card border-0 shadow-sm">
+                    <div class="card-header bg-transparent border-0 py-2 px-3">
+                        <h6 class="mb-0 fw-semibold">
                             Call Back Tracking Details
                             {% if selected_agent %}
                             <span class="badge bg-info ms-2">Filtered by Agent</span>

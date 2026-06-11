@@ -24,8 +24,13 @@ router.register(r'fraud-rules',          views.FraudRuleViewSet,          basena
 router.register(r'fraud-incidents',      views.FraudIncidentViewSet,      basename='fraudincident')
 router.register(r'api-keys',             views.ApiKeyViewSet,             basename='apikey')
 router.register(r'webhook-subscriptions', views.WebhookSubscriptionViewSet, basename='webhooksubscription')
+router.register(r'survey-campaigns', views.SurveyCampaignViewSet, basename='surveycampaign')
+router.register(r'survey-responses', views.SurveyResponseViewSet, basename='surveyresponse')
 
 urlpatterns = [
+    # Must precede the router — otherwise ``ingest`` is captured as a survey-response pk.
+    path('v1/survey-responses/ingest/', views.SurveyIngestView.as_view(), name='survey-ingest'),
+    path('v1/survey-metrics/', views.SurveyMetricsView.as_view(), name='survey-metrics'),
     path('v1/', include(router.urls)),
     path('v1/health/', views.HealthView.as_view(), name='api-health'),
 

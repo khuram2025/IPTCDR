@@ -1,0 +1,11 @@
+{
+  "campaign_slug": "post-call-csat",
+  "caller": "{{session.ani}}",
+  "agent_dn": "101",
+  "queue_dn": "800",
+  "answers": [
+    {"tag": "solved", "value": "YES"},
+    {"tag": "rating", "value": "5"},
+    {"tag": "comments", "value": "/var/lib/3cxpbx/.../SurveyRecording.wav"}
+  ]
+}

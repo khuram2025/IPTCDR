@@ -26,31 +26,44 @@ def get_country_from_number(number):
         return 'Saudi Arabia Mobile'
     
     # Handle Saudi Arabia numbers with international prefixes (+966 or 00966)
+    was_saudi_intl = False
     if cleaned_number.startswith('00966'):
         cleaned_number = cleaned_number[5:]  # Remove '00966'
+        was_saudi_intl = True
     elif cleaned_number.startswith('966') and len(cleaned_number) > 9:
         cleaned_number = cleaned_number[3:]  # Remove '966' when prefixed by '+'
-    
+        was_saudi_intl = True
+
     if len(cleaned_number) == 9 and cleaned_number.startswith('5'):
         return 'Saudi Arabia Mobile'
-    
+
     # Saudi Arabia landline (9 digits starting with 01, 02, 03, 04, 06, 07)
     if len(cleaned_number) == 9 and cleaned_number[0] == '0' and cleaned_number[1] in '123467':
         return 'Saudi Arabia Landline'
-    
+
+    # Any number that carried the Saudi country code (+966 / 00966) is a Saudi
+    # number — e.g. 920/9200 unified-access or business numbers, or landlines in
+    # international format. It must NOT fall through to the international block
+    # (stripping '966' then re-stripping a digit used to mis-match +966 9200…
+    # numbers to Egypt's +20 / Pakistan's +92).
+    if was_saudi_intl:
+        return 'Saudi Arabia'
+
     # International call
     if cleaned_number.startswith('00') or number.startswith('+'):
-        # Remove leading '00' or '+'
+        # Determine the dialled number including its country code. re.sub already
+        # stripped the leading '+', so a '+'-prefixed number is the full number;
+        # only a '00' trunk prefix needs removing.
         if cleaned_number.startswith('00'):
             international_number = cleaned_number[2:]
         else:
-            international_number = cleaned_number[1:] if number.startswith('+') else cleaned_number
-        
-        # Check against country codes
-        for code, country in COUNTRY_CODES.items():
+            international_number = cleaned_number
+
+        # Check against country codes (longest code first so e.g. +1242 beats +1)
+        for code, country in sorted(COUNTRY_CODES.items(), key=lambda kv: -len(kv[0])):
             if international_number.startswith(code):
                 return country
-        
+
         # If no match found in COUNTRY_CODES
         return 'International - Unknown Country'
     
@@ -59,7 +72,8 @@ def get_country_from_number(number):
 
 
 def get_date_range(request):
-    now = timezone.now()
+    # Local (Asia/Riyadh) time so "today" starts at local midnight, not UTC midnight.
+    now = timezone.localtime(timezone.now())
     time_period = request.GET.get('time_period', 'today')
     custom_date_range = request.GET.get('custom_date', '')
 

@@ -1,0 +1,70 @@
+{% extends 'partials/base.html' %}
+{% block title %}{{ mode }} Scheduled Report{% endblock %}
+
+{% block content %}
+<div class="main-content">
+  <div class="page-content">
+    <div class="container-fluid">
+      <div class="d-flex align-items-center justify-content-between mb-3">
+        <h5 class="mb-0">{{ mode }} Scheduled Report</h5>
+        <a href="{% url 'cdr3cx:report_list' %}" class="btn btn-sm btn-light"><i class="ri-arrow-left-line me-1"></i>Back</a>
+      </div>
+
+      <div class="card border-0 shadow-sm">
+        <div class="card-body">
+          <form method="post" novalidate>
+            {% csrf_token %}
+            {% if form.non_field_errors %}<div class="alert alert-danger py-2">{{ form.non_field_errors }}</div>{% endif %}
+            <div class="row g-3">
+              <div class="col-md-6">
+                <label class="form-label">Name</label>
+                {{ form.name }}
+                {% if form.name.errors %}<div class="text-danger fs-12">{{ form.name.errors|striptags }}</div>{% endif %}
+              </div>
+              <div class="col-md-3">
+                <label class="form-label">Report type</label>{{ form.report_type }}
+              </div>
+              <div class="col-md-3">
+                <label class="form-label">Data window</label>{{ form.window }}
+              </div>
+              <div class="col-md-3">
+                <label class="form-label">Format</label>{{ form.fmt }}
+              </div>
+              <div class="col-md-3">
+                <label class="form-label">Recurrence</label>{{ form.recurrence }}
+              </div>
+              <div class="col-md-3">
+                <label class="form-label">Hour (0–23)</label>{{ form.hour }}
+              </div>
+              <div class="col-md-3">
+                <label class="form-label">Minute</label>{{ form.minute }}
+              </div>
+              <div class="col-md-3">
+                <label class="form-label">Weekday <span class="text-muted fs-12">(weekly)</span></label>{{ form.weekday }}
+              </div>
+              <div class="col-md-3">
+                <label class="form-label">Day of month <span class="text-muted fs-12">(monthly, 1–28)</span></label>{{ form.day_of_month }}
+              </div>
+              <div class="col-12">
+                <label class="form-label">Recipients</label>{{ form.recipients }}
+                <div class="form-text">Comma, semicolon or newline separated email addresses.</div>
+                {% if form.recipients.errors %}<div class="text-danger fs-12">{{ form.recipients.errors|striptags }}</div>{% endif %}
+              </div>
+              <div class="col-12">
+                <div class="form-check">
+                  {{ form.is_active }}
+                  <label class="form-check-label" for="{{ form.is_active.id_for_label }}">Active</label>
+                </div>
+              </div>
+            </div>
+            <div class="mt-3">
+              <button type="submit" class="btn btn-primary"><i class="ri-save-line me-1"></i>Save</button>
+              <a href="{% url 'cdr3cx:report_list' %}" class="btn btn-light">Cancel</a>
+            </div>
+          </form>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}

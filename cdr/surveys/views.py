@@ -9,8 +9,13 @@ from django.shortcuts import get_object_or_404, redirect, render
 from django.urls import reverse
 from django.utils import timezone
 
-from surveys.forms import CompanySurveyFlagsForm, SurveyCampaignForm, SurveyQuestionFormSet
-from surveys.models import SurveyCampaign, SurveyResponse
+from surveys.forms import (
+    CompanySurveyFlagsForm,
+    SurveyCampaignForm,
+    SurveyQuestionForm,
+    SurveyQuestionOptionFormSet,
+)
+from surveys.models import SurveyCampaign, SurveyQuestion, SurveyResponse
 from surveys.services.metrics import survey_dashboard_metrics
 
 from .forms import SurveyCampaignForm as _  # noqa: F401 — re-export for tests
@@ -116,6 +121,16 @@ def survey_response_detail(request, pk):
     return render(request, 'surveys/response_detail.html', {'response': resp})
 
 
+def _require_admin_company(request):
+    """Return the request user's company if they may manage survey settings, else None."""
+    company = getattr(request.user, 'company', None)
+    if not company:
+        return None
+    if request.user.role not in ('company_admin', 'superadmin'):
+        return None
+    return company
+
+
 @login_required
 def survey_settings(request):
     company = getattr(request.user, 'company', None)
@@ -142,20 +157,15 @@ def survey_settings(request):
 
     campaign = company.survey_campaigns.filter(is_active=True).first()
     campaign_form = None
-    question_formset = None
 
     if request.method == 'POST' and 'save_campaign' in request.POST:
         campaign_form = SurveyCampaignForm(request.POST, instance=campaign)
-        camp_instance = campaign if campaign and campaign.pk else SurveyCampaign(company=company)
-        question_formset = SurveyQuestionFormSet(request.POST, instance=camp_instance)
-        if campaign_form.is_valid() and question_formset.is_valid():
+        if campaign_form.is_valid():
             camp = campaign_form.save(commit=False)
             camp.company = company
             if not camp.license_verified:
                 camp.license_verified = company.survey_cfd_verified
             camp.save()
-            question_formset.instance = camp
-            question_formset.save()
             messages.success(request, 'Survey campaign saved.')
             return redirect('surveys:settings')
     else:
@@ -166,16 +176,83 @@ def survey_settings(request):
                 license_verified=company.survey_cfd_verified,
             )
         campaign_form = SurveyCampaignForm(instance=campaign)
-        question_formset = SurveyQuestionFormSet(instance=campaign) if campaign else None
 
+    saved_campaign = campaign if campaign and campaign.pk else None
+    questions = (
+        saved_campaign.questions.prefetch_related('options').all()
+        if saved_campaign else []
+    )
     ingest_url = request.build_absolute_uri(reverse('survey-ingest'))
     return render(request, 'surveys/settings.html', {
         'flags_form': flags_form,
         'campaign_form': campaign_form,
-        'question_formset': question_formset,
-        'campaign': campaign if campaign and campaign.pk else None,
+        'campaign': saved_campaign,
+        'questions': questions,
         'ingest_url': ingest_url,
     })
+
+
+def _get_or_create_active_campaign(company):
+    campaign = company.survey_campaigns.filter(is_active=True).first()
+    if campaign:
+        return campaign
+    return SurveyCampaign.objects.create(
+        company=company,
+        name='Post-Call CSAT',
+        license_verified=company.survey_cfd_verified,
+    )
+
+
+@login_required
+def question_edit(request, pk=None):
+    """Create or edit a survey question and its answer options (3CX CFD Survey)."""
+    company = _require_admin_company(request)
+    if not company:
+        raise Http404
+
+    if pk:
+        question = get_object_or_404(
+            SurveyQuestion, pk=pk, campaign__company=company,
+        )
+    else:
+        campaign = _get_or_create_active_campaign(company)
+        question = SurveyQuestion(campaign=campaign)
+
+    if request.method == 'POST':
+        form = SurveyQuestionForm(request.POST, instance=question)
+        # Bind options to the (possibly unsaved) instance; saved after the question.
+        formset = SurveyQuestionOptionFormSet(request.POST, instance=question)
+        if form.is_valid() and formset.is_valid():
+            q = form.save(commit=False)
+            q.campaign = question.campaign
+            q.save()
+            formset.instance = q
+            formset.save()
+            messages.success(request, 'Question saved.')
+            return redirect('surveys:settings')
+    else:
+        form = SurveyQuestionForm(instance=question)
+        formset = SurveyQuestionOptionFormSet(instance=question)
+
+    return render(request, 'surveys/question_form.html', {
+        'form': form,
+        'formset': formset,
+        'question': question if question.pk else None,
+        'campaign': question.campaign,
+    })
+
+
+@login_required
+def question_delete(request, pk):
+    company = _require_admin_company(request)
+    if not company:
+        raise Http404
+    question = get_object_or_404(SurveyQuestion, pk=pk, campaign__company=company)
+    if request.method == 'POST':
+        question.delete()
+        messages.success(request, 'Question deleted.')
+        return redirect('surveys:settings')
+    return render(request, 'surveys/question_confirm_delete.html', {'question': question})
 
 
 @login_required

@@ -256,6 +256,10 @@ LOGGING = {
             'format': '{levelname} {asctime} {module} {process:d} {thread:d} {message}',
             'style': '{',
         },
+        'ingest': {
+            'format': '{asctime} {message}',
+            'style': '{',
+        },
     },
     'handlers': {
         'console': {
@@ -271,6 +275,16 @@ LOGGING = {
             'backupCount': 2,
             'formatter': 'verbose',
         },
+        # Dedicated log: ONLY survey-response ingest API hits (request + response).
+        'survey_ingest_file': {
+            'level': 'INFO',
+            'class': 'logging.handlers.RotatingFileHandler',
+            'filename': '/home/ubuntu/3CX/logs/survey_ingest.log',
+            'maxBytes': 1024 * 1024 * 5,  # 5 MB
+            'backupCount': 5,
+            'formatter': 'ingest',
+            'delay': True,  # open file on first write (handler runs as the gunicorn user)
+        },
     },
     'loggers': {
         '': {  # Root logger
@@ -285,6 +299,12 @@ LOGGING = {
         'cd3cx': {  # Replace with your app's name
             'handlers': ['console', 'file'],
             'level': 'DEBUG',
+            'propagate': False,
+        },
+        # Isolated logger — writes ONLY to survey_ingest.log, nothing else.
+        'survey_ingest': {
+            'handlers': ['survey_ingest_file'],
+            'level': 'INFO',
             'propagate': False,
         },
     },
@@ -428,7 +448,7 @@ CELERY_BEAT_SCHEDULE = {
     },
 }
 
-QUOTA_ALERT_FALLBACK_EMAIL = os.getenv('QUOTA_ALERT_FALLBACK_EMAIL', 'no-reply@channab.com')
+QUOTA_ALERT_FALLBACK_EMAIL = os.getenv('QUOTA_ALERT_FALLBACK_EMAIL', 'support@zentryc.com')
 
 # P4.3 — when True, the quota-enforcement task actually blocks/unblocks external
 # calling on the PBX (3CX Users.Internal flag) as balances exhaust/replenish. Kept

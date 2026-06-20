@@ -6,19 +6,30 @@ views are read-only over that data, plus a thin POST to trigger an on-demand syn
 Access is role-based (see ``can_view_extensions``); quota/PBX mutations stay
 company-admin only and reuse the existing quota endpoints.
 """
-from datetime import timedelta
-
 from django.contrib import messages
 from django.contrib.auth.decorators import login_required, user_passes_test
 from django.core.paginator import Paginator
-from django.db.models import Avg, Q
+from django.db.models import Avg, Count, Q, Sum
 from django.shortcuts import get_object_or_404, redirect, render
-from django.utils import timezone
+from django.urls import reverse
 from django.views.decorators.http import require_POST
 
 from accounts.models import Extension
 from accounts.views import is_company_admin
+from .callcenter_views import (
+    _date_range_label,
+    _filter_toolbar_context,
+    _resolve_callcenter_date_range,
+)
 from .models import CallRecord
+
+EXT_PERIODS = [
+    ('today', 'Today'),
+    ('7d', '7D'),
+    ('month', 'Month'),
+    ('6m', '6M'),
+    ('1y', '1Y'),
+]
 
 
 def can_view_extensions(user):
@@ -121,31 +132,67 @@ def extension_detail(request, pk):
     ext = get_object_or_404(_scoped_extensions(request.user), pk=pk)
     number = ext.extension
 
-    # Compact recent activity (last 90 days) — calls this extension made
-    # (caller = from-dn) or answered (final_dn). The full call-center page has the
-    # deep ACD view; we link to it rather than duplicate it.
-    since = timezone.now() - timedelta(days=90)
+    start_date, end_date, time_period, custom_date_range = _resolve_callcenter_date_range(
+        request, default_period='month',
+    )
+    date_range_label = _date_range_label(time_period, start_date, end_date, custom_date_range)
+
     calls = CallRecord.objects.filter(
-        company=ext.company, call_time__gte=since
+        company=ext.company,
+        call_time__range=[start_date, end_date],
     ).filter(Q(final_dn=number) | Q(caller=number))
 
-    total_calls = calls.count()
-    answered_calls = calls.filter(time_answered__isnull=False).count()
-    avg_duration = calls.aggregate(a=Avg('duration'))['a'] or 0
+    agg = calls.aggregate(
+        total=Count('id'),
+        answered=Count('id', filter=Q(time_answered__isnull=False)),
+        avg_dur=Avg('duration'),
+        total_cost=Sum('total_cost'),
+    )
+    total_calls = agg['total'] or 0
+    answered_calls = agg['answered'] or 0
+    avg_duration = int(agg['avg_dur'] or 0)
+    total_cost = agg['total_cost'] or 0
     answer_rate = round(answered_calls / total_calls * 100, 1) if total_calls else 0
-    recent_calls = list(calls.order_by('-call_time')[:25])
 
+    paginator = Paginator(calls.order_by('-call_time'), 20)
+    page_obj = paginator.get_page(request.GET.get('page'))
+
+    detail_url = reverse('cdr3cx:extension_detail', kwargs={'pk': pk})
+    params = request.GET.copy()
+    params.pop('page', None)
+    activity_querystring = params.urlencode()
+
+    display_name = ext.full_name or ext.display_name or 'Unnamed'
     context = {
         'ext': ext,
+        'display_name': display_name,
         'user_quota': getattr(ext, 'quota', None),
         'total_calls': total_calls,
         'answered_calls': answered_calls,
         'answer_rate': answer_rate,
-        'avg_duration': int(avg_duration),
-        'recent_calls': recent_calls,
-        'activity_days': 90,
+        'avg_duration': avg_duration,
+        'total_cost': total_cost,
+        'page_obj': page_obj,
         'is_admin': is_company_admin(request.user),
+        'activity_querystring': activity_querystring,
+        'filter_base_url': detail_url,
+        'filter_action': detail_url,
+        'reset_url': detail_url,
+        'pdf_url': (
+            f"{reverse('cdr3cx:report_generate_now')}"
+            f"?type=agent_productivity&start={start_date.strftime('%Y-%m-%d')}"
+            f"&end={end_date.strftime('%Y-%m-%d')}&format=pdf"
+        ),
     }
+    context.update(_filter_toolbar_context(
+        time_period, start_date, end_date, custom_date_range, date_range_label,
+        toolbar_title=display_name,
+        toolbar_subtitle=f'Ext. {number}',
+        toolbar_icon='ri-phone-line',
+        show_nav_links=False,
+        back_url=reverse('cdr3cx:extension_list'),
+        cc_periods=EXT_PERIODS,
+    ))
     return render(request, 'cdr/extensions/extension_detail.html', context)
 
 

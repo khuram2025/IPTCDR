@@ -1,13 +1,27 @@
 from django.contrib import admin
 
 from .models import (
-    SurveyAnswer, SurveyCampaign, SurveyDailyRollup, SurveyQuestion, SurveyResponse,
+    SurveyAnswer, SurveyCampaign, SurveyDailyRollup, SurveyQuestion,
+    SurveyQuestionOption, SurveyResponse,
 )
 
 
 class SurveyQuestionInline(admin.TabularInline):
     model = SurveyQuestion
     extra = 0
+
+
+class SurveyQuestionOptionInline(admin.TabularInline):
+    model = SurveyQuestionOption
+    extra = 0
+
+
+@admin.register(SurveyQuestion)
+class SurveyQuestionAdmin(admin.ModelAdmin):
+    list_display = ('tag', 'campaign', 'order', 'question_type', 'required')
+    list_filter = ('question_type', 'required', 'campaign__company')
+    search_fields = ('tag', 'prompt_text', 'campaign__name')
+    inlines = [SurveyQuestionOptionInline]
 
 
 @admin.register(SurveyCampaign)

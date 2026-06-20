@@ -118,6 +118,28 @@
   </div>
 </section>
 
+<!-- SOLUTIONS -->
+<section class="soft sec" id="solutions">
+  <div class="wrap">
+    <div class="section-head center">
+      <span class="eyebrow">Solution pages</span>
+      <h2>Focused guides for 3CX, call-center and IP telephony teams</h2>
+      <p class="lead">Explore the workflows buyers search for most: billing quota control, 3CX setup, call control, call-center evaluation and Cisco IP Telephony billing.</p>
+    </div>
+    <div class="cards">
+      {% for solution in solutions %}
+      <a class="card" href="/solutions/{{ solution.slug }}/" style="display:block">
+        <div class="ic"><i class="ri-links-line"></i></div>
+        <span class="eyebrow" style="font-size:.72rem;margin-bottom:10px">{{ solution.primary_keyword }}</span>
+        <h3>{{ solution.headline }}</h3>
+        <p>{{ solution.meta_description }}</p>
+        <p style="margin-top:14px;font-size:.88rem;color:var(--muted);font-weight:600">Read the solution page -></p>
+      </a>
+      {% endfor %}
+    </div>
+  </div>
+</section>
+
 <!-- CTA -->
 <section class="sec" style="padding-top:0">
   <div class="wrap">

@@ -89,7 +89,7 @@ def _filter_toolbar_context(time_period, start_date, end_date, custom_date_range
         'end_date': end_date.strftime('%Y-%m-%d'),
         'custom_date_range': custom_date_range,
         'date_range_label': date_range_label,
-        'cc_periods': CC_PERIODS,
+        'cc_periods': extra.pop('cc_periods', CC_PERIODS),
     }
     ctx.update(extra)
     return ctx
@@ -123,6 +123,10 @@ def _resolve_callcenter_date_range(request, default_period='1m'):
     now = timezone.now()
     if default_period == 'today':
         return now.replace(hour=0, minute=0, second=0, microsecond=0), now, 'today', ''
+    if default_period == 'month':
+        now_local = timezone.localtime(now)
+        start = now_local.replace(day=1, hour=0, minute=0, second=0, microsecond=0)
+        return start, now_local, 'month', ''
     days_map = {'7d': 7, '1m': 30, '6m': 182, '1y': 365}
     days = days_map.get(default_period, 30)
     return now - timedelta(days=days), now, default_period, ''
@@ -132,6 +136,7 @@ def _date_range_label(time_period, start_date, end_date, custom_date_range):
     labels = {
         'today': 'Today',
         '7d': 'Last 7 days',
+        'month': 'This month',
         '1m': 'Last 30 days',
         '6m': 'Last 6 months',
         '1y': 'Last year',
@@ -933,6 +938,8 @@ def call_back_tracking(request):
         reset_url=reverse('cdr3cx:call_back_tracking'),
         show_nav_links=False,
     ))
+
+    return render(request, 'cdr/callcenter/call_back_tracking.html', context)
 
 
 # ---------------------------------------------------------------------------

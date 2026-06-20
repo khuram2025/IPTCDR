@@ -1,178 +1,334 @@
-{% extends "partials/base.html" %} {% load static %} {% load custom_filters %} {% block title %}Quota Usage{% endblock title %} {% block content %}
+{% extends "partials/base.html" %}
+{% load static %}
+{% load custom_filters %}
+{% block title %}Quota Usage{% endblock title %}
+
+{% block content %}
 <style>
-  .clickable-row {
-    transition: background-color 0.3s, color 0.3s;
-  }
-
-  .clickable-row:hover {
-    background-color: #364574;
-    color: white;
-  }
-
-  .clickable-row:hover td {
-    color: white;
-  }
-  .clickable-row:hover a {
-    color: white !important;
-  }
+  .quota-usage-row { cursor: pointer; transition: background-color .15s; }
+  .quota-usage-row:hover { background-color: rgba(64, 81, 137, .06); }
+  .quota-progress { height: 6px; border-radius: 3px; background: #eef0f4; overflow: hidden; min-width: 72px; }
+  .quota-progress-bar { height: 100%; border-radius: 3px; transition: width .3s; }
+  .quota-stat-card { border: 0; box-shadow: 0 1px 3px rgba(0,0,0,.06); }
+  .quota-stat-value { font-size: 1.35rem; font-weight: 700; line-height: 1.1; }
+  .quota-stat-label { font-size: .72rem; color: #878a99; text-transform: uppercase; letter-spacing: .03em; }
+  .quota-chip { font-size: .75rem; padding: .25rem .6rem; border-radius: 2rem; text-decoration: none; border: 1px solid #e9ebec; color: #495057; background: #fff; }
+  .quota-chip:hover { background: #f3f6f9; color: #405189; border-color: #c9d0e3; }
+  .quota-chip.active { background: #405189; color: #fff; border-color: #405189; }
+  .quota-actions .btn { padding: .15rem .4rem; font-size: .75rem; }
+  .sort-link { color: inherit; text-decoration: none; }
+  .sort-link:hover { color: #405189; }
 </style>
-<script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
-<script>
-$(function(){
-  $('.block-phone-btn').click(function(e){
-    e.preventDefault();
-    var btn = $(this);
-    var extId = btn.data('extension-id');
-    var action = btn.data('action');
-    btn.prop('disabled', true).text('Processing...');
-    $.post("{% url 'cdr3cx:toggle_external_call' %}", {
-      extension_id: extId,
-      action: action,
-      csrfmiddlewaretoken: '{{ csrf_token }}'
-    }, function(data){
-      if(data.success){
-        // Swap button text and action
-        if(data.new_status){
-          btn.text('Allow External Calls');
-          btn.data('action', 'allow');
-        } else {
-          btn.text('Block External Calls');
-          btn.data('action', 'block');
-        }
-      } else {
-        alert('Failed: ' + data.error);
-      }
-      btn.prop('disabled', false);
-    }).fail(function(){
-      alert('Request failed.');
-      btn.prop('disabled', false);
-    });
-  });
-});
-</script>
+
 <div class="main-content">
   <div class="page-content">
     <div class="container-fluid">
-      {% block pagetitle %}
-      <div class="row">
-        <div class="col-12">
-          <div class="page-title-box d-sm-flex align-items-center justify-content-between">
-            <h4 class="mb-sm-0">Quota Usage</h4>
+
+      {% if messages %}
+        {% for message in messages %}
+          <div class="alert alert-{{ message.tags }} alert-dismissible fade show" role="alert">
+            {{ message }}
+            <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+          </div>
+        {% endfor %}
+      {% endif %}
+
+      <!-- Header -->
+      <div class="card border-0 shadow-sm mb-3">
+        <div class="card-body py-3">
+          <div class="d-flex flex-wrap align-items-center justify-content-between gap-2">
+            <div>
+              <h5 class="mb-1 fw-semibold"><i class="ri-funds-line me-1"></i>Quota Usage</h5>
+              <span class="text-muted fs-13">{{ stats.total }} extension{{ stats.total|pluralize }} with quotas assigned</span>
+            </div>
+            <div class="d-flex gap-2">
+              <a href="{% url 'cdr3cx:assign_quota' %}" class="btn btn-primary btn-sm">
+                <i class="ri-user-add-line me-1"></i>Assign Quota
+              </a>
+              <a href="{% url 'cdr3cx:quota_list' %}" class="btn btn-light btn-sm">
+                <i class="ri-settings-3-line me-1"></i>Manage Plans
+              </a>
+            </div>
           </div>
         </div>
       </div>
-      {% endblock pagetitle %}
 
-      <div class="row mb-3">
-        <div class="col-md-6 offset-md-6">
-          <form method="get" action="{% url 'cdr3cx:quota_usage' %}">
-            <div class="input-group">
-              <input type="text" class="form-control" placeholder="Search by extension" name="search" value="{{ search_query }}" />
-              <button class="btn btn-primary" type="submit">Search</button>
+      <!-- Summary stats -->
+      <div class="row g-2 mb-3">
+        <div class="col-6 col-md-3">
+          <div class="card quota-stat-card h-100">
+            <div class="card-body py-2 px-3 text-center">
+              <div class="quota-stat-value text-primary">{{ stats.total }}</div>
+              <div class="quota-stat-label">Total</div>
             </div>
-          </form>
+          </div>
         </div>
-      </div>
-
-      <div class="row">
-        <div class="col-12">
-          <div class="card">
-            <div class="card-body">
-              <table id="quotaUsageTable" class="table table-striped table-bordered dt-responsive nowrap">
-                <thead>
-                  <tr>
-                    <th>
-                      <a href="?sort={% if sort_by == 'extension__extension' %}-{% endif %}extension__extension{% if search_query %}&search={{ search_query }}{% endif %}"> Extension {% if sort_by == 'extension__extension' %}↑{% elif sort_by == '-extension__extension' %}↓{% endif %} </a>
-                    </th>
-                    <th>
-                      <a href="?sort={% if sort_by == 'quota__name' %}-{% endif %}quota__name{% if search_query %}&search={{ search_query }}{% endif %}"> Quota Name {% if sort_by == 'quota__name' %}↑{% elif sort_by == '-quota__name' %}↓{% endif %} </a>
-                    </th>
-                    <th>
-                      <a href="?sort={% if sort_by == 'quota__amount' %}-{% endif %}quota__amount{% if search_query %}&search={{ search_query }}{% endif %}"> Total Amount {% if sort_by == 'quota__amount' %}↑{% elif sort_by == '-quota__amount' %}↓{% endif %} </a>
-                    </th>
-                    <th>
-                      <a href="?sort={% if sort_by == 'used_amount' %}-{% endif %}used_amount{% if search_query %}&search={{ search_query }}{% endif %}"> Used Amount {% if sort_by == 'used_amount' %}↑{% elif sort_by == '-used_amount' %}↓{% endif %} </a>
-                    </th>
-                    <th>
-                      <a href="?sort={% if sort_by == 'remaining_balance' %}-{% endif %}remaining_balance{% if search_query %}&search={{ search_query }}{% endif %}"> Remaining Balance {% if sort_by == 'remaining_balance' %}↑{% elif sort_by == '-remaining_balance' %}↓{% endif %} </a>
-                    </th>
-                    <th>Last Quota Added Date</th>
-                    <th>Actions</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {% for user_quota in page_obj %}
-                  <tr class="clickable-row" data-href="{% url 'cdr3cx:caller_calls' caller_number=user_quota.extension.extension %}">
-                    <td>{{ user_quota.extension.extension }}</td>
-                    <td>{{ user_quota.quota.name }}</td>
-                    <td>{{ user_quota.total_amount }} SAR</td>
-                    <td>{{ user_quota.used_amount }} SAR</td>
-                    <td>{{ user_quota.remaining_balance }} SAR</td>
-                    <td>{{ user_quota.last_reset|date:"Y-m-d H:i" }}</td>
-                    <td>
-                      {% if user_quota.extension.email %}
-                      <a href="{% url 'cdr3cx:send_quota_email' user_quota.extension.pk %}">Send Email</a>
-                      {% else %} No Email {% endif %} |
-                      <a href="{% url 'cdr3cx:add_balance' extension_id=user_quota.extension.pk %}">Add Balance</a> |
-                      {% if user_quota.extension.disable_external_call %}
-                        <a href="#" class="block-phone-btn" data-extension-id="{{ user_quota.extension.pk }}" data-action="allow">Allow External Calls</a>
-                      {% else %}
-                        <a href="#" class="block-phone-btn" data-extension-id="{{ user_quota.extension.pk }}" data-action="block">Block External Calls</a>
-                      {% endif %}
-                    </td>
-                  </tr>
-                  {% endfor %}
-                </tbody>
-              </table>
-
-              <div class="mt-3">
-                <ul class="pagination justify-content-center">
-                  {% if page_obj.has_previous %}
-                  <li class="page-item"><a class="page-link" href="?page=1&sort={{ sort_by }}{% if search_query %}&search={{ search_query }}{% endif %}">&laquo; first</a></li>
-                  <li class="page-item"><a class="page-link" href="?page={{ page_obj.previous_page_number }}&sort={{ sort_by }}{% if search_query %}&search={{ search_query }}{% endif %}">previous</a></li>
-                  {% endif %}
-
-                  <li class="page-item disabled"><a class="page-link" href="#">Page {{ page_obj.number }} of {{ page_obj.paginator.num_pages }}</a></li>
-
-                  {% if page_obj.has_next %}
-                  <li class="page-item"><a class="page-link" href="?page={{ page_obj.next_page_number }}&sort={{ sort_by }}{% if search_query %}&search={{ search_query }}{% endif %}">next</a></li>
-                  <li class="page-item"><a class="page-link" href="?page={{ page_obj.paginator.num_pages }}&sort={{ sort_by }}{% if search_query %}&search={{ search_query }}{% endif %}">last &raquo;</a></li>
-                  {% endif %}
-                </ul>
+        <div class="col-6 col-md-3">
+          <a href="?{% url_replace request 'balance' 'low' %}" class="text-decoration-none">
+            <div class="card quota-stat-card h-100 {% if balance_status == 'low' %}border-warning{% endif %}">
+              <div class="card-body py-2 px-3 text-center">
+                <div class="quota-stat-value text-warning">{{ stats.low }}</div>
+                <div class="quota-stat-label">Low balance</div>
               </div>
             </div>
+          </a>
+        </div>
+        <div class="col-6 col-md-3">
+          <a href="?{% url_replace request 'balance' 'exhausted' %}" class="text-decoration-none">
+            <div class="card quota-stat-card h-100 {% if balance_status == 'exhausted' %}border-danger{% endif %}">
+              <div class="card-body py-2 px-3 text-center">
+                <div class="quota-stat-value text-danger">{{ stats.exhausted }}</div>
+                <div class="quota-stat-label">Exhausted</div>
+              </div>
+            </div>
+          </a>
+        </div>
+        <div class="col-6 col-md-3">
+          <a href="?{% url_replace request 'blocked' '1' %}" class="text-decoration-none">
+            <div class="card quota-stat-card h-100 {% if blocked == '1' %}border-secondary{% endif %}">
+              <div class="card-body py-2 px-3 text-center">
+                <div class="quota-stat-value text-secondary">{{ stats.blocked }}</div>
+                <div class="quota-stat-label">Ext. blocked</div>
+              </div>
+            </div>
+          </a>
+        </div>
+      </div>
+
+      <!-- Smart filters -->
+      <div class="card border-0 shadow-sm mb-3">
+        <div class="card-body py-2">
+          <form method="get" class="row g-2 align-items-end">
+            <div class="col-md-3">
+              <label class="form-label fs-12 text-muted mb-1">Search</label>
+              <input type="text" name="search" value="{{ search_query }}" class="form-control form-control-sm"
+                     placeholder="extension, name, email">
+            </div>
+            <div class="col-6 col-md-2">
+              <label class="form-label fs-12 text-muted mb-1">Quota plan</label>
+              <select name="quota" class="form-select form-select-sm">
+                <option value="">All plans</option>
+                {% for plan in quota_plans %}
+                  <option value="{{ plan.pk }}" {% if quota_filter == plan.pk|stringformat:"s" %}selected{% endif %}>{{ plan.name }}</option>
+                {% endfor %}
+              </select>
+            </div>
+            <div class="col-6 col-md-2">
+              <label class="form-label fs-12 text-muted mb-1">Balance</label>
+              <select name="balance" class="form-select form-select-sm">
+                <option value="">Any</option>
+                <option value="healthy" {% if balance_status == 'healthy' %}selected{% endif %}>Healthy (&gt;25%)</option>
+                <option value="low" {% if balance_status == 'low' %}selected{% endif %}>Low (≤25%)</option>
+                <option value="exhausted" {% if balance_status == 'exhausted' %}selected{% endif %}>Exhausted</option>
+              </select>
+            </div>
+            <div class="col-6 col-md-2">
+              <label class="form-label fs-12 text-muted mb-1">External calls</label>
+              <select name="blocked" class="form-select form-select-sm">
+                <option value="">Any</option>
+                <option value="0" {% if blocked == '0' %}selected{% endif %}>Allowed</option>
+                <option value="1" {% if blocked == '1' %}selected{% endif %}>Blocked</option>
+              </select>
+            </div>
+            <div class="col-6 col-md-3 d-flex gap-2">
+              <button type="submit" class="btn btn-secondary btn-sm w-100">Apply filters</button>
+              <a href="{% url 'cdr3cx:quota_usage' %}" class="btn btn-light btn-sm">Reset</a>
+            </div>
+          </form>
+
+          <div class="d-flex flex-wrap gap-2 mt-2 pt-2 border-top">
+            <span class="text-muted fs-12 align-self-center me-1">Quick:</span>
+            <a href="{% url 'cdr3cx:quota_usage' %}" class="quota-chip {% if not balance_status and not blocked %}active{% endif %}">All</a>
+            <a href="?{% url_replace request 'balance' 'low' %}" class="quota-chip {% if balance_status == 'low' %}active{% endif %}">Low balance</a>
+            <a href="?{% url_replace request 'balance' 'exhausted' %}" class="quota-chip {% if balance_status == 'exhausted' %}active{% endif %}">Exhausted</a>
+            <a href="?{% url_replace request 'blocked' '1' %}" class="quota-chip {% if blocked == '1' %}active{% endif %}">Blocked calls</a>
+            <a href="?{% url_replace request 'balance' 'healthy' %}" class="quota-chip {% if balance_status == 'healthy' %}active{% endif %}">Healthy</a>
           </div>
         </div>
       </div>
+
+      <!-- Table -->
+      <div class="card border-0 shadow-sm">
+        <div class="card-header bg-transparent border-0 d-flex justify-content-between align-items-center py-2">
+          <span class="text-muted fs-13">{{ result_count }} result{{ result_count|pluralize }}</span>
+        </div>
+        <div class="card-body p-0">
+          <div class="table-responsive">
+            <table class="table table-hover align-middle mb-0" id="quotaUsageTable">
+              <thead class="table-light">
+                <tr>
+                  <th class="ps-3">
+                    <a class="sort-link" href="?{% if querystring %}{{ querystring }}&{% endif %}sort={% if sort_by == 'extension__extension' %}-{% endif %}extension__extension">
+                      Extension {% if sort_by == 'extension__extension' %}↑{% elif sort_by == '-extension__extension' %}↓{% endif %}
+                    </a>
+                  </th>
+                  <th>Name</th>
+                  <th>
+                    <a class="sort-link" href="?{% if querystring %}{{ querystring }}&{% endif %}sort={% if sort_by == 'quota__name' %}-{% endif %}quota__name">
+                      Plan {% if sort_by == 'quota__name' %}↑{% elif sort_by == '-quota__name' %}↓{% endif %}
+                    </a>
+                  </th>
+                  <th class="text-end">
+                    <a class="sort-link" href="?{% if querystring %}{{ querystring }}&{% endif %}sort={% if sort_by == 'quota__amount' %}-{% endif %}quota__amount">
+                      Total {% if sort_by == 'quota__amount' %}↑{% elif sort_by == '-quota__amount' %}↓{% endif %}
+                    </a>
+                  </th>
+                  <th style="min-width:120px">Usage</th>
+                  <th class="text-end">
+                    <a class="sort-link" href="?{% if querystring %}{{ querystring }}&{% endif %}sort={% if sort_by == 'remaining_balance' %}-{% endif %}remaining_balance">
+                      Remaining {% if sort_by == 'remaining_balance' %}↑{% elif sort_by == '-remaining_balance' %}↓{% endif %}
+                    </a>
+                  </th>
+                  <th>Status</th>
+                  <th>Last reset</th>
+                  <th class="text-end pe-3">Actions</th>
+                </tr>
+              </thead>
+              <tbody>
+                {% for user_quota in page_obj %}
+                {% with remaining=user_quota.remaining_balance total=user_quota.total_amount %}
+                <tr class="quota-usage-row" data-href="{% url 'cdr3cx:caller_calls' caller_number=user_quota.extension.extension %}">
+                  <td class="ps-3 fw-semibold">{{ user_quota.extension.extension }}</td>
+                  <td class="fs-13 text-muted">{{ user_quota.extension.full_name|default:user_quota.extension.display_name|default:"—" }}</td>
+                  <td class="fs-13">{{ user_quota.quota.name|default:"—" }}</td>
+                  <td class="text-end fs-13">{{ user_quota.total_amount|floatformat:2 }} <span class="text-muted">SAR</span></td>
+                  <td>
+                    {% if total > 0 %}
+                      {% widthratio user_quota.used_amount total 100 as pct %}
+                      <div class="d-flex align-items-center gap-2">
+                        <div class="quota-progress flex-grow-1">
+                          <div class="quota-progress-bar {% if pct >= 90 %}bg-danger{% elif pct >= 75 %}bg-warning{% else %}bg-success{% endif %}"
+                               style="width:{% if pct > 100 %}100{% else %}{{ pct }}{% endif %}%"></div>
+                        </div>
+                        <span class="fs-12 text-muted" style="min-width:2.5rem">{{ pct }}%</span>
+                      </div>
+                      <span class="fs-11 text-muted">{{ user_quota.used_amount|floatformat:2 }} SAR used</span>
+                    {% else %}
+                      <span class="text-muted fs-12">—</span>
+                    {% endif %}
+                  </td>
+                  <td class="text-end fw-semibold fs-13 {% if remaining <= 0 %}text-danger{% endif %}">
+                    {{ remaining|floatformat:2 }} <span class="text-muted fw-normal">SAR</span>
+                  </td>
+                  <td>
+                    {% if remaining <= 0 %}
+                      <span class="badge bg-danger-subtle text-danger">Exhausted</span>
+                    {% elif total > 0 %}
+                      {% widthratio remaining total 100 as pct_rem %}
+                      {% if pct_rem <= 25 %}
+                        <span class="badge bg-warning-subtle text-warning">Low</span>
+                      {% else %}
+                        <span class="badge bg-success-subtle text-success">Healthy</span>
+                      {% endif %}
+                    {% else %}
+                      <span class="badge bg-secondary-subtle text-secondary">No quota</span>
+                    {% endif %}
+                    {% if user_quota.extension.disable_external_call %}
+                      <span class="badge bg-danger-subtle text-danger" title="External calls blocked">Blocked</span>
+                    {% endif %}
+                  </td>
+                  <td class="fs-12 text-muted">{{ user_quota.last_reset|date:"Y-m-d H:i" }}</td>
+                  <td class="text-end pe-3 quota-actions" onclick="event.stopPropagation()">
+                    <div class="btn-group btn-group-sm">
+                      <a href="{% url 'cdr3cx:add_balance' extension_id=user_quota.extension.pk %}"
+                         class="btn btn-outline-primary" title="Add balance">
+                        <i class="ri-add-circle-line"></i>
+                      </a>
+                      {% if user_quota.extension.email %}
+                      <a href="{% url 'cdr3cx:send_quota_email' user_quota.extension.pk %}"
+                         class="btn btn-outline-secondary" title="Send email">
+                        <i class="ri-mail-send-line"></i>
+                      </a>
+                      {% endif %}
+                      <button type="button"
+                              class="btn btn-outline-{% if user_quota.extension.disable_external_call %}success{% else %}danger{% endif %} block-phone-btn"
+                              data-extension-id="{{ user_quota.extension.pk }}"
+                              data-action="{% if user_quota.extension.disable_external_call %}allow{% else %}block{% endif %}"
+                              title="{% if user_quota.extension.disable_external_call %}Allow{% else %}Block{% endif %} external calls">
+                        <i class="ri-{% if user_quota.extension.disable_external_call %}phone-line{% else %}phone-lock-line{% endif %}"></i>
+                      </button>
+                    </div>
+                  </td>
+                </tr>
+                {% endwith %}
+                {% empty %}
+                <tr>
+                  <td colspan="9" class="text-center text-muted py-5">
+                    <i class="ri-funds-box-line fs-2 d-block mb-2 opacity-50"></i>
+                    No extensions match your filters.
+                    <a href="{% url 'cdr3cx:assign_quota' %}">Assign a quota</a> to get started.
+                  </td>
+                </tr>
+                {% endfor %}
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+
+      {% if page_obj.has_other_pages %}
+      <nav class="mt-3">
+        <ul class="pagination pagination-sm justify-content-center">
+          {% if page_obj.has_previous %}
+            <li class="page-item"><a class="page-link" href="?{{ querystring }}&page={{ page_obj.previous_page_number }}">Prev</a></li>
+          {% else %}<li class="page-item disabled"><span class="page-link">Prev</span></li>{% endif %}
+          <li class="page-item disabled"><span class="page-link">Page {{ page_obj.number }} of {{ page_obj.paginator.num_pages }}</span></li>
+          {% if page_obj.has_next %}
+            <li class="page-item"><a class="page-link" href="?{{ querystring }}&page={{ page_obj.next_page_number }}">Next</a></li>
+          {% else %}<li class="page-item disabled"><span class="page-link">Next</span></li>{% endif %}
+        </ul>
+      </nav>
+      {% endif %}
+
     </div>
   </div>
-
   {% block footer %}{% include "partials/footer.html" %}{% endblock footer %}
 </div>
-{% endblock content %} {% block extra_js %}
+{% endblock content %}
+
+{% block extra_js %}
 <script>
-  $(document).ready(function () {
-    $("#quotaUsageTable").DataTable({
-      paging: false,
-      ordering: false,
-      info: false,
-      searching: false,
-      responsive: true,
-    });
-  });
-</script>
-<script>
-  document.addEventListener("DOMContentLoaded", function () {
-    const rows = document.querySelectorAll(".clickable-row");
-    rows.forEach((row) => {
-      row.addEventListener("click", function (event) {
-        // Check if the clicked element is a link
-        if (event.target.tagName.toLowerCase() !== "a") {
-          window.location.href = this.dataset.href;
-        }
+document.addEventListener('DOMContentLoaded', function () {
+  document.querySelectorAll('.block-phone-btn').forEach(function (btn) {
+    btn.addEventListener('click', function (e) {
+      e.preventDefault();
+      e.stopPropagation();
+      var extId = btn.dataset.extensionId;
+      var action = btn.dataset.action;
+      btn.disabled = true;
+      var body = new URLSearchParams({
+        extension_id: extId,
+        action: action,
+        csrfmiddlewaretoken: '{{ csrf_token }}'
       });
-      row.style.cursor = "pointer"; // Change cursor to pointer to indicate clickable
+      fetch("{% url 'cdr3cx:toggle_external_call' %}", {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/x-www-form-urlencoded', 'X-Requested-With': 'XMLHttpRequest' },
+        body: body.toString()
+      })
+        .then(function (r) { return r.json(); })
+        .then(function (data) {
+          if (data.success) {
+            location.reload();
+          } else {
+            alert('Failed: ' + data.error);
+            btn.disabled = false;
+          }
+        })
+        .catch(function () {
+          alert('Request failed.');
+          btn.disabled = false;
+        });
     });
   });
+
+  document.querySelectorAll('.quota-usage-row').forEach(function (row) {
+    row.addEventListener('click', function (e) {
+      if (!e.target.closest('a, button')) {
+        window.location.href = row.dataset.href;
+      }
+    });
+  });
+});
 </script>
 {% endblock extra_js %}

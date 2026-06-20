@@ -1,6 +1,6 @@
 {% extends 'public/base.html' %}
-{% block title %}Contact Zentryc — Book a Demo of our Call-Center Platform{% endblock %}
-{% block meta_description %}Talk to Zentryc. Book a live demo of real-time call-center analytics, wallboards, SLA alerts and telecom billing for 3CX — or ask us anything about pricing and onboarding.{% endblock %}
+{% block title %}Contact Zentryc — Pricing, Demo & Support{% endblock %}
+{% block meta_description %}Contact Zentryc for pricing and demos at info@zentryc.com, or reach support for onboarding, platform and technical questions at support@zentryc.com.{% endblock %}
 {% block canonical %}/contact/{% endblock %}{% block og_url %}/contact/{% endblock %}
 
 {% block body %}
@@ -8,8 +8,8 @@
   <div class="wrap sec" style="padding-bottom:30px">
     <div class="center section-head">
       <span class="eyebrow">Contact</span>
-      <h1>Let's book your demo</h1>
-      <p class="lead">Tell us about your call center and we'll show Zentryc running against real 3CX data. We typically reply within one business day.</p>
+      <h1>Talk to the right Zentryc team</h1>
+      <p class="lead">For pricing and demos email <a href="mailto:{{ pricing_email }}" style="color:var(--indigo);font-weight:700">{{ pricing_email }}</a>. For support, onboarding and technical questions email <a href="mailto:{{ support_email }}" style="color:var(--indigo);font-weight:700">{{ support_email }}</a>.</p>
     </div>
   </div>
 </section>
@@ -33,6 +33,11 @@
         </div>
         <div style="margin-top:14px"><label style="font-weight:600;font-size:.86rem">Company</label>
           <input name="company" style="width:100%;padding:11px 13px;border:1px solid var(--line);border-radius:10px;margin-top:5px"></div>
+        <div style="margin-top:14px"><label style="font-weight:600;font-size:.86rem">Inquiry type</label>
+          <select name="inquiry_type" style="width:100%;padding:11px 13px;border:1px solid var(--line);border-radius:10px;margin-top:5px;background:#fff">
+            <option value="pricing" {% if inquiry_type == 'pricing' %}selected{% endif %}>Pricing / demo - info@zentryc.com</option>
+            <option value="support" {% if inquiry_type == 'support' %}selected{% endif %}>Support / general - support@zentryc.com</option>
+          </select></div>
         <div style="margin-top:14px"><label style="font-weight:600;font-size:.86rem">How can we help?</label>
           <textarea name="message" rows="4" style="width:100%;padding:11px 13px;border:1px solid var(--line);border-radius:10px;margin-top:5px"></textarea></div>
         <button class="btn btn-primary" type="submit" style="margin-top:18px">Send message <i class="ri-send-plane-line"></i></button>
@@ -46,13 +51,13 @@
       </div>
       <div class="card" style="margin-bottom:16px">
         <div class="ic"><i class="ri-customer-service-2-line"></i></div>
-        <h3>Sales &amp; demos</h3>
-        <p>Book a guided walkthrough of analytics, wallboards, alerts and billing tailored to your setup.</p>
+        <h3>Pricing &amp; demos</h3>
+        <p>For quotes, plan questions and guided walkthroughs, email <a href="mailto:{{ pricing_email }}" style="color:var(--indigo);font-weight:600">{{ pricing_email }}</a>.</p>
       </div>
       <div class="card">
         <div class="ic"><i class="ri-shield-check-line"></i></div>
-        <h3>Security &amp; onboarding</h3>
-        <p>Ask about multi-tenant isolation, IP allow-listing, RBAC and our onboarding process.</p>
+        <h3>Support &amp; onboarding</h3>
+        <p>For platform support, onboarding, security and technical questions, email <a href="mailto:{{ support_email }}" style="color:var(--indigo);font-weight:600">{{ support_email }}</a>.</p>
       </div>
     </div>
   </div>

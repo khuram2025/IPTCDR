@@ -1,89 +1,140 @@
 {% extends "partials/base.html" %}
-{% load static %}
+{% load static custom_filters %}
 {% block title %}Extension {{ ext.extension }}{% endblock title %}
+
+{% block extra_css %}
+<link rel="stylesheet" href="{% static 'css/callcenter-dashboard.css' %}">
+<style>
+.ext-detail .ext-meta dt { font-size: .68rem; font-weight: 600; text-transform: uppercase; letter-spacing: .03em; color: #878a99; }
+.ext-detail .ext-meta dd { font-size: .8125rem; margin-bottom: .5rem; }
+.ext-detail .ext-avatar { width: 44px; height: 44px; font-size: 1rem; font-weight: 600; }
+.ext-detail .quota-bar { height: 6px; border-radius: 3px; background: #eef0f4; overflow: hidden; }
+.ext-detail .quota-bar-fill { height: 100%; border-radius: 3px; background: linear-gradient(90deg, #0ab39c, #405189); }
+.ext-detail .activity-filter { background: #f8f9fc; border-radius: .5rem; padding: .5rem .75rem; }
+.ext-detail .cc-table tbody td { font-size: .8125rem; padding: .45rem .5rem; }
+.ext-detail .cc-table .badge { font-size: .65rem; font-weight: 500; }
+</style>
+{% endblock extra_css %}
+
 {% block content %}
-<div class="main-content">
+<div class="main-content ext-detail">
   <div class="page-content">
-    <div class="container-fluid">
+    <div class="container-fluid cc-dashboard">
 
       {% if messages %}
         {% for message in messages %}
-          <div class="alert alert-{{ message.tags }} alert-dismissible fade show" role="alert">
+          <div class="alert alert-{{ message.tags }} alert-dismissible fade show py-2 fs-13" role="alert">
             {{ message }}<button type="button" class="btn-close" data-bs-dismiss="alert"></button>
           </div>
         {% endfor %}
       {% endif %}
 
-      <div class="d-flex justify-content-between align-items-center mb-2">
-        <a href="{% url 'cdr3cx:extension_list' %}" class="btn btn-link btn-sm ps-0"><i class="ri-arrow-left-line me-1"></i>All extensions</a>
-        <a href="{% url 'cdr3cx:report_generate_now' %}?type=agent_productivity&window=last_30_days&format=pdf" class="btn btn-sm btn-outline-danger"><i class="ri-file-pdf-2-line me-1"></i>Export PDF</a>
+      <!-- Header strip -->
+      <div class="card border-0 shadow-sm mb-3 cc-agent-strip">
+        <div class="card-body py-2 px-3">
+          <div class="d-flex align-items-center justify-content-between flex-wrap gap-2">
+            <div class="d-flex align-items-center gap-2 min-w-0">
+              <a href="{% url 'cdr3cx:extension_list' %}" class="btn btn-soft-secondary btn-sm px-2" title="All extensions">
+                <i class="ri-arrow-left-line"></i>
+              </a>
+              <span class="cc-agent-avatar-lg ext-avatar">{{ ext.extension|slice:":2" }}</span>
+              <div class="min-w-0">
+                <h6 class="mb-0 fw-semibold text-truncate">{{ display_name }}</h6>
+                <span class="text-muted fs-12">Extension {{ ext.extension }} · {{ ext.company.name }}</span>
+              </div>
+            </div>
+            <div class="d-flex align-items-center gap-2 flex-wrap">
+              {% if not ext.is_active %}<span class="badge bg-secondary-subtle text-secondary">Inactive</span>
+              {% elif not ext.enabled %}<span class="badge bg-warning-subtle text-warning">Disabled</span>
+              {% else %}<span class="badge bg-success-subtle text-success">Active</span>{% endif %}
+              {% if ext.is_registered %}<span class="badge bg-info-subtle text-info">Online</span>{% else %}<span class="badge bg-light text-muted">Offline</span>{% endif %}
+              {% if ext.disable_external_call %}<span class="badge bg-danger-subtle text-danger">Ext blocked</span>{% endif %}
+              <a href="{{ pdf_url }}" class="btn btn-sm btn-soft-danger"><i class="ri-file-pdf-2-line me-1"></i>PDF</a>
+              <a href="{% url 'cdr3cx:agent_details' ext.extension %}?time_period={{ time_period }}&start_date={{ start_date }}&end_date={{ end_date }}" class="btn btn-sm btn-soft-primary">
+                <i class="ri-customer-service-2-line me-1"></i>Call center
+              </a>
+            </div>
+          </div>
+        </div>
       </div>
 
-      <div class="row g-3">
+      <div class="row g-2 mb-3">
         <!-- Profile -->
-        <div class="col-lg-5">
+        <div class="col-lg-4">
           <div class="card border-0 shadow-sm h-100">
-            <div class="card-header bg-transparent border-0 py-2"><h6 class="mb-0 fw-semibold">Profile</h6></div>
-            <div class="card-body">
-              <div class="d-flex align-items-center gap-3 mb-3">
-                <span class="avatar-title rounded-circle bg-primary-subtle text-primary fs-3" style="width:56px;height:56px;display:flex;align-items:center;justify-content:center">{{ ext.extension|slice:":2" }}</span>
-                <div>
-                  <h5 class="mb-0">{{ ext.full_name|default:ext.display_name|default:"Unnamed" }}</h5>
-                  <span class="text-muted">Extension {{ ext.extension }}</span>
-                </div>
-              </div>
-              <div class="mb-3">
-                {% if not ext.is_active %}<span class="badge bg-secondary-subtle text-secondary">Inactive (not in 3CX)</span>
-                {% elif not ext.enabled %}<span class="badge bg-warning-subtle text-warning">Disabled</span>
-                {% else %}<span class="badge bg-success-subtle text-success">Active</span>{% endif %}
-                {% if ext.is_registered %}<span class="badge bg-info-subtle text-info">Online</span>{% else %}<span class="badge bg-light text-muted">Offline</span>{% endif %}
-                {% if ext.disable_external_call %}<span class="badge bg-danger-subtle text-danger">External calls blocked</span>{% else %}<span class="badge bg-success-subtle text-success">External calls allowed</span>{% endif %}
-              </div>
-              <table class="table table-sm mb-0">
-                <tr><td class="text-muted" style="width:45%">Email</td><td>{{ ext.email|default:"—" }}</td></tr>
-                <tr><td class="text-muted">Mobile</td><td>{{ ext.mobile|default:"—" }}</td></tr>
-                <tr><td class="text-muted">Display name</td><td>{{ ext.display_name|default:"—" }}</td></tr>
-                <tr><td class="text-muted">Outbound caller ID</td><td>{{ ext.outbound_caller_id|default:"—" }}</td></tr>
-                <tr><td class="text-muted">Company</td><td>{{ ext.company.name|default:"—" }}</td></tr>
-                <tr><td class="text-muted">3CX user ID</td><td>{{ ext.pbx_user_id|default:"—" }}</td></tr>
-                <tr><td class="text-muted">Last synced</td><td>{% if ext.last_synced_at %}{{ ext.last_synced_at }}{% else %}—{% endif %}</td></tr>
-              </table>
+            <div class="card-header bg-transparent border-0 py-2 px-3">
+              <h6 class="mb-0 fw-semibold fs-13"><i class="ri-user-3-line me-1 text-primary"></i>Profile</h6>
+            </div>
+            <div class="card-body pt-0 px-3 pb-3">
+              <dl class="row ext-meta mb-0">
+                <dt class="col-5">Email</dt><dd class="col-7 mb-2 text-truncate">{{ ext.email|default:"—" }}</dd>
+                <dt class="col-5">Mobile</dt><dd class="col-7 mb-2">{{ ext.mobile|default:"—" }}</dd>
+                <dt class="col-5">Display</dt><dd class="col-7 mb-2">{{ ext.display_name|default:"—" }}</dd>
+                <dt class="col-5">Caller ID</dt><dd class="col-7 mb-2">{{ ext.outbound_caller_id|default:"—" }}</dd>
+                <dt class="col-5">3CX ID</dt><dd class="col-7 mb-2">{{ ext.pbx_user_id|default:"—" }}</dd>
+                <dt class="col-5">Synced</dt><dd class="col-7 mb-0 fs-12 text-muted">{% if ext.last_synced_at %}{{ ext.last_synced_at|date:"M d, Y H:i" }}{% else %}—{% endif %}</dd>
+              </dl>
             </div>
           </div>
         </div>
 
-        <!-- Quota + balance -->
-        <div class="col-lg-7">
+        <!-- Quota -->
+        <div class="col-lg-8">
           <div class="card border-0 shadow-sm h-100">
-            <div class="card-header bg-transparent border-0 py-2 d-flex justify-content-between align-items-center">
-              <h6 class="mb-0 fw-semibold">Quota &amp; Balance</h6>
-              {% if is_admin %}<a href="{% url 'cdr3cx:assign_quota' %}" class="btn btn-light btn-sm">Assign quota</a>{% endif %}
+            <div class="card-header bg-transparent border-0 py-2 px-3 d-flex justify-content-between align-items-center">
+              <h6 class="mb-0 fw-semibold fs-13"><i class="ri-wallet-3-line me-1 text-primary"></i>Quota &amp; Balance</h6>
+              {% if is_admin %}<a href="{% url 'cdr3cx:assign_quota' %}" class="btn btn-soft-primary btn-sm py-0">Assign</a>{% endif %}
             </div>
-            <div class="card-body">
+            <div class="card-body pt-0 px-3 pb-3">
               {% if user_quota and user_quota.quota %}
-              <div class="row text-center g-2 mb-3">
-                <div class="col-4"><div class="border rounded p-2"><div class="fs-12 text-muted">Plan</div><div class="fw-semibold">{{ user_quota.quota.name }}</div></div></div>
-                <div class="col-4"><div class="border rounded p-2"><div class="fs-12 text-muted">Total</div><div class="fw-semibold">{{ user_quota.total_amount|floatformat:2 }}</div></div></div>
-                <div class="col-4"><div class="border rounded p-2"><div class="fs-12 text-muted">Remaining</div><div class="fw-semibold {% if user_quota.remaining_balance <= 0 %}text-danger{% else %}text-success{% endif %}">{{ user_quota.remaining_balance|floatformat:2 }}</div></div></div>
+              <div class="row g-2 mb-2">
+                <div class="col-4">
+                  <div class="cc-kpi card border-0 bg-light h-100">
+                    <div class="card-body py-2 px-2 text-center">
+                      <p class="cc-kpi-label mb-0">Plan</p>
+                      <div class="fw-semibold fs-13 text-truncate">{{ user_quota.quota.name }}</div>
+                    </div>
+                  </div>
+                </div>
+                <div class="col-4">
+                  <div class="cc-kpi card border-0 bg-light h-100">
+                    <div class="card-body py-2 px-2 text-center">
+                      <p class="cc-kpi-label mb-0">Total (SAR)</p>
+                      <div class="fw-semibold fs-13">{{ user_quota.total_amount|floatformat:2 }}</div>
+                    </div>
+                  </div>
+                </div>
+                <div class="col-4">
+                  <div class="cc-kpi card border-0 bg-light h-100 {% if user_quota.remaining_balance <= 0 %}cc-kpi-bad{% else %}cc-kpi-good{% endif %}">
+                    <div class="card-body py-2 px-2 text-center">
+                      <p class="cc-kpi-label mb-0">Remaining</p>
+                      <div class="fw-semibold fs-13 {% if user_quota.remaining_balance <= 0 %}text-danger{% else %}text-success{% endif %}">{{ user_quota.remaining_balance|floatformat:2 }}</div>
+                    </div>
+                  </div>
+                </div>
               </div>
-              {% if user_quota.is_blocked %}<div class="alert alert-warning py-2 fs-13 mb-3">This extension is currently <strong>blocked</strong> (quota exhausted).</div>{% endif %}
+              {% if user_quota.total_amount and user_quota.total_amount > 0 %}
+              {% widthratio user_quota.remaining_balance user_quota.total_amount 100 as pct_raw %}
+              <div class="quota-bar mb-2"><div class="quota-bar-fill" style="width:{{ pct_raw }}%"></div></div>
+              {% endif %}
+              {% if user_quota.is_blocked %}<div class="alert alert-warning py-1 px-2 fs-12 mb-2">Quota exhausted — external calls blocked.</div>{% endif %}
               {% else %}
-              <p class="text-muted">No quota assigned to this extension.{% if is_admin %} Use “Assign quota”.{% endif %}</p>
+              <p class="text-muted fs-13 mb-2">No quota assigned.{% if is_admin %} <a href="{% url 'cdr3cx:assign_quota' %}">Assign quota</a>{% endif %}</p>
               {% endif %}
 
               {% if is_admin %}
-              <div class="d-flex flex-wrap gap-2 pt-2 border-top">
+              <div class="d-flex flex-wrap gap-1 pt-2 border-top">
                 {% if user_quota and user_quota.quota %}
                 <form method="post" action="{% url 'cdr3cx:add_balance' ext.id %}" class="d-flex gap-1">
                   {% csrf_token %}
-                  <input type="number" step="0.01" min="0" name="amount" class="form-control form-control-sm" style="width:120px" placeholder="Amount">
-                  <button class="btn btn-outline-primary btn-sm" type="submit">Add balance</button>
+                  <input type="number" step="0.01" min="0" name="amount" class="form-control form-control-sm" style="width:100px" placeholder="SAR">
+                  <button class="btn btn-primary btn-sm" type="submit">Add</button>
                 </form>
-                <a href="{% url 'cdr3cx:send_quota_email' ext.id %}" class="btn btn-outline-secondary btn-sm">Email status</a>
+                <a href="{% url 'cdr3cx:send_quota_email' ext.id %}" class="btn btn-soft-secondary btn-sm">Email</a>
                 {% endif %}
-                <button id="toggle-ext-btn" class="btn btn-sm {% if ext.disable_external_call %}btn-outline-success{% else %}btn-outline-danger{% endif %}"
+                <button id="toggle-ext-btn" class="btn btn-sm {% if ext.disable_external_call %}btn-soft-success{% else %}btn-soft-danger{% endif %}"
                         data-extension-id="{{ ext.id }}" data-action="{% if ext.disable_external_call %}allow{% else %}block{% endif %}">
-                  {% if ext.disable_external_call %}Allow external calls{% else %}Block external calls{% endif %}
+                  {% if ext.disable_external_call %}Allow external{% else %}Block external{% endif %}
                 </button>
               </div>
               {% endif %}
@@ -92,40 +143,124 @@
         </div>
       </div>
 
-      <!-- Activity -->
-      <div class="card border-0 shadow-sm mt-3">
-        <div class="card-header bg-transparent border-0 py-2 d-flex justify-content-between align-items-center">
-          <h6 class="mb-0 fw-semibold">Recent Activity <span class="text-muted fs-12">· last {{ activity_days }} days</span></h6>
-          <a href="{% url 'cdr3cx:agent_details' ext.extension %}" class="btn btn-link btn-sm p-0">View full call-center activity <i class="ri-arrow-right-line"></i></a>
-        </div>
-        <div class="card-body">
-          <div class="row text-center g-2 mb-3">
-            <div class="col-6 col-md-3"><div class="border rounded p-2"><div class="fs-12 text-muted">Calls</div><div class="fs-4 fw-semibold">{{ total_calls }}</div></div></div>
-            <div class="col-6 col-md-3"><div class="border rounded p-2"><div class="fs-12 text-muted">Answered</div><div class="fs-4 fw-semibold text-success">{{ answered_calls }}</div></div></div>
-            <div class="col-6 col-md-3"><div class="border rounded p-2"><div class="fs-12 text-muted">Answer %</div><div class="fs-4 fw-semibold">{{ answer_rate }}%</div></div></div>
-            <div class="col-6 col-md-3"><div class="border rounded p-2"><div class="fs-12 text-muted">Avg duration</div><div class="fs-4 fw-semibold">{{ avg_duration }}s</div></div></div>
+      <!-- Call activity -->
+      <div class="card border-0 shadow-sm">
+        <div class="card-header bg-transparent border-0 py-2 px-3">
+          <div class="d-flex flex-wrap align-items-center justify-content-between gap-2 mb-2">
+            <div>
+              <h6 class="mb-0 fw-semibold fs-13"><i class="ri-history-line me-1 text-primary"></i>Call Activity</h6>
+              <span class="text-muted fs-12">{{ date_range_label }} · {{ total_calls }} call{{ total_calls|pluralize }}</span>
+            </div>
           </div>
+
+          <!-- Compact date filter -->
+          <form method="get" action="{{ filter_action }}" class="activity-filter">
+            <div class="d-flex flex-wrap align-items-center gap-2">
+              <div class="btn-group cc-period-group" role="group">
+                {% for period, label in cc_periods %}
+                <button type="submit" name="time_period" value="{{ period }}"
+                        class="btn btn-sm {% if time_period == period %}btn-primary{% else %}btn-light{% endif %}">{{ label }}</button>
+                {% endfor %}
+              </div>
+              <div class="cc-date-range d-flex align-items-center gap-1 ms-auto">
+                <input type="date" class="form-control form-control-sm" name="start_date" value="{{ start_date }}" aria-label="From">
+                <span class="text-muted fs-12">–</span>
+                <input type="date" class="form-control form-control-sm" name="end_date" value="{{ end_date }}" aria-label="To">
+                <button type="submit" class="btn btn-primary btn-sm px-2"><i class="ri-filter-3-line"></i></button>
+                <a href="{{ reset_url }}" class="btn btn-light btn-sm px-2" title="Reset to this month"><i class="ri-restart-line"></i></a>
+              </div>
+            </div>
+          </form>
+        </div>
+
+        <div class="card-body pt-2 px-3 pb-3">
+          <!-- KPI row -->
+          <div class="row g-2 mb-3">
+            <div class="col-6 col-md-3">
+              <div class="cc-kpi card border-0 shadow-sm h-100">
+                <div class="card-body py-2 px-2">
+                  <p class="cc-kpi-label mb-0">Calls</p>
+                  <h5 class="cc-kpi-value mb-0">{{ total_calls }}</h5>
+                </div>
+              </div>
+            </div>
+            <div class="col-6 col-md-3">
+              <div class="cc-kpi card border-0 shadow-sm h-100 cc-kpi-good">
+                <div class="card-body py-2 px-2">
+                  <p class="cc-kpi-label mb-0">Answered</p>
+                  <h5 class="cc-kpi-value mb-0 text-success">{{ answered_calls }}</h5>
+                  <span class="cc-kpi-sub">{{ answer_rate }}%</span>
+                </div>
+              </div>
+            </div>
+            <div class="col-6 col-md-3">
+              <div class="cc-kpi card border-0 shadow-sm h-100">
+                <div class="card-body py-2 px-2">
+                  <p class="cc-kpi-label mb-0">Avg duration</p>
+                  <h5 class="cc-kpi-value mb-0">{{ avg_duration|format_duration }}</h5>
+                </div>
+              </div>
+            </div>
+            <div class="col-6 col-md-3">
+              <div class="cc-kpi card border-0 shadow-sm h-100">
+                <div class="card-body py-2 px-2">
+                  <p class="cc-kpi-label mb-0">Total cost</p>
+                  <h5 class="cc-kpi-value mb-0">{{ total_cost|floatformat:2 }} <span class="fs-12 fw-normal text-muted">SAR</span></h5>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Table -->
           <div class="table-responsive">
-            <table class="table table-sm table-hover align-middle mb-0">
-              <thead class="table-light"><tr>
-                <th>Time</th><th>Dir</th><th>From</th><th>To</th><th class="text-end">Duration</th><th class="text-end">Status</th>
-              </tr></thead>
-              <tbody>
-                {% for call in recent_calls %}
+            <table class="table table-sm table-hover align-middle mb-0 cc-table">
+              <thead>
                 <tr>
-                  <td class="text-muted fs-12 text-nowrap">{{ call.call_time|date:"M d, H:i:s" }}</td>
+                  <th>Time</th>
+                  <th>Dir</th>
+                  <th>From</th>
+                  <th>To</th>
+                  <th class="text-end">Duration</th>
+                  <th class="text-end">Rate</th>
+                  <th class="text-end">Cost</th>
+                  <th class="text-end">Status</th>
+                </tr>
+              </thead>
+              <tbody>
+                {% for call in page_obj %}
+                <tr>
+                  <td class="text-muted text-nowrap">{{ call.call_time|date:"M d, H:i" }}</td>
                   <td>{% if call.caller == ext.extension %}<span class="badge bg-primary-subtle text-primary">Out</span>{% else %}<span class="badge bg-info-subtle text-info">In</span>{% endif %}</td>
-                  <td class="fs-13">{{ call.from_no|default:call.caller|default:"—" }}</td>
-                  <td class="fs-13">{{ call.to_no|default:call.callee|default:"—" }}</td>
-                  <td class="text-end fs-13">{% if call.duration %}{{ call.duration }}s{% else %}—{% endif %}</td>
-                  <td class="text-end">{% if call.time_answered %}<span class="badge bg-success-subtle text-success">Answered</span>{% else %}<span class="badge bg-warning-subtle text-warning">No answer</span>{% endif %}</td>
+                  <td class="text-truncate" style="max-width:120px">{{ call.from_no|default:call.caller|default:"—" }}</td>
+                  <td class="text-truncate" style="max-width:120px">{{ call.to_no|default:call.callee|default:"—" }}</td>
+                  <td class="text-end">{% if call.duration %}{{ call.duration|format_duration }}{% else %}—{% endif %}</td>
+                  <td class="text-end text-muted">{{ call.call_rate|floatformat:2 }}</td>
+                  <td class="text-end fw-medium">{{ call.total_cost|floatformat:2 }}</td>
+                  <td class="text-end">{% if call.time_answered %}<span class="badge bg-success-subtle text-success">OK</span>{% else %}<span class="badge bg-warning-subtle text-warning">Miss</span>{% endif %}</td>
                 </tr>
                 {% empty %}
-                <tr><td colspan="6" class="text-center text-muted py-4">No call activity in the last {{ activity_days }} days.</td></tr>
+                <tr><td colspan="8" class="text-center text-muted py-4 fs-13">No calls in {{ date_range_label|lower }}.</td></tr>
                 {% endfor %}
               </tbody>
             </table>
           </div>
+
+          <!-- Pagination -->
+          {% if page_obj.has_other_pages %}
+          <nav class="mt-3">
+            <ul class="pagination pagination-sm justify-content-center mb-0">
+              {% if page_obj.has_previous %}
+                <li class="page-item"><a class="page-link" href="?{% if activity_querystring %}{{ activity_querystring }}&{% endif %}page={{ page_obj.previous_page_number }}">Prev</a></li>
+              {% else %}<li class="page-item disabled"><span class="page-link">Prev</span></li>{% endif %}
+              <li class="page-item disabled"><span class="page-link fs-12">{{ page_obj.number }} / {{ page_obj.paginator.num_pages }}</span></li>
+              {% if page_obj.has_next %}
+                <li class="page-item"><a class="page-link" href="?{% if activity_querystring %}{{ activity_querystring }}&{% endif %}page={{ page_obj.next_page_number }}">Next</a></li>
+              {% else %}<li class="page-item disabled"><span class="page-link">Next</span></li>{% endif %}
+            </ul>
+          </nav>
+          {% elif page_obj.paginator.count %}
+          <div class="text-muted fs-12 text-center mt-2">{{ page_obj.paginator.count }} call{{ page_obj.paginator.count|pluralize }}</div>
+          {% endif %}
         </div>
       </div>
 
@@ -143,7 +278,7 @@
   btn.addEventListener('click', function () {
     var id = btn.getAttribute('data-extension-id');
     var action = btn.getAttribute('data-action');
-    btn.disabled = true; var prev = btn.textContent; btn.textContent = 'Working…';
+    btn.disabled = true; var prev = btn.textContent; btn.textContent = '…';
     var fd = new FormData();
     fd.append('extension_id', id); fd.append('action', action);
     fd.append('csrfmiddlewaretoken', '{{ csrf_token }}');

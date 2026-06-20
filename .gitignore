@@ -65,8 +65,22 @@ Thumbs.db
 
 # Backups
 *.bak
+*.bak.*
 *.backup
 *.old
+*.before-connect-*
+backup-*/
+
+# Claude / tooling local config
+.claude/
+.mcp.json
+.playwright-mcp/
+.playwright-verify/
+
+# Runtime / generated
+celerybeat-schedule
+generated_reports/
+**/static/rest_framework/
 
 # Project-specific
 records.txt

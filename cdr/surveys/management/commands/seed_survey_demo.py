@@ -2,7 +2,7 @@
 from django.core.management.base import BaseCommand
 
 from accounts.models import Company
-from surveys.models import SurveyCampaign, SurveyQuestion
+from surveys.models import SurveyCampaign, SurveyQuestion, SurveyQuestionOption
 
 
 class Command(BaseCommand):
@@ -27,20 +27,30 @@ class Command(BaseCommand):
             },
         )
         if created:
-            SurveyQuestion.objects.bulk_create([
-                SurveyQuestion(
-                    campaign=camp, order=1, tag='solved', question_type='yes_no',
-                    prompt_text='Have we resolved the issue you called about?',
-                ),
-                SurveyQuestion(
-                    campaign=camp, order=2, tag='rating', question_type='range',
-                    prompt_text='Rate the attention received (1–5).', min_value=1, max_value=5,
-                ),
-                SurveyQuestion(
-                    campaign=camp, order=3, tag='comments', question_type='recording',
-                    prompt_text='Leave a voice comment.', required=False,
-                ),
+            solved = SurveyQuestion.objects.create(
+                campaign=camp, order=1, tag='solved', question_type='yes_no',
+                prompt_text='Have we resolved the issue you called about? Press 1 for Yes, 2 for No.',
+            )
+            SurveyQuestionOption.objects.bulk_create([
+                SurveyQuestionOption(question=solved, order=1, digit='1', label='Yes', score=1),
+                SurveyQuestionOption(question=solved, order=2, digit='2', label='No', score=0),
             ])
+
+            rating = SurveyQuestion.objects.create(
+                campaign=camp, order=2, tag='rating', question_type='range',
+                prompt_text='Rate the attention received from 1 to 5.', min_value=1, max_value=5,
+            )
+            SurveyQuestionOption.objects.bulk_create([
+                SurveyQuestionOption(question=rating, order=i, digit=str(i), label=label, score=i)
+                for i, label in enumerate(
+                    ['Very poor', 'Poor', 'Average', 'Good', 'Excellent'], start=1,
+                )
+            ])
+
+            SurveyQuestion.objects.create(
+                campaign=camp, order=3, tag='comments', question_type='recording',
+                prompt_text='Leave a voice comment after the tone.', required=False,
+            )
         self.stdout.write(self.style.SUCCESS(
             f'Campaign {camp.slug} ready. Token: {camp.ingest_token}'
         ))

@@ -1,149 +1,268 @@
-{% extends "partials/base.html" %} {% load static %} {% block title %}{{ action }} Calling Rule{% endblock title %} {% block extra_css %}
-<!-- Add any extra CSS here if needed -->
-{% endblock extra_css %} {% block content %}
-<div class="main-content">
-  <div class="page-content">
-    <div class="container-fluid">
-      {% block pagetitle %}
-      <div class="row">
-        <div class="col-12">
-          <div class="page-title-box d-sm-flex align-items-center justify-content-between">
-            <h4 class="mb-sm-0">{{ action }} Calling Rule</h4>
-          </div>
-        </div>
-      </div>
-      {% endblock pagetitle %}
+{% extends "partials/base.html" %}
+{% load static %}
+{% block title %}{{ action }} Calling Rule{% endblock title %}
 
-      <div class="row">
-        <div class="col-lg-8">
-          <div class="card">
-            <div class="card-body">
-              <form method="post" novalidate>
-                {% csrf_token %}
-                
-                {% if form.non_field_errors %}
-                <div class="alert alert-danger" role="alert">
-                  {{ form.non_field_errors }}
-                </div>
-                {% endif %}
-                
-                <div class="mb-3">
-                  <label for="{{ form.name.id_for_label }}" class="form-label">
-                    {{ form.name.label }} <span class="text-danger">*</span>
-                  </label>
-                  {{ form.name }}
-                  {% if form.name.help_text %}
-                  <small class="form-text text-muted">{{ form.name.help_text }}</small>
-                  {% endif %}
-                  {% if form.name.errors %}
-                  <div class="invalid-feedback d-block">
-                    {{ form.name.errors.0 }}
-                  </div>
-                  {% endif %}
-                </div>
-                
-                <div class="mb-3">
-                  <label for="{{ form.pattern.id_for_label }}" class="form-label">
-                    {{ form.pattern.label }} <span class="text-danger">*</span>
-                  </label>
-                  {{ form.pattern }}
-                  {% if form.pattern.help_text %}
-                  <small class="form-text text-muted">{{ form.pattern.help_text }}</small>
-                  {% endif %}
-                  {% if form.pattern.errors %}
-                  <div class="invalid-feedback d-block">
-                    {{ form.pattern.errors.0 }}
-                  </div>
-                  {% endif %}
-                </div>
-                
-                <div class="mb-3">
-                  <label for="{{ form.call_type.id_for_label }}" class="form-label">
-                    {{ form.call_type.label }} <span class="text-danger">*</span>
-                  </label>
-                  {{ form.call_type }}
-                  {% if form.call_type.errors %}
-                  <div class="invalid-feedback d-block">
-                    {{ form.call_type.errors.0 }}
-                  </div>
-                  {% endif %}
-                </div>
-                
-                <div class="mb-3">
-                  <label for="{{ form.rate_per_min.id_for_label }}" class="form-label">
-                    {{ form.rate_per_min.label }} <span class="text-danger">*</span>
-                  </label>
-                  {{ form.rate_per_min }}
-                  {% if form.rate_per_min.help_text %}
-                  <small class="form-text text-muted">{{ form.rate_per_min.help_text }}</small>
-                  {% endif %}
-                  {% if form.rate_per_min.errors %}
-                  <div class="invalid-feedback d-block">
-                    {{ form.rate_per_min.errors.0 }}
-                  </div>
-                  {% endif %}
-                </div>
-                
-                <div class="mb-3">
-                  <label for="{{ form.description.id_for_label }}" class="form-label">
-                    {{ form.description.label }}
-                  </label>
-                  {{ form.description }}
-                  {% if form.description.errors %}
-                  <div class="invalid-feedback d-block">
-                    {{ form.description.errors.0 }}
-                  </div>
-                  {% endif %}
-                </div>
-                
-                <div class="d-flex justify-content-between">
-                  <a href="{% url 'cdr3cx:callpattern-list' %}" class="btn btn-secondary">
-                    <i class="fas fa-arrow-left"></i> Back to List
-                  </a>
-                  <button type="submit" class="btn btn-primary">
-                    <i class="fas fa-save"></i> {{ action }} Rule
-                  </button>
-                </div>
-              </form>
+{% block extra_css %}
+<link rel="stylesheet" href="{% static 'css/callcenter-dashboard.css' %}">
+<link rel="stylesheet" href="{% static 'libs/choices.js/public/assets/styles/choices.min.css' %}">
+<style>
+.cp-wizard .preset-card { cursor: pointer; transition: all .15s ease; border: 1px solid #e9ebec; }
+.cp-wizard .preset-card:hover { border-color: #405189; transform: translateY(-1px); }
+.cp-wizard .mode-btn { font-size: .75rem; }
+.cp-wizard .mode-btn.active { background: var(--cc-accent, #405189); color: #fff; border-color: #405189; }
+.cp-wizard .regex-box { background: #1e1f27; color: #a6e3a1; font-size: .75rem; padding: .6rem .75rem; border-radius: .5rem; word-break: break-all; }
+.cp-wizard .rate-chip { font-size: .72rem; padding: .15rem .5rem; cursor: pointer; }
+.cp-wizard .cp-test-row { display: flex; align-items: center; gap: .5rem; font-size: .8rem; padding: .25rem 0; border-bottom: 1px solid #f0f1f3; }
+.cp-wizard .cp-test-row.match { color: #0ab39c; }
+.cp-wizard .cp-test-row.miss { color: #878a99; }
+.cp-wizard .cost-tile { background: #f8f9fc; border-radius: .5rem; padding: .5rem; text-align: center; }
+.cp-wizard .country-card { cursor: pointer; border: 1px solid #e9ebec; transition: all .15s ease; }
+.cp-wizard .country-card:hover, .cp-wizard .country-card.selected { border-color: #405189; background: #f0f4ff; }
+.cp-wizard .bulk-preview-table { max-height: 180px; overflow-y: auto; font-size: .78rem; }
+.cp-wizard .bulk-preview-table td, .cp-wizard .bulk-preview-table th { padding: .25rem .4rem; }
+.cp-wizard .choices__inner { min-height: 38px; font-size: .8rem; }
+.cp-wizard .choices__list--dropdown { z-index: 1050; }
+.cp-wizard .format-chip { font-size: .68rem; background: #eef0f4; border-radius: 4px; padding: .2rem .45rem; display: inline-block; margin: .15rem; }
+.cp-wizard .format-chip code { color: #405189; }
+</style>
+{% endblock extra_css %}
+
+{% block content %}
+<div class="main-content cp-wizard">
+  <div class="page-content">
+    <div class="container-fluid cc-dashboard">
+
+      {% if messages %}
+        {% for message in messages %}
+          <div class="alert alert-{{ message.tags }} alert-dismissible fade show py-2 fs-13" role="alert">
+            {{ message }}<button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+          </div>
+        {% endfor %}
+      {% endif %}
+
+      <div class="card border-0 shadow-sm mb-3 cc-agent-strip">
+        <div class="card-body py-2 px-3 d-flex flex-wrap align-items-center justify-content-between gap-2">
+          <div class="d-flex align-items-center gap-2">
+            <a href="{% url 'cdr3cx:callpattern-list' %}" class="btn btn-soft-secondary btn-sm px-2"><i class="ri-arrow-left-line"></i></a>
+            <div>
+              <h6 class="mb-0 fw-semibold">{% if is_edit %}Edit{% else %}New{% endif %} Calling Rule</h6>
+              <span class="text-muted fs-12">Build an accurate match pattern and set the per-minute rate</span>
             </div>
           </div>
-          
-          {% if callpattern %}
-          <div class="card mt-3">
-            <div class="card-body">
-              <h5 class="card-title">Pattern Information</h5>
-              <p class="text-muted">
-                This pattern will match phone numbers starting with "{{ callpattern.pattern }}" and will be categorized as {{ callpattern.get_call_type_display }} calls.
-              </p>
-              <p class="text-muted">
-                The rate of {{ callpattern.rate_per_min }} SAR per minute will be applied to matching calls.
-              </p>
-            </div>
-          </div>
-          {% endif %}
-        </div>
-        
-        <div class="col-lg-4">
-          <div class="card">
-            <div class="card-body">
-              <h5 class="card-title">Pattern Examples</h5>
-              <ul class="list-unstyled">
-                <li><strong>+1</strong> - Matches all US/Canada numbers</li>
-                <li><strong>+44</strong> - Matches all UK numbers</li>
-                <li><strong>+966</strong> - Matches all Saudi Arabia numbers</li>
-                <li><strong>059</strong> - Matches Saudi mobile numbers starting with 059</li>
-                <li><strong>055</strong> - Matches Saudi mobile numbers starting with 055</li>
-                <li><strong>011</strong> - Matches Riyadh landline numbers</li>
-              </ul>
-            </div>
-          </div>
+          <button type="submit" form="cpForm" class="btn btn-primary btn-sm">
+            <i class="ri-save-line me-1"></i>Save rule
+          </button>
         </div>
       </div>
+
+      <form method="post" id="cpForm" novalidate>
+        {% csrf_token %}
+        <input type="hidden" id="wizard_mode" value="prefix">
+
+        {% if form.non_field_errors %}
+        <div class="alert alert-danger py-2 fs-13">{{ form.non_field_errors }}</div>
+        {% endif %}
+
+        <div class="row g-3">
+          <!-- Left: builder -->
+          <div class="col-lg-8">
+
+            {% if not is_edit %}
+            <!-- Smart country picker (create) -->
+            <div class="card border-0 shadow-sm mb-3 border-start border-primary border-3">
+              <div class="card-header bg-transparent border-0 py-2 px-3">
+                <h6 class="mb-0 fs-13 fw-semibold"><i class="ri-earth-line me-1 text-primary"></i>Add rate by country <span class="badge bg-primary-subtle text-primary fw-normal ms-1">Smart</span></h6>
+                <span class="text-muted fs-11">Search and select one or many countries — bulk create rules with suggested rates</span>
+              </div>
+              <div class="card-body pt-0 px-3 pb-3">
+                <label class="form-label fs-12 text-muted mb-1">Countries <span class="text-muted">({{ country_catalog|length }} available)</span></label>
+                <select id="country_bulk_select" multiple data-choices data-choices-removeItem data-choices-search-true data-choices-placeholder="Search country name, ISO, or +dial code…"></select>
+
+                <div class="d-flex flex-wrap gap-1 mt-2 mb-2">
+                  <button type="button" class="btn btn-soft-secondary btn-sm" id="btn_country_select_all"><i class="ri-checkbox-multiple-line me-1"></i>Select all</button>
+                  <button type="button" class="btn btn-soft-secondary btn-sm" id="btn_country_clear"><i class="ri-close-circle-line me-1"></i>Clear</button>
+                  <button type="button" class="btn btn-soft-primary btn-sm" id="btn_country_apply_first"><i class="ri-edit-line me-1"></i>Apply first to form</button>
+                </div>
+
+                <div id="country_bulk_panel" class="d-none border rounded p-2 bg-light-subtle">
+                  <div class="d-flex flex-wrap align-items-end gap-2 mb-2">
+                    <div>
+                      <label class="form-label fs-11 text-muted mb-0">Default rate (SAR/min)</label>
+                      <input type="number" step="0.01" min="0" class="form-control form-control-sm" id="bulk_default_rate" placeholder="Use suggested rates" style="width:7rem">
+                    </div>
+                    <div class="form-check mb-1">
+                      <input class="form-check-input" type="checkbox" id="bulk_use_hints" checked>
+                      <label class="form-check-label fs-11" for="bulk_use_hints">Use suggested rate per country</label>
+                    </div>
+                    <button type="button" class="btn btn-primary btn-sm ms-auto" id="btn_bulk_create">
+                      <i class="ri-stack-line me-1"></i>Create <span id="bulk_create_count">0</span> rules
+                    </button>
+                  </div>
+                  <div class="table-responsive bulk-preview-table">
+                    <table class="table table-sm table-borderless mb-0">
+                      <thead class="text-muted"><tr><th>Country</th><th>Dial</th><th class="text-end">Rate</th></tr></thead>
+                      <tbody id="bulk_preview_body"></tbody>
+                    </table>
+                  </div>
+                </div>
+
+                <div id="country_formats_panel" class="d-none mt-2">
+                  <p class="cc-kpi-label mb-1">Detected formats for <span id="selected_country_name" class="text-primary">—</span></p>
+                  <div id="country_format_chips" class="mb-2"></div>
+                  <p class="text-muted fs-11 mb-0"><i class="ri-shield-check-line text-success me-1"></i>One rule covers every format above — no manual regex needed.</p>
+                </div>
+              </div>
+            </div>
+            {% endif %}
+
+            <!-- Quick presets -->
+            <div class="card border-0 shadow-sm mb-3">
+              <div class="card-header bg-transparent border-0 py-2 px-3">
+                <h6 class="mb-0 fs-13 fw-semibold"><i class="ri-magic-line me-1 text-primary"></i>Quick start templates</h6>
+              </div>
+              <div class="card-body pt-0 px-3 pb-3">
+                <div class="row g-2">
+                  {% for preset in rule_presets %}
+                  <div class="col-6 col-md-3">
+                    <div class="preset-card card h-100 mb-0" data-preset-id="{{ preset.id }}">
+                      <div class="card-body py-2 px-2">
+                        <div class="fw-semibold fs-12 text-truncate">{{ preset.name }}</div>
+                        <div class="text-muted fs-11">{{ preset.rate_hint }} SAR/min</div>
+                      </div>
+                    </div>
+                  </div>
+                  {% endfor %}
+                </div>
+              </div>
+            </div>
+
+            <!-- Pattern mode -->
+            <div class="card border-0 shadow-sm mb-3">
+              <div class="card-header bg-transparent border-0 py-2 px-3">
+                <h6 class="mb-0 fs-13 fw-semibold"><i class="ri-route-line me-1 text-primary"></i>How should numbers match?</h6>
+              </div>
+              <div class="card-body pt-0 px-3 pb-3">
+                <div class="btn-group w-100 mb-3 flex-wrap" role="group">
+                  {% for mode in pattern_modes %}
+                  <button type="button" class="btn btn-light mode-btn flex-fill" data-mode-btn="{{ mode.id }}">
+                    <i class="{{ mode.icon }} me-1"></i>{{ mode.label }}
+                  </button>
+                  {% endfor %}
+                </div>
+
+                <div data-wizard-panel="prefix">
+                  <label class="form-label fs-12 text-muted">Number starts with</label>
+                  <input type="text" class="form-control form-control-sm font-monospace" id="wizard_prefix" placeholder="05, 011, +966, 00">
+                  <div class="form-text fs-11">Matches callee numbers beginning with this prefix.</div>
+                </div>
+
+                <div data-wizard-panel="country" class="d-none">
+                  <label class="form-label fs-12 text-muted">Or pick from list</label>
+                  <select class="form-select form-select-sm" id="wizard_country">
+                    <option value="">— Select country —</option>
+                    {% for c in country_catalog %}
+                    <option value="{{ c.iso }}" data-iso="{{ c.iso }}" data-dial="{{ c.dial }}" data-min="{{ c.min }}" data-max="{{ c.max }}" data-rate="{{ c.rate_hint }}" data-trunk="{{ c.trunk_zero|yesno:'1,0' }}" data-name="{{ c.name }}">
+                      {{ c.flag }} {{ c.name }} (+{{ c.dial }}) — {{ c.rate_hint }} SAR
+                    </option>
+                    {% endfor %}
+                  </select>
+                  <div class="form-text fs-11">Smart pattern covers 00, +, and bare country-code formats.</div>
+                </div>
+
+                <div data-wizard-panel="local_ext" class="d-none">
+                  <div class="alert alert-info py-2 fs-12 mb-0">
+                    <i class="ri-information-line me-1"></i>
+                    Matches exactly <strong>4-digit</strong> internal extensions (e.g. 1005, 6148). Pattern stored as <code>^\d{4}$</code>.
+                  </div>
+                </div>
+
+                <div data-wizard-panel="regex" class="d-none">
+                  <label class="form-label fs-12 text-muted">Regular expression</label>
+                  <input type="text" class="form-control form-control-sm font-monospace" id="wizard_regex" placeholder="^(0062|\+62)\d{9,12}">
+                  <div class="form-text fs-11">For advanced rules. Must be valid Python regex.</div>
+                </div>
+              </div>
+            </div>
+
+            <!-- Rule details -->
+            <div class="card border-0 shadow-sm">
+              <div class="card-header bg-transparent border-0 py-2 px-3">
+                <h6 class="mb-0 fs-13 fw-semibold"><i class="ri-price-tag-3-line me-1 text-primary"></i>Rule details</h6>
+              </div>
+              <div class="card-body pt-0 px-3 pb-3">
+                <div class="row g-2">
+                  <div class="col-md-6">
+                    <label class="form-label fs-12">{{ form.name.label }} <span class="text-danger">*</span></label>
+                    {{ form.name }}
+                    {% if form.name.errors %}<div class="text-danger fs-11">{{ form.name.errors.0 }}</div>{% endif %}
+                  </div>
+                  <div class="col-md-6">
+                    <label class="form-label fs-12">{{ form.call_type.label }} <span class="text-danger">*</span></label>
+                    {{ form.call_type }}
+                  </div>
+                  <div class="col-12">
+                    <label class="form-label fs-12">{{ form.pattern.label }} <span class="text-danger">*</span></label>
+                    {{ form.pattern }}
+                    {% if form.pattern.errors %}<div class="text-danger fs-11">{{ form.pattern.errors.0 }}</div>{% endif %}
+                  </div>
+                  <div class="col-md-6">
+                    <label class="form-label fs-12">{{ form.rate_per_min.label }} <span class="text-danger">*</span></label>
+                    {{ form.rate_per_min }}
+                    <div class="d-flex flex-wrap gap-1 mt-1">
+                      {% for rate in rate_chips %}
+                      <span class="badge bg-light text-dark rate-chip border" data-rate-chip="{{ rate }}">{{ rate }}</span>
+                      {% endfor %}
+                    </div>
+                  </div>
+                  <div class="col-md-6">
+                    <label class="form-label fs-12">{{ form.description.label }}</label>
+                    {{ form.description }}
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Right: preview -->
+          <div class="col-lg-4">
+            <div class="card border-0 shadow-sm mb-3 sticky-top" style="top:80px">
+              <div class="card-header bg-transparent border-0 py-2 px-3">
+                <h6 class="mb-0 fs-13 fw-semibold"><i class="ri-eye-line me-1 text-primary"></i>Live preview</h6>
+              </div>
+              <div class="card-body pt-0 px-3 pb-3">
+                <p class="cc-kpi-label mb-1">Compiled regex</p>
+                <div class="regex-box font-monospace mb-3" id="regex_preview">—</div>
+
+                <p class="cc-kpi-label mb-1">Cost estimate (SAR)</p>
+                <div class="row g-2 mb-3">
+                  <div class="col-3"><div class="cost-tile"><div class="fs-11 text-muted">1 min</div><div class="fw-semibold fs-13" id="cost_1">0.00</div></div></div>
+                  <div class="col-3"><div class="cost-tile"><div class="fs-11 text-muted">3 min</div><div class="fw-semibold fs-13" id="cost_3">0.00</div></div></div>
+                  <div class="col-3"><div class="cost-tile"><div class="fs-11 text-muted">5 min</div><div class="fw-semibold fs-13" id="cost_5">0.00</div></div></div>
+                  <div class="col-3"><div class="cost-tile"><div class="fs-11 text-muted">10 min</div><div class="fw-semibold fs-13" id="cost_10">0.00</div></div></div>
+                </div>
+
+                <p class="cc-kpi-label mb-1">Test numbers <span class="fw-normal">(one per line)</span></p>
+                <textarea class="form-control form-control-sm font-monospace mb-2" id="wizard_test_numbers" rows="5" placeholder="0501234567&#10;006212345678901">{% for n in test_numbers %}{{ n }}
+{% endfor %}</textarea>
+                <button type="button" class="btn btn-soft-primary btn-sm w-100 mb-2" id="btn_run_test"><i class="ri-play-line me-1"></i>Test pattern</button>
+                <div class="fs-12 text-muted mb-1" id="test_summary">Add sample numbers to test</div>
+                <div id="test_results"></div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </form>
     </div>
   </div>
-
-  {% block footer %} {% include "partials/footer.html" %} {% endblock footer %}
 </div>
-{% endblock content %} {% block extra_js %}
-<!-- Add any extra JS here if needed -->
+{% block footer %}{% include "partials/footer.html" %}{% endblock footer %}
+{% endblock content %}
+
+{% block extra_js %}
+<script src="{% static 'libs/choices.js/public/assets/scripts/choices.min.js' %}"></script>
+<script type="application/json" id="cp-presets-data">{{ rule_presets_json|safe }}</script>
+<script type="application/json" id="cp-countries-data">{{ country_catalog_json|safe }}</script>
+<script type="application/json" id="cp-default-mode">"{{ default_wizard_mode }}"</script>
+<script type="application/json" id="cp-bulk-create-url">"{% url 'cdr3cx:callpattern-bulk-create' %}"</script>
+<script>{% include "cdr/callpatterns/_wizard.js" %}</script>
 {% endblock extra_js %}

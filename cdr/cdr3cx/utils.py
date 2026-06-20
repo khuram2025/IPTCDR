@@ -86,6 +86,9 @@ def get_date_range(request):
     elif time_period == '1m':
         start_date = now - timedelta(days=30)
         end_date = now
+    elif time_period == 'month':
+        start_date = now.replace(day=1, hour=0, minute=0, second=0, microsecond=0)
+        end_date = now
     elif time_period == '6m':
         start_date = now - timedelta(days=182)
         end_date = now

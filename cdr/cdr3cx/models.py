@@ -44,7 +44,7 @@ class CallPattern(models.Model):
 
     company = models.ForeignKey(Company, on_delete=models.CASCADE, related_name='call_patterns')
     name = models.CharField(max_length=100, default="", help_text="Name of the calling rule")
-    pattern = models.CharField(max_length=20, help_text="Pattern for matching callee numbers, e.g., +1, 059")
+    pattern = models.CharField(max_length=128, help_text="Prefix or regex for matching callee numbers")
     call_type = models.CharField(max_length=20, choices=CALL_TYPE_CHOICES)
     rate_per_min = models.DecimalField(max_digits=5, decimal_places=2, default=0.00, help_text="Rate per minute in SAR")
 
@@ -54,14 +54,19 @@ class CallPattern(models.Model):
         return f"{self.company.name} - {self.name} ({self.pattern})"
 
     def get_regex_pattern(self):
-        if self.pattern == '+':
+        p = (self.pattern or '').strip()
+        if not p:
+            return r'^$'
+        # Full regex stored by wizard (country / advanced)
+        if p.startswith('^') or (p.startswith('(') and '|' in p):
+            return p
+        if p == '+':
             return r'^\+\d+'
-        elif self.pattern == '00':
+        if p == '00':
             return r'^00\d+'
-        elif self.pattern == '^\d{4}$':
-            return self.pattern
-        else:
-            return f'^{re.escape(self.pattern)}.*$'
+        if p in (r'^\d{4}$', '####'):
+            return r'^\d{4}$'
+        return rf'^{re.escape(p)}'
 
     def matches(self, number):
         try:

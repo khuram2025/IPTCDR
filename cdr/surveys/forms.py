@@ -1,7 +1,7 @@
 from django import forms
 from django.forms import inlineformset_factory
 
-from surveys.models import SurveyCampaign, SurveyQuestion
+from surveys.models import SurveyCampaign, SurveyQuestion, SurveyQuestionOption
 
 
 class SurveyCampaignForm(forms.ModelForm):
@@ -48,6 +48,24 @@ class SurveyQuestionForm(forms.ModelForm):
 
 SurveyQuestionFormSet = inlineformset_factory(
     SurveyCampaign, SurveyQuestion, form=SurveyQuestionForm,
+    extra=1, can_delete=True,
+)
+
+
+class SurveyQuestionOptionForm(forms.ModelForm):
+    class Meta:
+        model = SurveyQuestionOption
+        fields = ['order', 'digit', 'label', 'score']
+        widgets = {
+            'order': forms.NumberInput(attrs={'class': 'form-control form-control-sm', 'style': 'width:5rem'}),
+            'digit': forms.TextInput(attrs={'class': 'form-control form-control-sm', 'placeholder': 'e.g. 1', 'style': 'width:6rem'}),
+            'label': forms.TextInput(attrs={'class': 'form-control form-control-sm', 'placeholder': 'e.g. Very satisfied'}),
+            'score': forms.NumberInput(attrs={'class': 'form-control form-control-sm', 'step': 'any', 'style': 'width:7rem'}),
+        }
+
+
+SurveyQuestionOptionFormSet = inlineformset_factory(
+    SurveyQuestion, SurveyQuestionOption, form=SurveyQuestionOptionForm,
     extra=1, can_delete=True,
 )
 

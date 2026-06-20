@@ -3,6 +3,9 @@
 All querysets are scoped by ``request.user.company`` (works for both API-key
 and session auth, since both expose ``.company`` on the user).
 """
+import json
+import logging
+
 from django.utils.dateparse import parse_date
 from rest_framework import mixins, viewsets, permissions, status
 from rest_framework.decorators import action
@@ -211,11 +214,58 @@ class SurveyIngestThrottle(AnonRateThrottle):
     rate = '120/min'
 
 
+_ingest_logger = logging.getLogger('survey_ingest')
+
+
+def _ingest_client_ip(request):
+    """Real visitor IP. Prefers Cloudflare's header, then XFF, then REMOTE_ADDR."""
+    cf = request.META.get('HTTP_CF_CONNECTING_IP')
+    if cf:
+        return cf.strip()
+    xff = request.META.get('HTTP_X_FORWARDED_FOR', '')
+    if xff:
+        return xff.split(',')[0].strip()
+    return request.META.get('REMOTE_ADDR', '-')
+
+
+def _mask_token(token):
+    token = (token or '').strip()
+    if not token:
+        return '(none)'
+    return f'{token[:4]}…{token[-4:]}' if len(token) > 10 else '****'
+
+
 class SurveyIngestView(APIView):
     """CFD POST endpoint — authenticated via X-Survey-Token per campaign."""
     authentication_classes: list = []
     permission_classes = [permissions.AllowAny]
     throttle_classes = [SurveyIngestThrottle]
+
+    def finalize_response(self, request, response, *args, **kwargs):
+        response = super().finalize_response(request, response, *args, **kwargs)
+        # Log EVERY hit to this endpoint (any method) with request + response.
+        try:
+            try:
+                req_body = json.dumps(request.data, ensure_ascii=False, default=str)
+            except Exception:
+                req_body = '<unparseable body>'
+            try:
+                resp_body = json.dumps(response.data, ensure_ascii=False, default=str)
+            except Exception:
+                resp_body = '<no data>'
+            _ingest_logger.info(
+                'HIT %s ip=%s ua=%r token=%s\n  REQUEST : %s\n  RESPONSE %s: %s',
+                request.method,
+                _ingest_client_ip(request),
+                request.META.get('HTTP_USER_AGENT', '-'),
+                _mask_token(request.META.get('HTTP_X_SURVEY_TOKEN')),
+                req_body,
+                response.status_code,
+                resp_body,
+            )
+        except Exception:  # never let logging break the API
+            _ingest_logger.exception('Failed to log ingest hit')
+        return response
 
     def post(self, request):
         token = request.META.get('HTTP_X_SURVEY_TOKEN', '').strip()

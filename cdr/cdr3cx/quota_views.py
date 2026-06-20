@@ -79,10 +79,7 @@ def assign_quota(request):
     return render(request, 'cdr/quota/assign_quota.html', context)
 
 from django.core.paginator import Paginator
-from django.db.models import F
-
-from django.db.models import F, ExpressionWrapper, DecimalField
-from django.db.models.functions import Coalesce
+from django.db.models import F, Q, Value, ExpressionWrapper, DecimalField
 
 @require_POST
 @login_required
@@ -122,25 +119,68 @@ def toggle_external_call(request):
     except Exception as e:
         return JsonResponse({'success': False, 'error': str(e)})
 
+def _quota_usage_base_qs(company):
+    """User quotas for one company with remaining balance annotated."""
+    return UserQuota.objects.select_related('extension', 'quota').filter(
+        extension__company=company
+    ).annotate(
+        calculated_remaining_balance=ExpressionWrapper(
+            F('total_amount') - F('used_amount'),
+            output_field=DecimalField(),
+        )
+    )
+
+
 @login_required
 @user_passes_test(is_company_admin)
 def quota_usage(request):
-    user_quotas = UserQuota.objects.select_related('extension', 'quota')
+    company = request.user.company
+    user_quotas = _quota_usage_base_qs(company)
 
-    # Search functionality
-    search_query = request.GET.get('search', '')
+    search_query = (request.GET.get('search') or '').strip()
     if search_query:
-        user_quotas = user_quotas.filter(extension__extension__icontains=search_query)
-    
-    # Calculate remaining_balance as an annotation for sorting purposes
-    user_quotas = user_quotas.annotate(
-        calculated_remaining_balance=ExpressionWrapper(
-            F('total_amount') - F('used_amount'),
-            output_field=DecimalField()
+        user_quotas = user_quotas.filter(
+            Q(extension__extension__icontains=search_query)
+            | Q(extension__full_name__icontains=search_query)
+            | Q(extension__display_name__icontains=search_query)
+            | Q(extension__email__icontains=search_query)
         )
-    )
-    
-    # Sorting
+
+    quota_filter = request.GET.get('quota', '')
+    if quota_filter:
+        user_quotas = user_quotas.filter(quota_id=quota_filter)
+
+    balance_status = request.GET.get('balance', '')
+    low_threshold = Value(Decimal('0.25'))
+    if balance_status == 'exhausted':
+        user_quotas = user_quotas.filter(calculated_remaining_balance__lte=0)
+    elif balance_status == 'low':
+        user_quotas = user_quotas.filter(
+            calculated_remaining_balance__gt=0,
+            calculated_remaining_balance__lte=F('total_amount') * low_threshold,
+        )
+    elif balance_status == 'healthy':
+        user_quotas = user_quotas.filter(
+            calculated_remaining_balance__gt=F('total_amount') * low_threshold,
+        )
+
+    blocked = request.GET.get('blocked', '')
+    if blocked in ('0', '1'):
+        user_quotas = user_quotas.filter(
+            extension__disable_external_call=(blocked == '1')
+        )
+
+    base_qs = _quota_usage_base_qs(company)
+    stats = {
+        'total': base_qs.count(),
+        'exhausted': base_qs.filter(calculated_remaining_balance__lte=0).count(),
+        'low': base_qs.filter(
+            calculated_remaining_balance__gt=0,
+            calculated_remaining_balance__lte=F('total_amount') * low_threshold,
+        ).count(),
+        'blocked': base_qs.filter(extension__disable_external_call=True).count(),
+    }
+
     sort_by = request.GET.get('sort', 'extension__extension')
     if sort_by == 'used_amount':
         user_quotas = user_quotas.order_by('used_amount')
@@ -154,16 +194,24 @@ def quota_usage(request):
         user_quotas = user_quotas.order_by(F(sort_by[1:]).desc(nulls_last=True))
     else:
         user_quotas = user_quotas.order_by(F(sort_by).asc(nulls_last=True))
-    
-    # Pagination
-    paginator = Paginator(user_quotas, 100)
-    page_number = request.GET.get('page')
-    page_obj = paginator.get_page(page_number)
-    
+
+    paginator = Paginator(user_quotas, 50)
+    page_obj = paginator.get_page(request.GET.get('page'))
+
+    params = request.GET.copy()
+    params.pop('page', None)
+
     return render(request, 'cdr/quota/quota_usage.html', {
-        'page_obj': page_obj, 
+        'page_obj': page_obj,
         'sort_by': sort_by,
-        'search_query': search_query
+        'search_query': search_query,
+        'quota_filter': quota_filter,
+        'balance_status': balance_status,
+        'blocked': blocked,
+        'quota_plans': Quota.objects.filter(company=company).order_by('name'),
+        'stats': stats,
+        'result_count': paginator.count,
+        'querystring': params.urlencode(),
     })
 
 from django.template.loader import render_to_string

@@ -89,12 +89,23 @@
     .nav-links{display:flex;align-items:center;gap:30px}
     .nav-links a.link{font-weight:600;color:var(--slate);font-size:.96rem}
     .nav-links a.link:hover{color:var(--indigo)}
+    .nav-item{position:relative}
+    .nav-item>.link{display:inline-flex;align-items:center;gap:3px}
+    .nav-drop{display:none;position:absolute;top:100%;left:-12px;min-width:270px;background:#fff;border:1px solid var(--line);
+      border-radius:14px;box-shadow:var(--shadow);padding:10px;z-index:60}
+    .nav-item:hover .nav-drop,.nav-item:focus-within .nav-drop{display:grid;gap:2px}
+    .nav-drop a{display:block;color:var(--slate);font-size:.9rem;font-weight:700;padding:9px 10px;border-radius:10px}
+    .nav-drop a:hover{background:var(--soft);color:var(--indigo)}
     .nav-cta{display:flex;align-items:center;gap:12px}
     .menu-btn{display:none;background:none;border:0;font-size:1.6rem;cursor:pointer;color:var(--ink)}
     @media(max-width:880px){
       .nav-links{display:none} .menu-btn{display:block}
       .nav-links.open{display:flex;position:absolute;top:70px;left:0;right:0;background:#fff;
         flex-direction:column;gap:14px;padding:20px 22px;border-bottom:1px solid var(--line)}
+      .nav-item{width:100%}
+      .nav-item>.link{width:100%}
+      .nav-drop{position:static;display:grid;min-width:0;width:100%;border:0;box-shadow:none;background:transparent;
+        padding:2px 0 0 12px}
     }
 
     /* hero */
@@ -185,6 +196,7 @@
     .plan .pprice small{font-size:.95rem;font-weight:600;color:var(--muted)}
     .section-head{max-width:680px;margin:0 auto 50px}
   </style>
+  {% block extra_head %}{% endblock %}
 </head>
 <body>
   <header class="nav">
@@ -192,7 +204,16 @@
       <a href="/" class="brand"><span class="dot">Z</span>Zentryc</a>
       <nav class="nav-links" id="navlinks">
         <a class="link" href="/features/">Features</a>
-        <a class="link" href="/#modules">Platform</a>
+        <div class="nav-item">
+          <a class="link" href="/#solutions">Solutions <i class="ri-arrow-down-s-line"></i></a>
+          <div class="nav-drop" aria-label="Solution pages">
+            <a href="/solutions/3cx-billing-quota/">3CX Billing Quota</a>
+            <a href="/solutions/3cx-setup/">3CX setup</a>
+            <a href="/solutions/3cx-call-control/">3CX call control</a>
+            <a href="/solutions/call-center-setup-evaluation/">Call center setup &amp; evaluation</a>
+            <a href="/solutions/cisco-ip-telephony-billing/">Cisco IP Telephony billing</a>
+          </div>
+        </div>
         <a class="link" href="/pricing/">Pricing</a>
         <a class="link" href="/about/">About</a>
         <a class="link" href="/kb/">Knowledge Base</a>
@@ -225,16 +246,18 @@
         </div>
         <div>
           <h4>Solutions</h4>
-          <a href="/features/#analytics">Call-center analytics</a>
-          <a href="/features/#realtime">Live wallboards</a>
-          <a href="/features/#billing">Telecom billing</a>
-          <a href="/features/#security">Security &amp; compliance</a>
+          <a href="/solutions/3cx-billing-quota/">3CX Billing Quota</a>
+          <a href="/solutions/3cx-setup/">3CX setup</a>
+          <a href="/solutions/3cx-call-control/">3CX call control</a>
+          <a href="/solutions/call-center-setup-evaluation/">Call center setup &amp; evaluation</a>
+          <a href="/solutions/cisco-ip-telephony-billing/">Cisco IP Telephony billing</a>
         </div>
         <div>
           <h4>Company</h4>
           <a href="/about/">About us</a>
           <a href="/contact/">Contact</a>
-          <a href="/contact/">Book a demo</a>
+          <a href="mailto:info@zentryc.com?subject=Zentryc%20pricing%20request">Pricing: info@zentryc.com</a>
+          <a href="mailto:support@zentryc.com?subject=Zentryc%20support%20request">Support: support@zentryc.com</a>
         </div>
       </div>
       <div class="ft-bot">

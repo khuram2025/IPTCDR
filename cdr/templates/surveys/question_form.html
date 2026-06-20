@@ -1,0 +1,143 @@
+{% extends 'partials/base.html' %}
+{% block title %}{% if question %}Edit{% else %}Add{% endif %} Survey Question{% endblock %}
+{% block content %}
+<div class="main-content">
+  <div class="page-content">
+    <div class="container-fluid">
+      <div class="d-flex justify-content-between align-items-center mb-3">
+        <h4 class="mb-0"><i class="ri-question-answer-line me-2"></i>{% if question %}Edit{% else %}Add{% endif %} Survey Question</h4>
+        <a href="{% url 'surveys:settings' %}" class="btn btn-sm btn-light"><i class="ri-arrow-left-line"></i> Back to Settings</a>
+      </div>
+
+      <form method="post">{% csrf_token %}
+        <div class="card border-0 shadow-sm mb-3">
+          <div class="card-header bg-transparent"><h6 class="mb-0">Question</h6></div>
+          <div class="card-body">
+            {% if form.non_field_errors %}<div class="alert alert-danger">{{ form.non_field_errors }}</div>{% endif %}
+            <div class="row g-3">
+              <div class="col-md-2">
+                <label class="form-label small">{{ form.order.label }}</label>
+                {{ form.order }}
+                {% if form.order.errors %}<div class="text-danger small">{{ form.order.errors }}</div>{% endif %}
+              </div>
+              <div class="col-md-5">
+                <label class="form-label small">{{ form.tag.label }}</label>
+                {{ form.tag }}
+                <div class="form-text">CFD Survey component tag, e.g. <code>solved</code>, <code>rating</code>, <code>nps</code>.</div>
+                {% if form.tag.errors %}<div class="text-danger small">{{ form.tag.errors }}</div>{% endif %}
+              </div>
+              <div class="col-md-5">
+                <label class="form-label small">{{ form.question_type.label }}</label>
+                {{ form.question_type }}
+                {% if form.question_type.errors %}<div class="text-danger small">{{ form.question_type.errors }}</div>{% endif %}
+              </div>
+              <div class="col-12">
+                <label class="form-label small">{{ form.prompt_text.label }}</label>
+                {{ form.prompt_text }}
+                <div class="form-text">The wording of the question read to the caller.</div>
+              </div>
+              <div class="col-md-3">
+                <label class="form-label small">{{ form.min_value.label }}</label>
+                {{ form.min_value }}
+              </div>
+              <div class="col-md-3">
+                <label class="form-label small">{{ form.max_value.label }}</label>
+                {{ form.max_value }}
+              </div>
+              <div class="col-md-6 d-flex align-items-end">
+                <div class="form-check">{{ form.required }} <label class="form-check-label">{{ form.required.label }}</label></div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div class="card border-0 shadow-sm mb-3">
+          <div class="card-header bg-transparent">
+            <h6 class="mb-0">Answer Options</h6>
+            <p class="text-muted small mb-0">Each row is a DTMF key the caller can press, the meaning of that answer, and an optional numeric score used for CSAT/NPS reporting. Used for Yes/No, range, NPS and single-digit questions; leave empty for voice-recording questions.</p>
+          </div>
+          <div class="card-body">
+            {{ formset.management_form }}
+            {% if formset.non_form_errors %}<div class="alert alert-danger">{{ formset.non_form_errors }}</div>{% endif %}
+            <table class="table table-sm align-middle" id="options-table">
+              <thead class="table-light">
+                <tr>
+                  <th style="width:6rem">Order</th>
+                  <th style="width:7rem">Digit</th>
+                  <th>Meaning</th>
+                  <th style="width:8rem">Score</th>
+                  <th style="width:4rem">Remove</th>
+                </tr>
+              </thead>
+              <tbody id="options-body">
+                {% for f in formset %}
+                <tr class="option-row">
+                  {{ f.id }}
+                  <td>{{ f.order }}</td>
+                  <td>{{ f.digit }}{% if f.digit.errors %}<div class="text-danger small">{{ f.digit.errors }}</div>{% endif %}</td>
+                  <td>{{ f.label }}{% if f.label.errors %}<div class="text-danger small">{{ f.label.errors }}</div>{% endif %}</td>
+                  <td>{{ f.score }}</td>
+                  <td class="text-center">
+                    {% if f.instance.pk %}{{ f.DELETE }}{% else %}<button type="button" class="btn btn-sm btn-outline-danger remove-row"><i class="ri-close-line"></i></button>{% endif %}
+                  </td>
+                </tr>
+                {% endfor %}
+              </tbody>
+            </table>
+            <button type="button" class="btn btn-sm btn-outline-primary" id="add-option"><i class="ri-add-line"></i> Add Answer</button>
+
+            {# Empty form template for JS cloning #}
+            <template id="empty-option-form">
+              <tr class="option-row">
+                {{ formset.empty_form.id }}
+                <td>{{ formset.empty_form.order }}</td>
+                <td>{{ formset.empty_form.digit }}</td>
+                <td>{{ formset.empty_form.label }}</td>
+                <td>{{ formset.empty_form.score }}</td>
+                <td class="text-center"><button type="button" class="btn btn-sm btn-outline-danger remove-row"><i class="ri-close-line"></i></button></td>
+              </tr>
+            </template>
+          </div>
+        </div>
+
+        <div class="d-flex gap-2">
+          <button type="submit" class="btn btn-primary">Save Question</button>
+          <a href="{% url 'surveys:settings' %}" class="btn btn-light">Cancel</a>
+        </div>
+      </form>
+    </div>
+  </div>
+</div>
+
+<script>
+(function () {
+  var prefix = '{{ formset.prefix }}';
+  var totalForms = document.getElementById('id_' + prefix + '-TOTAL_FORMS');
+  var body = document.getElementById('options-body');
+  var template = document.getElementById('empty-option-form').innerHTML;
+
+  document.getElementById('add-option').addEventListener('click', function () {
+    var index = parseInt(totalForms.value, 10);
+    var html = template.replace(/__prefix__/g, index);
+    var temp = document.createElement('tbody');
+    temp.innerHTML = html.trim();
+    body.appendChild(temp.firstElementChild);
+    totalForms.value = index + 1;
+  });
+
+  body.addEventListener('click', function (e) {
+    var btn = e.target.closest('.remove-row');
+    if (!btn) return;
+    var row = btn.closest('.option-row');
+    // If this is a persisted row with a DELETE checkbox, just hide & mark deleted.
+    var del = row.querySelector('input[type=checkbox][name$="-DELETE"]');
+    if (del) {
+      del.checked = true;
+      row.style.display = 'none';
+    } else {
+      row.remove();
+    }
+  });
+})();
+</script>
+{% endblock %}

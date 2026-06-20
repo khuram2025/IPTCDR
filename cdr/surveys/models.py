@@ -88,6 +88,44 @@ class SurveyQuestion(models.Model):
     def __str__(self):
         return f'{self.campaign.slug}:{self.tag}'
 
+    @property
+    def collects_options(self) -> bool:
+        """Question types where the caller presses a DTMF digit mapped to an answer."""
+        return self.question_type in (
+            self.TYPE_YES_NO, self.TYPE_RANGE, self.TYPE_NPS, self.TYPE_SINGLE_DIGIT,
+        )
+
+
+class SurveyQuestionOption(models.Model):
+    """A configurable answer for a question.
+
+    Mirrors the 3CX CFD Survey component, where the caller presses a DTMF digit
+    and that digit maps to a meaning/score. Business owners CRUD these per question.
+    """
+    question = models.ForeignKey(
+        SurveyQuestion, on_delete=models.CASCADE, related_name='options',
+    )
+    order = models.PositiveSmallIntegerField(default=1)
+    digit = models.CharField(
+        max_length=4,
+        help_text='DTMF key the caller presses for this answer (e.g. 1, 0, *, #).',
+    )
+    label = models.CharField(
+        max_length=128,
+        help_text='What this answer means, e.g. "Very satisfied" or "Yes".',
+    )
+    score = models.FloatField(
+        null=True, blank=True,
+        help_text='Numeric value used for CSAT/NPS scoring. Leave blank if not scored.',
+    )
+
+    class Meta:
+        ordering = ['question', 'order']
+        unique_together = ('question', 'digit')
+
+    def __str__(self):
+        return f'{self.question.tag}:{self.digit}={self.label}'
+
 
 class SurveyResponse(models.Model):
     MATCH_EXACT = 'exact'

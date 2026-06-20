@@ -27,6 +27,7 @@ urlpatterns = [
     path('pricing/', public_views.pricing, name='public_pricing'),
     path('about/', public_views.about, name='public_about'),
     path('contact/', public_views.contact, name='public_contact'),
+    path('solutions/<slug:slug>/', public_views.solution_page, name='solution_page'),
     path('kb/', public_views.kb_index, name='kb_index'),
     path('kb/<slug:slug>/', public_views.kb_article, name='kb_article'),
     path('robots.txt', public_views.robots_txt, name='robots_txt'),
@@ -71,6 +72,9 @@ urlpatterns = [
     # Call Pattern URLs for Company Admin
     path('callpatterns/', callpattern_views.CallPatternListView.as_view(), name='callpattern-list'),
     path('callpatterns/create/', callpattern_views.CallPatternCreateView.as_view(), name='callpattern-create'),
+    path('callpatterns/test/', callpattern_views.callpattern_test_pattern, name='callpattern-test'),
+    path('callpatterns/country-meta/', callpattern_views.callpattern_country_meta, name='callpattern-country-meta'),
+    path('callpatterns/bulk-create/', callpattern_views.callpattern_bulk_create, name='callpattern-bulk-create'),
     path('callpatterns/<int:pk>/edit/', callpattern_views.CallPatternUpdateView.as_view(), name='callpattern-edit'),
     path('callpatterns/<int:pk>/delete/', callpattern_views.CallPatternDeleteView.as_view(), name='callpattern-delete'),
 

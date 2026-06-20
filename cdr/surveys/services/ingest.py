@@ -53,15 +53,30 @@ def _coerce_answer(question, raw_value: str):
     boolean = None
     recording = ''
 
-    if question and question.question_type == SurveyQuestion.TYPE_YES_NO:
-        boolean, text = _parse_yes_no(text)
-    elif question and question.question_type == SurveyQuestion.TYPE_RECORDING:
+    # Map the pressed DTMF digit to a configured answer option (3CX CFD Survey).
+    option = None
+    if question is not None and text:
+        option = next((o for o in question.options.all() if o.digit == text), None)
+
+    if question and question.question_type == SurveyQuestion.TYPE_RECORDING:
         recording = text
+    elif question and question.question_type == SurveyQuestion.TYPE_YES_NO:
+        if option is not None:
+            numeric = option.score
+            boolean = option.score >= 1 if option.score is not None else _parse_yes_no(option.label)[0]
+            text = option.label or text
+        else:
+            boolean, text = _parse_yes_no(text)
     else:
-        try:
-            numeric = float(text)
-        except (TypeError, ValueError):
-            numeric = None
+        if option is not None:
+            numeric = option.score
+            if option.label:
+                text = option.label
+        if numeric is None:
+            try:
+                numeric = float(text)
+            except (TypeError, ValueError):
+                numeric = None
 
     return {
         'value_text': text,
@@ -128,7 +143,7 @@ def ingest_survey_response(campaign: SurveyCampaign, payload: dict) -> tuple[Sur
         queue_dn_hint=queue_dn,
     )
 
-    questions_by_tag = {q.tag: q for q in campaign.questions.all()}
+    questions_by_tag = {q.tag: q for q in campaign.questions.prefetch_related('options').all()}
     for item in answers_data:
         tag = (item.get('tag') or '').strip()
         if not tag:

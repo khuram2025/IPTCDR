@@ -1,0 +1,197 @@
+{% extends 'public/base.html' %}
+{% load static %}
+{% block title %}{{ page.title }}{% endblock %}
+{% block meta_description %}{{ page.meta_description }}{% endblock %}
+{% block meta_keywords %}{{ page.meta_keywords }}{% endblock %}
+{% block canonical %}/solutions/{{ page.slug }}/{% endblock %}{% block og_url %}/solutions/{{ page.slug }}/{% endblock %}
+{% block og_title %}{{ page.og_title }}{% endblock %}
+{% block og_description %}{{ page.og_description }}{% endblock %}
+{% block tw_title %}{{ page.og_title }}{% endblock %}
+
+{% block extra_head %}
+<style>
+  .solution-hero{display:grid;grid-template-columns:1.04fr .96fr;gap:46px;align-items:center}
+  .keyword-row{display:flex;flex-wrap:wrap;gap:10px;margin:24px 0}
+  .keyword-pill{border:1px solid var(--line);background:#fff;border-radius:999px;padding:7px 12px;color:var(--slate);font-weight:700;font-size:.82rem}
+  .proof-grid{display:grid;grid-template-columns:repeat(5,1fr);gap:14px;margin-top:26px}
+  .proof{background:#fff;border:1px solid var(--line);border-radius:14px;padding:15px;font-size:.9rem;font-weight:700;color:var(--slate)}
+  .product-shot{background:#fff;border:1px solid var(--line);border-radius:22px;box-shadow:var(--shadow-lg);overflow:hidden}
+  .product-shot img{display:block;width:100%;height:auto}
+  .screen-card{background:#0b1220;color:#fff;border-radius:22px;border:1px solid rgba(255,255,255,.12);box-shadow:var(--shadow-lg);overflow:hidden}
+  .screen-card .screen-top{display:flex;align-items:center;gap:8px;padding:14px 16px;background:#111827;border-bottom:1px solid rgba(255,255,255,.1);font-size:.82rem;color:#cbd5e1;font-weight:800}
+  .screen-dot{width:10px;height:10px;border-radius:50%;background:#64748b}
+  .screen-body{padding:18px}
+  .screen-metrics{display:grid;grid-template-columns:repeat(3,1fr);gap:12px;margin-bottom:14px}
+  .screen-metric{background:rgba(255,255,255,.08);border:1px solid rgba(255,255,255,.1);border-radius:14px;padding:14px}
+  .screen-label{color:#94a3b8;font-size:.7rem;text-transform:uppercase;letter-spacing:.06em;font-weight:800}
+  .screen-value{font-size:1.45rem;line-height:1.1;font-weight:900;margin-top:6px}
+  .tone-ok{color:#34d399}.tone-info{color:#38bdf8}.tone-warn{color:#fbbf24}.tone-danger{color:#fb7185}
+  .screen-list{display:grid;gap:10px}
+  .screen-row{display:flex;justify-content:space-between;gap:12px;align-items:center;background:rgba(255,255,255,.06);border:1px solid rgba(255,255,255,.08);border-radius:12px;padding:12px 13px}
+  .screen-row span:first-child{font-weight:800}.screen-row span:last-child{font-size:.9rem;font-weight:800}
+  .section-grid{display:grid;grid-template-columns:.82fr 1.18fr;gap:34px;align-items:start}
+  .related-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:18px}
+  .faq-list{display:grid;gap:14px;max-width:900px;margin:0 auto}
+  .faq-item{background:#fff;border:1px solid var(--line);border-radius:14px;padding:22px}
+  @media(max-width:980px){.solution-hero,.section-grid{grid-template-columns:1fr}.proof-grid{grid-template-columns:repeat(2,1fr)}.related-grid{grid-template-columns:repeat(2,1fr)}}
+  @media(max-width:640px){.proof-grid,.screen-metrics,.related-grid{grid-template-columns:1fr}.screen-row{align-items:flex-start;flex-direction:column}}
+</style>
+{% endblock %}
+
+{% block structured_data %}
+<script type="application/ld+json">
+{
+  "@context":"https://schema.org",
+  "@type":"Service",
+  "name":"{{ page.headline|escapejs }}",
+  "serviceType":"{{ page.primary_keyword|escapejs }}",
+  "description":"{{ page.meta_description|escapejs }}",
+  "url":"https://connect.zentryc.com/solutions/{{ page.slug }}/",
+  {% if page.screenshot %}"image":"https://connect.zentryc.com/static/{{ page.screenshot }}",{% endif %}
+  "provider":{"@type":"Organization","name":"Zentryc","url":"https://connect.zentryc.com"},
+  "areaServed":["Saudi Arabia","GCC","Global"],
+  "keywords":"{{ page.meta_keywords|escapejs }}"
+}
+</script>
+<script type="application/ld+json">
+{
+  "@context":"https://schema.org",
+  "@type":"FAQPage",
+  "mainEntity":[
+    {% for item in page.faq %}
+    {"@type":"Question","name":"{{ item.question|escapejs }}","acceptedAnswer":{"@type":"Answer","text":"{{ item.answer|escapejs }}"}}{% if not forloop.last %},{% endif %}
+    {% endfor %}
+  ]
+}
+</script>
+{% endblock %}
+
+{% block body %}
+<section class="hero">
+  <div class="wrap sec">
+    <div class="solution-hero">
+      <div>
+        <span class="eyebrow">{{ page.eyebrow }}</span>
+        <h1>{{ page.headline }}</h1>
+        <p class="lead">{{ page.subhead }}</p>
+        <div class="keyword-row">
+          {% for keyword in page.supporting_keywords %}
+          <span class="keyword-pill">{{ keyword }}</span>
+          {% endfor %}
+        </div>
+        <div class="hero-cta">
+          <a class="btn btn-primary" href="/contact/">Book a demo <i class="ri-arrow-right-line"></i></a>
+          <a class="btn btn-ghost" href="/pricing/">View pricing</a>
+        </div>
+      </div>
+      {% if page.screenshot %}
+      <div class="product-shot">
+        <img src="{% static page.screenshot %}" alt="{{ page.screenshot_alt }}" loading="eager" decoding="async">
+      </div>
+      {% else %}
+      <div class="screen-card" role="img" aria-label="{{ page.snippet.title }} screenshot-style product preview">
+        <div class="screen-top"><span class="screen-dot"></span><span class="screen-dot"></span><span class="screen-dot"></span><span style="margin-left:8px">{{ page.snippet.title }}</span></div>
+        <div class="screen-body">
+          <div class="screen-metrics">
+            {% for metric in page.snippet.metrics %}
+            <div class="screen-metric">
+              <div class="screen-label">{{ metric.label }}</div>
+              <div class="screen-value tone-{{ metric.tone }}">{{ metric.value }}</div>
+            </div>
+            {% endfor %}
+          </div>
+          <div class="screen-list">
+            {% for row in page.snippet.rows %}
+            <div class="screen-row">
+              <span>{{ row.label }}</span>
+              <span class="tone-{{ row.tone }}">{{ row.value }}</span>
+            </div>
+            {% endfor %}
+          </div>
+        </div>
+      </div>
+      {% endif %}
+    </div>
+  </div>
+</section>
+
+<section class="sec" style="padding-top:28px">
+  <div class="wrap">
+    <div class="section-head center">
+      <span class="eyebrow">Why Zentryc</span>
+      <h2>Built around the workflow behind the keyword</h2>
+      <p class="lead">These pages are not generic landing pages. Each one maps directly to a practical telecom workflow in Zentryc.</p>
+    </div>
+    <div class="proof-grid">
+      {% for point in page.proof_points %}
+      <div class="proof"><i class="ri-check-line" style="color:var(--green);margin-right:6px"></i>{{ point }}</div>
+      {% endfor %}
+    </div>
+  </div>
+</section>
+
+{% for section in page.sections %}
+<section class="{% cycle 'soft sec' 'sec' %}">
+  <div class="wrap section-grid">
+    <div>
+      <span class="eyebrow">{{ page.primary_keyword }}</span>
+      <h2>{{ section.heading }}</h2>
+      <p class="lead">{{ section.text }}</p>
+    </div>
+    <div class="cards" style="grid-template-columns:1fr">
+      <div class="card">
+        <ul class="ticks" style="margin:0">
+          {% for bullet in section.bullets %}
+          <li><i class="ri-check-line"></i>{{ bullet }}</li>
+          {% endfor %}
+        </ul>
+      </div>
+    </div>
+  </div>
+</section>
+{% endfor %}
+
+<section class="soft sec">
+  <div class="wrap">
+    <div class="section-head center">
+      <span class="eyebrow">FAQ</span>
+      <h2>{{ page.primary_keyword }} questions</h2>
+    </div>
+    <div class="faq-list">
+      {% for item in page.faq %}
+      <div class="faq-item">
+        <h3>{{ item.question }}</h3>
+        <p style="margin-bottom:0">{{ item.answer }}</p>
+      </div>
+      {% endfor %}
+    </div>
+  </div>
+</section>
+
+<section class="sec">
+  <div class="wrap">
+    <div class="section-head center">
+      <span class="eyebrow">Related solutions</span>
+      <h2>More ways to use Zentryc</h2>
+    </div>
+    <div class="related-grid">
+      {% for item in related %}
+      <a class="card" href="/solutions/{{ item.slug }}/" style="display:block">
+        <h3>{{ item.primary_keyword }}</h3>
+        <p>{{ item.meta_description }}</p>
+        <p style="margin:12px 0 0;color:var(--indigo);font-weight:800">Open page -></p>
+      </a>
+      {% endfor %}
+    </div>
+  </div>
+</section>
+
+<section class="sec" style="padding-top:0">
+  <div class="wrap"><div class="cta">
+    <h2>Need this configured for your PBX estate?</h2>
+    <p class="lead" style="margin:0 auto 24px">Book a demo and we will map Zentryc to your 3CX, call-center or Cisco IP Telephony billing workflow.</p>
+    <a class="btn btn-light" href="/contact/">Book a demo</a>
+    <a class="btn btn-light" href="/features/">Explore features</a>
+  </div></div>
+</section>
+{% endblock %}

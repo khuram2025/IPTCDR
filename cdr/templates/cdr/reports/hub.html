@@ -1,0 +1,203 @@
+{% extends "partials/base.html" %}
+{% load static %}
+{% block title %}Reports{% endblock title %}
+
+{% block extra_css %}
+<link rel="stylesheet" href="{% static 'libs/flatpickr/dist/flatpickr.min.css' %}">
+<style>
+  .rep-hub { --rep-accent:#405189; }
+  .rep-toolbar-icon { width:38px;height:38px;border-radius:.5rem;display:flex;
+    align-items:center;justify-content:center;background:#eef1f8;color:var(--rep-accent);font-size:1.15rem; }
+  .rep-section-head { display:flex;align-items:center;gap:.6rem;margin:1.25rem 0 .65rem; }
+  .rep-section-icon { width:34px;height:34px;border-radius:.5rem;display:flex;align-items:center;
+    justify-content:center;color:#fff;font-size:1.05rem; }
+  .rep-section-icon.cc { background:linear-gradient(135deg,#405189,#5b6fb0); }
+  .rep-section-icon.cx { background:linear-gradient(135deg,#0ab39c,#36c2af); }
+  .rep-card { transition:transform .12s ease, box-shadow .12s ease; border:1px solid #eef0f4; }
+  .rep-card:hover { transform:translateY(-3px); box-shadow:0 .6rem 1.3rem rgba(64,81,137,.13)!important; }
+  .rep-card-icon { width:40px;height:40px;border-radius:.55rem;display:flex;align-items:center;
+    justify-content:center;font-size:1.2rem;background:#f4f6fb;color:var(--rep-accent);flex:0 0 auto; }
+  .rep-card-title { font-size:.92rem;font-weight:600;color:#2a3142;line-height:1.2; }
+  .rep-card-desc { font-size:.78rem;color:#878a99;line-height:1.35; }
+  .rep-actions .btn { font-size:.72rem;padding:.22rem .5rem;font-weight:500; }
+  .rep-period-group .btn { font-size:.74rem; }
+  .rep-period-group .btn.active { background:var(--rep-accent);color:#fff;border-color:var(--rep-accent); }
+  .rep-range-input { min-width:200px; }
+  .rep-feature { background:linear-gradient(120deg,#405189 0%,#4a5da3 55%,#0ab39c 140%);color:#fff;border:0; }
+  .rep-feature .rep-card-icon { background:rgba(255,255,255,.18);color:#fff; }
+  .rep-feature .rep-card-title { color:#fff; }
+  .rep-feature .rep-card-desc { color:rgba(255,255,255,.85); }
+</style>
+{% endblock extra_css %}
+
+{% block content %}
+<div class="main-content">
+  <div class="page-content">
+    <div class="container-fluid rep-hub">
+
+      {% if messages %}{% for message in messages %}
+      <div class="alert alert-{{ message.tags }} alert-dismissible fade show py-2 fs-13" role="alert">
+        {{ message }}<button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+      </div>
+      {% endfor %}{% endif %}
+
+      {# ---- Header + shared date range ---- #}
+      <div class="card border-0 shadow-sm mb-3">
+        <div class="card-body py-3 px-3">
+          <div class="d-flex flex-wrap align-items-center justify-content-between gap-3">
+            <div class="d-flex align-items-center gap-2">
+              <div class="rep-toolbar-icon"><i class="ri-bar-chart-box-line"></i></div>
+              <div>
+                <h5 class="mb-0 fw-semibold">Reports</h5>
+                <span class="text-muted fs-12">Choose a date range, then export any report to Excel or PDF.</span>
+              </div>
+            </div>
+            <div class="d-flex flex-wrap align-items-center gap-2">
+              <div class="btn-group rep-period-group" role="group" id="repPeriodGroup">
+                <button type="button" class="btn btn-light btn-sm" data-range="today">Today</button>
+                <button type="button" class="btn btn-light btn-sm" data-range="yesterday">Yesterday</button>
+                <button type="button" class="btn btn-light btn-sm" data-range="7">7 days</button>
+                <button type="button" class="btn btn-light btn-sm active" data-range="30">30 days</button>
+                <button type="button" class="btn btn-light btn-sm" data-range="month">This month</button>
+                <button type="button" class="btn btn-light btn-sm" data-range="lastmonth">Last month</button>
+              </div>
+              <input type="text" id="repRange" class="form-control form-control-sm rep-range-input"
+                     placeholder="Custom range">
+            </div>
+          </div>
+          <div class="mt-2 fs-12 text-muted">
+            <i class="ri-calendar-event-line me-1"></i>Selected period:
+            <span class="fw-semibold text-dark" id="repRangeLabel">Last 30 days</span>
+          </div>
+        </div>
+      </div>
+
+      {# ---- Report groups ---- #}
+      {% for g in groups %}
+      <div class="rep-section-head">
+        <div class="rep-section-icon {% if g.key == 'call_center' %}cx{% else %}cc{% endif %}">
+          <i class="{{ g.icon }}"></i>
+        </div>
+        <div>
+          <h6 class="mb-0 fw-semibold">{{ g.label }} Reports</h6>
+          <span class="text-muted fs-12">{{ g.blurb }}</span>
+        </div>
+      </div>
+
+      <div class="row g-3 mb-2">
+        {% for r in g.items %}
+        <div class="col-md-6 col-xl-4">
+          <div class="card rep-card shadow-sm h-100 {% if forloop.first %}rep-feature{% endif %}">
+            <div class="card-body d-flex flex-column">
+              <div class="d-flex align-items-start gap-2 mb-2">
+                <div class="rep-card-icon"><i class="{{ r.icon }}"></i></div>
+                <div class="flex-grow-1">
+                  <div class="rep-card-title">{{ r.label }}</div>
+                </div>
+              </div>
+              <p class="rep-card-desc flex-grow-1 mb-2">{{ r.description }}</p>
+              <div class="rep-actions d-flex flex-wrap gap-1">
+                <button type="button" class="btn {% if forloop.parentloop.first and forloop.first %}btn-light{% else %}btn-danger{% endif %} rep-go"
+                        data-type="{{ r.key }}" data-format="pdf"><i class="ri-file-pdf-2-line me-1"></i>PDF</button>
+                <button type="button" class="btn {% if forloop.parentloop.first and forloop.first %}btn-light{% else %}btn-success{% endif %} rep-go"
+                        data-type="{{ r.key }}" data-format="xlsx"><i class="ri-file-excel-2-line me-1"></i>Excel</button>
+                <button type="button" class="btn {% if forloop.parentloop.first and forloop.first %}btn-light{% else %}btn-soft-secondary{% endif %} rep-go"
+                        data-type="{{ r.key }}" data-format="csv">CSV</button>
+                <button type="button" class="btn {% if forloop.parentloop.first and forloop.first %}btn-light{% else %}btn-soft-primary{% endif %} rep-go"
+                        data-type="{{ r.key }}" data-format="html"><i class="ri-eye-line me-1"></i>View</button>
+              </div>
+            </div>
+          </div>
+        </div>
+        {% endfor %}
+      </div>
+      {% endfor %}
+
+      <div class="text-end mt-2">
+        <a href="{% url 'cdr3cx:report_list' %}" class="btn btn-light btn-sm">
+          <i class="ri-time-line me-1"></i>Scheduled reports</a>
+      </div>
+
+    </div>
+  </div>
+</div>
+{% block footer %}{% include "partials/footer.html" %}{% endblock footer %}
+{% endblock content %}
+
+{% block extra_js %}
+<script src="{% static 'libs/flatpickr/dist/flatpickr.min.js' %}"></script>
+<script>
+(function () {
+  var GEN = "{{ generate_url }}";
+  var state = { start: null, end: null };
+
+  function fmt(d) {
+    var m = ('0' + (d.getMonth() + 1)).slice(-2);
+    var day = ('0' + d.getDate()).slice(-2);
+    return d.getFullYear() + '-' + m + '-' + day;
+  }
+  function pretty(d) {
+    return d.toLocaleDateString(undefined, { day: 'numeric', month: 'short', year: 'numeric' });
+  }
+  function setRange(start, end, label) {
+    state.start = fmt(start); state.end = fmt(end);
+    var lbl = document.getElementById('repRangeLabel');
+    lbl.textContent = label || (pretty(start) + ' – ' + pretty(end));
+  }
+  function presetRange(key) {
+    var now = new Date(), s = new Date(), e = new Date();
+    if (key === 'today') { /* s=e=today */ }
+    else if (key === 'yesterday') { s.setDate(now.getDate() - 1); e.setDate(now.getDate() - 1); }
+    else if (key === '7') { s.setDate(now.getDate() - 6); }
+    else if (key === '30') { s.setDate(now.getDate() - 29); }
+    else if (key === 'month') { s = new Date(now.getFullYear(), now.getMonth(), 1); }
+    else if (key === 'lastmonth') {
+      s = new Date(now.getFullYear(), now.getMonth() - 1, 1);
+      e = new Date(now.getFullYear(), now.getMonth(), 0);
+    }
+    return [s, e];
+  }
+
+  // default: last 30 days
+  var def = presetRange('30');
+  setRange(def[0], def[1], 'Last 30 days');
+
+  // quick buttons
+  var labels = { today: 'Today', yesterday: 'Yesterday', '7': 'Last 7 days',
+    '30': 'Last 30 days', month: 'This month', lastmonth: 'Last month' };
+  document.querySelectorAll('#repPeriodGroup [data-range]').forEach(function (btn) {
+    btn.addEventListener('click', function () {
+      document.querySelectorAll('#repPeriodGroup .btn').forEach(function (b) { b.classList.remove('active'); });
+      btn.classList.add('active');
+      var r = presetRange(btn.dataset.range);
+      setRange(r[0], r[1], labels[btn.dataset.range]);
+      if (window._repFp) window._repFp.clear();
+    });
+  });
+
+  // custom range
+  if (window.flatpickr) {
+    window._repFp = flatpickr('#repRange', {
+      mode: 'range', dateFormat: 'Y-m-d',
+      onChange: function (sel) {
+        if (sel.length === 2) {
+          document.querySelectorAll('#repPeriodGroup .btn').forEach(function (b) { b.classList.remove('active'); });
+          setRange(sel[0], sel[1]);
+        }
+      }
+    });
+  }
+
+  // export buttons
+  document.querySelectorAll('.rep-go').forEach(function (btn) {
+    btn.addEventListener('click', function () {
+      var url = GEN + '?type=' + encodeURIComponent(btn.dataset.type)
+        + '&format=' + encodeURIComponent(btn.dataset.format)
+        + '&start=' + state.start + '&end=' + state.end;
+      if (btn.dataset.format === 'html') { window.open(url, '_blank'); }
+      else { window.location.href = url; }
+    });
+  });
+})();
+</script>
+{% endblock extra_js %}

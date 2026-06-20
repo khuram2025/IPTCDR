@@ -301,19 +301,346 @@ def build_survey_summary(company, start, end):
     }
 
 
+# --------------------------------------------------------------------------- #
+# Call Control (CDR / cost / quota) builders
+# --------------------------------------------------------------------------- #
+_CATEGORY_LABELS = {
+    'local': 'Local', 'national': 'National', 'mobile': 'Mobile',
+    'international': 'International', 'unknown': 'Unknown',
+}
+_DIRECTION_LABELS = {
+    'inbound': 'Inbound', 'outbound': 'Outbound', 'internal': 'Internal',
+    'unknown': '—',
+}
+
+
+def _currency(company):
+    """(code, symbol) for the tenant billing currency, defaulting to SAR."""
+    cur = getattr(company, 'currency', None)
+    code = getattr(cur, 'code', None) or 'SAR'
+    symbol = getattr(cur, 'symbol', None) or code
+    return code, symbol
+
+
+def _money(v, code):
+    try:
+        return f'{float(v or 0):,.2f} {code}'
+    except (TypeError, ValueError):
+        return f'0.00 {code}'
+
+
+def build_cost_summary(company, start, end):
+    """Outbound call cost broken down by call type, with optional VAT."""
+    from django.db.models import Count, Sum
+    from cdr3cx.models import CallRecord
+    code, _ = _currency(company)
+    qs = (CallRecord.objects.filter(company=company, call_time__date__range=[start, end])
+          .values('call_category')
+          .annotate(calls=Count('id'), secs=Sum('duration'), cost=Sum('total_cost'))
+          .order_by('-cost'))
+    rows, c_labels, c_data = [], [], []
+    tot_calls = tot_secs = 0
+    tot_cost = 0.0
+    for r in qs:
+        cat = r['call_category'] or 'unknown'
+        calls = r['calls'] or 0
+        secs = r['secs'] or 0
+        cost = round(float(r['cost'] or 0), 2)
+        tot_calls += calls
+        tot_secs += secs
+        tot_cost += cost
+        rows.append([_CATEGORY_LABELS.get(cat, cat.title()), calls,
+                     format_seconds(secs), round(secs / 60, 1), cost])
+        if cost > 0:
+            c_labels.append(_CATEGORY_LABELS.get(cat, cat.title()))
+            c_data.append(cost)
+    vat_rate = 0.15 if getattr(company, 'vat_number', None) else 0.0
+    vat = round(tot_cost * vat_rate, 2)
+    summary = [('Total calls', f'{tot_calls:,}'),
+               ('Total minutes', f'{round(tot_secs / 60):,}'),
+               ('Net cost', _money(tot_cost, code))]
+    if vat_rate:
+        summary.append(('VAT 15%', _money(vat, code)))
+        summary.append(('Total incl. VAT', _money(tot_cost + vat, code)))
+    chart = {'kind': 'donut', 'title': f'Cost by call type ({code})',
+             'labels': c_labels, 'series': [{'data': c_data}]} if c_data else None
+    note = 'Outbound call charges based on your call-pattern rates.'
+    if not vat_rate:
+        note += ' Add a VAT number to the company profile to include VAT.'
+    return {
+        'title': 'Cost Summary by Call Type',
+        'columns': ['Call type', 'Calls', 'Talk time', 'Minutes', f'Cost ({code})'],
+        'rows': rows,
+        'summary': summary[:5],
+        'chart': chart,
+        'note': note,
+    }
+
+
+def build_call_detail(company, start, end):
+    """Per-call CDR detail (capped) for the period."""
+    from cdr3cx.models import CallRecord
+    code, _ = _currency(company)
+    qs = (CallRecord.objects.filter(company=company, call_time__date__range=[start, end])
+          .order_by('-call_time')[:2000])
+    rows = []
+    for c in qs:
+        rows.append([
+            timezone.localtime(c.call_time).strftime('%Y-%m-%d %H:%M'),
+            c.caller or '',
+            c.external_number or c.callee or '',
+            _DIRECTION_LABELS.get(c.direction or 'unknown', '—'),
+            c.country or '',
+            format_seconds(c.duration or 0),
+            round(float(c.total_cost or 0), 2),
+        ])
+    return {
+        'title': 'Call Detail Records',
+        'columns': ['Date / Time', 'Extension', 'Number', 'Direction', 'Country',
+                    'Duration', f'Cost ({code})'],
+        'rows': rows,
+        'summary': [('Calls', f'{len(rows):,}')],
+        'chart': None,
+        'note': ('Capped at 2000 most-recent calls — narrow the date range for full detail.'
+                 if len(rows) == 2000 else ''),
+    }
+
+
+def build_cost_by_destination(company, start, end):
+    """Outbound call cost grouped by destination country."""
+    from django.db.models import Count, Sum
+    from cdr3cx.models import CallRecord
+    code, _ = _currency(company)
+    qs = (CallRecord.objects.filter(company=company, call_time__date__range=[start, end])
+          .exclude(total_cost__isnull=True).exclude(total_cost=0)
+          .values('country')
+          .annotate(calls=Count('id'), secs=Sum('duration'), cost=Sum('total_cost'))
+          .order_by('-cost')[:60])
+    rows, tot_cost, tot_calls = [], 0.0, 0
+    for r in qs:
+        cost = round(float(r['cost'] or 0), 2)
+        tot_cost += cost
+        tot_calls += r['calls']
+        rows.append([r['country'] or 'Unknown', r['calls'], format_seconds(r['secs'] or 0),
+                     round((r['secs'] or 0) / 60, 1), cost])
+    top = rows[:12]
+    chart = {'kind': 'bar', 'title': f'Top destinations by cost ({code})',
+             'labels': [str(r[0])[:12] for r in top],
+             'series': [{'name': 'Cost', 'data': [float(r[4]) for r in top]}]} if top else None
+    return {
+        'title': 'Cost by Destination',
+        'columns': ['Destination', 'Calls', 'Talk time', 'Minutes', f'Cost ({code})'],
+        'rows': rows,
+        'summary': [('Destinations', len(rows)), ('Calls', f'{tot_calls:,}'),
+                    ('Total cost', _money(tot_cost, code))],
+        'chart': chart,
+        'note': 'Charged outbound calls grouped by destination country (top 60).',
+    }
+
+
+def build_top_extensions(company, start, end):
+    """Top originating extensions by charged-call cost / talk time."""
+    from django.db.models import Count, Sum, Q
+    from cdr3cx.models import CallRecord
+    from accounts.models import Extension
+    code, _ = _currency(company)
+    qs = (CallRecord.objects.filter(company=company, call_time__date__range=[start, end])
+          .filter(Q(direction='outbound') | Q(total_cost__gt=0))
+          .exclude(caller='')
+          .values('caller')
+          .annotate(calls=Count('id'), secs=Sum('duration'), cost=Sum('total_cost'))
+          .order_by('-cost')[:100])
+    names = dict(Extension.objects.filter(company=company)
+                 .values_list('extension', 'full_name'))
+    rows, tot_cost, tot_calls = [], 0.0, 0
+    for r in qs:
+        cost = round(float(r['cost'] or 0), 2)
+        tot_cost += cost
+        tot_calls += r['calls']
+        rows.append([r['caller'], names.get(r['caller'], '') or '', r['calls'],
+                     format_seconds(r['secs'] or 0), round((r['secs'] or 0) / 60, 1), cost])
+    top = rows[:12]
+    chart = {'kind': 'bar', 'title': f'Top extensions by cost ({code})',
+             'labels': [str(r[0])[:10] for r in top],
+             'series': [{'name': 'Cost', 'data': [float(r[5]) for r in top]}]} if top else None
+    return {
+        'title': 'Top Extensions',
+        'columns': ['Extension', 'Name', 'Calls', 'Talk time', 'Minutes', f'Cost ({code})'],
+        'rows': rows,
+        'summary': [('Extensions', len(rows)), ('Calls', f'{tot_calls:,}'),
+                    ('Total cost', _money(tot_cost, code))],
+        'chart': chart,
+        'note': 'Outbound / charged calls grouped by originating extension (top 100).',
+    }
+
+
+def build_call_volume(company, start, end):
+    """Day-by-day call volume split by direction, with cost."""
+    from django.db.models import Count, Sum, Q
+    from django.db.models.functions import TruncDate
+    from cdr3cx.models import CallRecord
+    code, _ = _currency(company)
+    qs = (CallRecord.objects.filter(company=company, call_time__date__range=[start, end])
+          .annotate(day=TruncDate('call_time')).values('day')
+          .annotate(total=Count('id'),
+                    inbound=Count('id', filter=Q(direction='inbound')),
+                    outbound=Count('id', filter=Q(direction='outbound')),
+                    internal=Count('id', filter=Q(direction='internal')),
+                    cost=Sum('total_cost'))
+          .order_by('day'))
+    rows, labels, d_in, d_out = [], [], [], []
+    tot = to = 0
+    tcost = 0.0
+    for r in qs:
+        cost = round(float(r['cost'] or 0), 2)
+        tot += r['total']
+        to += r['outbound']
+        tcost += cost
+        rows.append([str(r['day']), r['inbound'], r['outbound'], r['internal'],
+                     r['total'], cost])
+        labels.append(str(r['day'])[5:])
+        d_in.append(r['inbound'])
+        d_out.append(r['outbound'])
+    chart = {'kind': 'line', 'title': 'Daily call volume',
+             'labels': labels,
+             'series': [{'name': 'Inbound', 'data': d_in},
+                        {'name': 'Outbound', 'data': d_out}]} if labels else None
+    return {
+        'title': 'Call Volume by Day',
+        'columns': ['Date', 'Inbound', 'Outbound', 'Internal', 'Total', f'Cost ({code})'],
+        'rows': rows,
+        'summary': [('Days', len(rows)), ('Total calls', f'{tot:,}'),
+                    ('Outbound', f'{to:,}'), ('Total cost', _money(tcost, code))],
+        'chart': chart,
+        'note': 'Direction split requires the ACD direction backfill; totals are always exact.',
+    }
+
+
+def build_international_calls(company, start, end):
+    """International outbound call detail + per-country cost."""
+    from django.db.models import Count, Sum
+    from cdr3cx.models import CallRecord
+    code, _ = _currency(company)
+    base = CallRecord.objects.filter(company=company, call_time__date__range=[start, end],
+                                     call_category='international')
+    rows = []
+    for c in base.order_by('-call_time')[:1500]:
+        rows.append([timezone.localtime(c.call_time).strftime('%Y-%m-%d %H:%M'),
+                     c.caller or '', c.external_number or c.callee or '',
+                     c.country or '', format_seconds(c.duration or 0),
+                     round(float(c.total_cost or 0), 2)])
+    agg = base.aggregate(calls=Count('id'), cost=Sum('total_cost'), secs=Sum('duration'))
+    by_country = base.values('country').annotate(cost=Sum('total_cost')).order_by('-cost')[:12]
+    chart = {'kind': 'bar', 'title': f'International cost by country ({code})',
+             'labels': [(r['country'] or 'Unknown')[:12] for r in by_country],
+             'series': [{'name': 'Cost',
+                         'data': [round(float(r['cost'] or 0), 2) for r in by_country]}]} \
+        if by_country else None
+    return {
+        'title': 'International Calls',
+        'columns': ['Date / Time', 'Extension', 'Number', 'Country', 'Duration',
+                    f'Cost ({code})'],
+        'rows': rows,
+        'summary': [('Calls', f"{agg['calls'] or 0:,}"),
+                    ('Minutes', f"{round((agg['secs'] or 0) / 60):,}"),
+                    ('Total cost', _money(agg['cost'], code))],
+        'chart': chart,
+        'note': 'Capped at 1500 rows.' if len(rows) == 1500 else '',
+    }
+
+
+def build_quota_usage(company, start, end):
+    """Current per-extension quota balance snapshot (date range not applicable)."""
+    from cdr3cx.models import UserQuota
+    code, _ = _currency(company)
+    qs = (UserQuota.objects.filter(extension__company=company)
+          .select_related('extension', 'quota').order_by('-used_amount'))
+    rows = []
+    tot_total = tot_used = 0.0
+    blocked = 0
+    for uq in qs:
+        total = float(uq.total_amount or 0)
+        used = float(uq.used_amount or 0)
+        rem = float(uq.remaining_balance or 0)
+        pct = round(used / total * 100, 1) if total else 0
+        tot_total += total
+        tot_used += used
+        if uq.is_blocked:
+            blocked += 1
+        rows.append([uq.extension.extension, uq.extension.full_name or '',
+                     uq.quota.name if uq.quota else '—', round(total, 2),
+                     round(used, 2), round(rem, 2), pct,
+                     'Blocked' if uq.is_blocked else 'Active'])
+    top = sorted(rows, key=lambda r: r[4], reverse=True)[:12]
+    chart = {'kind': 'bar', 'title': f'Top quota consumers ({code})',
+             'labels': [str(r[0])[:10] for r in top],
+             'series': [{'name': 'Used', 'data': [float(r[4]) for r in top]}]} if top else None
+    return {
+        'title': 'Quota Usage',
+        'columns': ['Extension', 'Name', 'Plan', f'Allocated ({code})',
+                    f'Used ({code})', f'Remaining ({code})', 'Used %', 'Status'],
+        'rows': rows,
+        'summary': [('Extensions', len(rows)), ('Allocated', _money(tot_total, code)),
+                    ('Used', _money(tot_used, code)), ('Blocked', blocked)],
+        'chart': chart,
+        'note': 'Live balance snapshot — independent of the selected date range.',
+    }
+
+
+def build_control_pack(company, start, end):
+    """Flagship combined Call Control report: one polished multi-section PDF."""
+    summary = build_cost_summary(company, start, end)
+    tops = build_top_extensions(company, start, end)
+    dest = build_cost_by_destination(company, start, end)
+    vol = build_call_volume(company, start, end)
+    return {
+        'title': 'Call Control Report',
+        'sections': [summary, tops, dest, vol],
+        'summary': summary['summary'][:5],
+        'columns': summary['columns'],
+        'rows': summary['rows'],
+        'chart': summary.get('chart'),
+        'note': 'Combined report — the PDF contains all sections (cost summary, '
+                'top extensions, destinations, daily volume).',
+    }
+
+
 REPORT_TYPES = {
+    # --- Call Control ---
+    'control_pack': ('Call Control Report', build_control_pack),
+    'cost_summary': ('Cost Summary by Call Type', build_cost_summary),
+    'top_extensions': ('Top Extensions', build_top_extensions),
+    'cost_by_destination': ('Cost by Destination', build_cost_by_destination),
+    'call_volume': ('Call Volume by Day', build_call_volume),
+    'international_calls': ('International Calls', build_international_calls),
+    'quota_usage': ('Quota Usage', build_quota_usage),
+    'call_detail': ('Call Detail Records', build_call_detail),
+    'cost_by_extension': ('Cost by Extension', build_cost_by_extension),
+    # --- Call Center ---
     'callcenter_pack': ('Call Center Report', build_callcenter_pack),
     'callcenter_summary': ('Call Center Summary', build_callcenter_summary),
     'queue_performance': ('Queue Performance (real ACD)', build_queue_performance),
     'agent_productivity': ('Agent Productivity', build_agent_productivity),
     'sla_breaches': ('SLA Breach Alerts', build_sla_breaches),
     'daily_volume': ('Daily Call Volume', build_daily_volume),
-    'cost_by_extension': ('Cost by Extension', build_cost_by_extension),
     'missed_calls_detail': ('Missed Calls Detail', build_missed_calls_detail),
     'survey_summary': ('Survey Summary (CSAT)', build_survey_summary),
 }
 
 REPORT_DESCRIPTIONS = {
+    # Call Control
+    'control_pack': 'Complete call-control report: cost summary plus top extensions, '
+                    'destinations and daily volume in one document.',
+    'cost_summary': 'Outbound spend broken down by call type (local / national / mobile / '
+                    'international) with optional VAT.',
+    'top_extensions': 'Highest-spending extensions by cost, calls and talk time.',
+    'cost_by_destination': 'Outbound call cost grouped by destination country.',
+    'call_volume': 'Day-by-day call volume split by direction, with cost.',
+    'international_calls': 'International call detail and per-country cost.',
+    'quota_usage': 'Per-extension quota: allocated, used, remaining and blocked status.',
+    'call_detail': 'Per-call CDR detail: time, extension, number, direction, country, cost.',
+    'cost_by_extension': 'Outbound call cost and talk time grouped by extension.',
+    # Call Center
     'callcenter_pack': 'Complete call-center report: KPI overview plus queue performance, '
                        'agent productivity and SLA breaches in one document.',
     'callcenter_summary': 'Offered / answered / abandoned volume and answer rate for the company.',
@@ -321,10 +648,71 @@ REPORT_DESCRIPTIONS = {
     'agent_productivity': 'Per-agent answered vs lost rings, answer rate, talk time and occupancy.',
     'sla_breaches': 'Tiered amber/red SLA-breach alerts fired in the period.',
     'daily_volume': 'Day-by-day call-center volume (rollup-backed, fast).',
-    'cost_by_extension': 'Outbound call cost and talk time grouped by extension.',
     'missed_calls_detail': 'Per-call list of unanswered call-center calls.',
     'survey_summary': 'CSAT, solved rate, and per-queue survey breakdown from post-call IVR.',
 }
+
+# Per-report icon (Remix Icon) for the Reports Hub cards.
+REPORT_ICONS = {
+    'control_pack': 'ri-file-chart-2-line',
+    'cost_summary': 'ri-money-dollar-circle-line',
+    'top_extensions': 'ri-bar-chart-grouped-line',
+    'cost_by_destination': 'ri-global-line',
+    'call_volume': 'ri-line-chart-line',
+    'international_calls': 'ri-earth-line',
+    'quota_usage': 'ri-wallet-3-line',
+    'call_detail': 'ri-file-list-3-line',
+    'cost_by_extension': 'ri-contacts-book-line',
+    'callcenter_pack': 'ri-file-chart-line',
+    'callcenter_summary': 'ri-customer-service-2-line',
+    'queue_performance': 'ri-group-line',
+    'agent_productivity': 'ri-user-star-line',
+    'sla_breaches': 'ri-alarm-warning-line',
+    'daily_volume': 'ri-calendar-line',
+    'missed_calls_detail': 'ri-phone-lock-line',
+    'survey_summary': 'ri-emotion-happy-line',
+}
+
+# Hub grouping: ordered sections, each listing its report keys.
+REPORT_GROUPS = [
+    {
+        'key': 'call_control',
+        'label': 'Call Control',
+        'icon': 'ri-money-dollar-circle-line',
+        'blurb': 'Cost, billing, quota and CDR analytics for outbound/inbound calls.',
+        'reports': ['control_pack', 'cost_summary', 'top_extensions',
+                    'cost_by_destination', 'call_volume', 'international_calls',
+                    'quota_usage', 'call_detail', 'cost_by_extension'],
+    },
+    {
+        'key': 'call_center',
+        'label': 'Call Center',
+        'icon': 'ri-customer-service-2-line',
+        'blurb': 'Queue, agent and service-level performance from the live ACD feed.',
+        'reports': ['callcenter_pack', 'callcenter_summary', 'queue_performance',
+                    'agent_productivity', 'sla_breaches', 'daily_volume',
+                    'missed_calls_detail', 'survey_summary'],
+    },
+]
+
+
+def report_groups():
+    """Return REPORT_GROUPS enriched with each report's label/description/icon —
+    a ready-to-render structure for the Reports Hub."""
+    groups = []
+    for g in REPORT_GROUPS:
+        items = []
+        for key in g['reports']:
+            if key not in REPORT_TYPES:
+                continue
+            items.append({
+                'key': key,
+                'label': REPORT_TYPES[key][0],
+                'description': REPORT_DESCRIPTIONS.get(key, ''),
+                'icon': REPORT_ICONS.get(key, 'ri-file-chart-line'),
+            })
+        groups.append({**g, 'items': items})
+    return groups
 
 
 def build_report(report_type, company, start, end):
@@ -336,6 +724,16 @@ def build_report(report_type, company, start, end):
     data['report_type'] = report_type
     data['company'] = company.name
     data['period'] = f'{start} to {end}'
+    # Tenant's own logo for the report header (never the platform template logo).
+    logo = None
+    try:
+        if getattr(company, 'logo', None):
+            import os
+            if os.path.exists(company.logo.path):
+                logo = company.logo.path
+    except Exception:
+        logo = None
+    data['company_logo'] = logo
     return data
 
 
@@ -408,20 +806,9 @@ def _render_xlsx(d):
 
 
 # ----- professional PDF theme ----------------------------------------------- #
-def _logo_path():
-    import os
-    try:
-        from django.conf import settings
-        p = os.path.join(settings.STATIC_ROOT or '', 'images', 'logo-dark.png')
-        if os.path.exists(p):
-            return p
-    except Exception:
-        pass
-    return None
-
-
-def _make_canvas(company):
-    """Two-pass canvas factory that stamps a branded header + 'Page X of Y' footer."""
+def _make_canvas(company, logo=None):
+    """Two-pass canvas factory that stamps a branded header + 'Page X of Y' footer.
+    `logo` is the tenant's own logo path (optional); none falls back to name-only."""
     from reportlab.pdfgen import canvas as _canvas
     from reportlab.lib.units import cm
     from reportlab.lib import colors
@@ -447,12 +834,25 @@ def _make_canvas(company):
 
         def _hf(self, page_count):
             w, h = self._pagesize
-            # header band — company name is the brand (no template logo)
+            # header band with product logo (left) + tenant name
             self.setFillColor(brand)
             self.rect(0, h - 1.15 * cm, w, 1.15 * cm, stroke=0, fill=1)
+            text_x = 1.0 * cm
+            if logo:
+                try:
+                    from reportlab.lib.utils import ImageReader
+                    img = ImageReader(logo)
+                    iw, ih = img.getSize()
+                    lh = 0.62 * cm
+                    lw = lh * (iw / ih) if ih else lh
+                    self.drawImage(img, 1.0 * cm, h - 0.92 * cm, width=lw, height=lh,
+                                   mask='auto', preserveAspectRatio=True)
+                    text_x = 1.0 * cm + lw + 0.35 * cm
+                except Exception:
+                    pass
             self.setFillColor(colors.white)
             self.setFont('Helvetica-Bold', 11)
-            self.drawString(1.0 * cm, h - 0.77 * cm, company or 'Report')
+            self.drawString(text_x, h - 0.77 * cm, company or 'Report')
             self.setFont('Helvetica', 8)
             self.drawRightString(w - 1.0 * cm, h - 0.77 * cm, f'Generated {ts}')
             # footer
@@ -718,7 +1118,7 @@ def _render_pdf(d):
             if d.get('note'):
                 story.append(Spacer(1, 6))
                 story.append(Paragraph('<i>' + d['note'] + '</i>', styles['note']))
-        doc.build(story, canvasmaker=_make_canvas(d['company']))
+        doc.build(story, canvasmaker=_make_canvas(d['company'], d.get('company_logo')))
         return buf.getvalue()
 
     try:

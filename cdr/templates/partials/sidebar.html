@@ -78,6 +78,22 @@
                     </div>
                 </li>
 
+                {# ===== Reports ===== #}
+                <li class="menu-title mt-2"><span>Reports</span></li>
+                <li class="nav-item">
+                    <a class="nav-link menu-link{% if cp == '/reports/' or '/call-center/reports/' in cp %} active{% endif %}" href="#sidebarReports" data-bs-toggle="collapse" role="button"
+                       aria-expanded="{% if cp == '/reports/' or '/call-center/reports/' in cp %}true{% else %}false{% endif %}" aria-controls="sidebarReports">
+                        <i class="ri-bar-chart-box-line"></i> <span>Reports</span>
+                    </a>
+                    <div class="collapse menu-dropdown{% if cp == '/reports/' or '/call-center/reports/' in cp %} show{% endif %}" id="sidebarReports">
+                        <ul class="nav nav-sm flex-column">
+                            <li class="nav-item"><a href="{% url 'cdr3cx:reports_hub' %}" class="nav-link{% if cp == '/reports/' %} active{% endif %}">Reports Hub</a></li>
+                            <li class="nav-item"><a href="{% url 'cdr3cx:report_catalog' %}" class="nav-link{% if '/call-center/reports/catalog' in cp %} active{% endif %}">Report Catalog</a></li>
+                            <li class="nav-item"><a href="{% url 'cdr3cx:report_list' %}" class="nav-link{% if cp == '/call-center/reports/' %} active{% endif %}">Scheduled Reports</a></li>
+                        </ul>
+                    </div>
+                </li>
+
                 {% if user.role == 'company_admin' or user.role == 'superadmin' %}
                 <li class="menu-title mt-2"><span>Administration</span></li>
 

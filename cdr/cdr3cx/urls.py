@@ -95,6 +95,8 @@ urlpatterns = [
     path('call-center/call-back-tracking/', callcenter_views.call_back_tracking, name='call_back_tracking'),
     path('call-center/wallboard/', callcenter_views.callcenter_wallboard, name='callcenter_wallboard'),
     path('call-center/wallboard/data/', callcenter_views.wallboard_data, name='wallboard_data'),
+    # Unified Reports hub
+    path('reports/', report_views.reports_hub, name='reports_hub'),
     # P3.2 — Report catalog + per-call drill-down
     path('call-center/reports/catalog/', report_views.report_catalog, name='report_catalog'),
     path('call-center/call/<int:pk>/', callcenter_views.call_detail, name='call_detail'),

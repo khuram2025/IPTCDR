@@ -16,6 +16,17 @@ from acd.reports import (
 
 
 @login_required
+def reports_hub(request):
+    """Modern unified Reports hub: every Call Control + Call Center report grouped
+    into cards with a shared date range and one-click Excel / PDF / CSV / View."""
+    from acd.reports import report_groups
+    return render(request, 'cdr/reports/hub.html', {
+        'groups': report_groups(),
+        'generate_url': reverse('cdr3cx:report_generate_now'),
+    })
+
+
+@login_required
 def report_catalog(request):
     """Browsable catalog of every available report with a one-line description and
     quick run / schedule actions (P3.2)."""
